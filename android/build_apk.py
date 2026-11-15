@@ -6,7 +6,9 @@ tanda tangan) dan dx.jar (dexer; mis. dx-27.0.3.jar dari rilis dex2jar). Tanpa -
 dipakai (versi lama D8 di bundletool bermasalah dengan inner class, jadi dx disarankan).
 Contoh:
   python build_apk.py --android-jar android.jar --aapt2 aapt2 --bundletool bundletool-all.jar --dx dx.jar
-Keystore default: keystore/clipagent-release.p12 (alias clipagent, sandi clipagent).
+Keystore default: keystore/clipagent-release.p12 (alias clipagent). Bila belum ada, keystore baru dibuat
+otomatis dengan keytool. Keystore tidak disimpan di repo publik; simpan cadangannya sendiri, karena APK
+yang ditandatangani kunci berbeda tidak bisa memperbarui aplikasi yang sudah terpasang (harus uninstall dulu).
 """
 import argparse
 import shutil
@@ -62,6 +64,13 @@ def main():
     shutil.copy(build / "base.apk", unsigned)
     with zipfile.ZipFile(unsigned, "a") as z:
         z.write(build / "classes.dex", "classes.dex", compress_type=zipfile.ZIP_DEFLATED)
+    ks = Path(a.keystore)
+    if not ks.is_file():
+        ks.parent.mkdir(parents=True, exist_ok=True)
+        print("Keystore belum ada; membuat keystore baru:", ks)
+        run(["keytool", "-genkeypair", "-storetype", "PKCS12", "-keystore", ks, "-alias", a.alias,
+             "-storepass", a.password, "-keypass", a.password, "-keyalg", "RSA", "-keysize", "2048",
+             "-validity", "10000", "-dname", "CN=Clip Agent, O=Clip Agent, C=ID"])
     signer = HERE / "tools"
     run(["javac", "-cp", a.bundletool, "-d", build, signer / "Sign.java"])
     sep = ";" if sys.platform.startswith("win") else ":"

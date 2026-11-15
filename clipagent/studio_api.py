@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+from html import escape as html_escape
 from pathlib import Path
 
 from . import characters, music, publish, remake, tts, videogen, viral
@@ -141,16 +142,22 @@ def handle_get(h, p: str, q) -> bool:
     if p == "/api/posts":
         h._json({"items": h.posts.list(), "accounts": publish.status(), "now": time.time()})
         return True
-    if p == "/oauth/youtube":
+    if p in ("/oauth/youtube", "/oauth/tiktok", "/oauth/tiktok/"):
         params = {k: v[0] for k, v in h._qs.items()}
+        plat = "YouTube" if "youtube" in p else "TikTok"
         try:
-            name = publish.yt_callback(params)
-            msg = f"YouTube terhubung: <b>{name}</b>. Tab ini boleh ditutup, lalu kembali ke Clip Agent."
+            name = publish.yt_callback(params) if plat == "YouTube" else publish.tt_callback(params)
+            msg = (f"{plat} terhubung: <b>{html_escape(name)}</b>. Tab ini boleh ditutup, lalu kembali ke Clip Agent. "
+                   f"Untuk menambah akun {plat} lain, keluar dulu dari akun ini di browser (atau pilih akun lain "
+                   f"saat login), lalu klik Tambah akun lagi.")
         except ClipAgentError as exc:
-            msg = f"Gagal menghubungkan YouTube: {exc}"
+            msg = f"Gagal menghubungkan {plat}: {html_escape(str(exc))}"
         h._html(f"""<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>YouTube</title><body style="font:16px system-ui;margin:40px;max-width:560px">
+<title>{plat}</title><body style="font:16px system-ui;margin:40px;max-width:560px;line-height:1.5">
 <p>{msg}</p><p><a href="/#posting">Kembali ke Clip Agent</a></p></body>""".encode())
+        return True
+    if p == "/api/publish/tiktok/creator":
+        h._json(publish.tiktok_creator(q("account")))
         return True
     return False
 
@@ -189,34 +196,32 @@ def handle_post(h, p: str, body: dict) -> bool:
             h._json(remake.public(out, remake.update(out, m.group(1), body)))
         return True
     # ---- posting
-    if p == "/api/publish/youtube/client":
+    if p in ("/api/publish/youtube/client", "/api/publish/tiktok/client"):
         if not h.is_local:
             raise ValueError("Hanya bisa diatur dari laptop.")
         from .webapp import save_env
-        upd = {}
-        if str(body.get("client_id") or "").strip():
-            upd["YT_CLIENT_ID"] = str(body["client_id"]).strip()
-        if str(body.get("client_secret") or "").strip():
-            upd["YT_CLIENT_SECRET"] = str(body["client_secret"]).strip()
+        names = (("client_id", "YT_CLIENT_ID"), ("client_secret", "YT_CLIENT_SECRET")) if "youtube" in p else \
+                (("client_key", "TIKTOK_CLIENT_KEY"), ("client_secret", "TIKTOK_CLIENT_SECRET"))
+        upd = {env: str(body[k]).strip() for k, env in names if str(body.get(k) or "").strip()}
         if upd:
             save_env(upd)
         h._json(publish.status())
         return True
-    if p == "/api/publish/youtube/connect":
+    if p in ("/api/publish/youtube/connect", "/api/publish/tiktok/connect"):
         if not h.is_local:
-            raise ValueError("Hubungkan YouTube dari browser di laptop (login Google kembali ke 127.0.0.1).")
-        h._json({"url": publish.yt_auth_url(f"http://127.0.0.1:{h.port}/oauth/youtube")})
+            raise ValueError("Tambahkan akun dari browser di laptop (login kembali ke alamat 127.0.0.1).")
+        if "youtube" in p:
+            url = publish.yt_auth_url(f"http://127.0.0.1:{h.port}/oauth/youtube")
+        else:
+            url = publish.tt_auth_url(f"http://127.0.0.1:{h.port}/oauth/tiktok/")
+        h._json({"url": url})
         return True
     if p == "/api/publish/meta/connect":
-        h._json(publish.meta_connect(str(body.get("token") or ""), str(body.get("app_id") or "").strip(),
-                                     str(body.get("app_secret") or "").strip()))
+        h._json({"added": publish.meta_connect(str(body.get("token") or ""), str(body.get("app_id") or "").strip(),
+                                               str(body.get("app_secret") or "").strip()), **publish.status()})
         return True
-    if p == "/api/publish/meta/select":
-        h._json(publish.meta_select(str(body.get("page_id") or "")))
-        return True
-    m = re.fullmatch(r"/api/publish/(youtube|meta)/disconnect", p)
-    if m:
-        publish.disconnect(m.group(1))
+    if p == "/api/publish/account/remove":
+        publish.remove_account(str(body.get("platform") or ""), str(body.get("id") or ""))
         h._json(publish.status())
         return True
     if p == "/api/posts":

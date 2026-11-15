@@ -341,6 +341,25 @@ fieldset.plats, fieldset.keys { border: 0; padding: 0; margin: 0; display: grid;
 fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px; }
 .acct { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-md); padding: 14px; display: grid; gap: 12px; }
 .acct .ok { color: var(--good); font-weight: 700; } .acct .no { color: var(--ink-2); }
+.acct-list { display: grid; gap: 6px; }
+.acct-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 10px; }
+.acct-item img, .acct-item .av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--sunk); flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.acct-item b { font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-item .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; max-width: 40%; }
+.acct-item { min-width: 0; }
+.posting > div, .acct, .acct-list { min-width: 0; }
+#poAccts { display: grid; gap: 12px; }
+#poAccts .grp { display: grid; gap: 6px; }
+#poAccts .grp > span { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
+#poAccts .grp div { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-check { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13.5px; cursor: pointer; background: var(--panel); }
+.chip-check:has(input:checked) { border-color: var(--violet); background: var(--violet-soft); color: var(--violet); font-weight: 700; }
+.chip-check input { accent-color: var(--violet); }
+.tt-box { border: 1px solid var(--line); border-left: 3px solid var(--ink); border-radius: var(--r-md); padding: 12px 14px; display: grid; gap: 10px; background: var(--panel); }
+.tt-box header { display: flex; gap: 10px; align-items: center; }
+.tt-box header img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.tt-box .opts { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.tt-box .notice { font-size: 12.5px; background: var(--sunk); border-radius: var(--r-sm); padding: 6px 10px; }
 .post-list { display: grid; gap: 10px; }
 .post { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-md); padding: 10px 12px; display: grid; gap: 8px; }
 .post header { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
@@ -360,6 +379,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
   .ch-ref { grid-template-columns: 120px minmax(0, 1fr); align-items: start; }
   .ch-img { grid-row: span 2; }
   .viral-list { grid-template-columns: minmax(0, 1fr); }
+  .acct-item .small { display: none; }
 }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: var(--r-sm); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: min(560px, calc(100vw - 32px)); }
 .toast.show { opacity: 1; transform: translateX(-50%); }
@@ -780,8 +800,8 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
 <section role="tabpanel" id="tab-posting" hidden>
   <div class="radar-head">
     <div style="display:grid;gap:8px">
-      <h1 style="max-width:22ch">Posting ke YouTube, Facebook, dan Instagram</h1>
-      <p class="muted" style="max-width:70ch">Unggah langsung atau jadwalkan. YouTube dan Facebook menayangkan sesuai jadwal walau laptop mati; jadwal Instagram dijalankan Clip Agent, jadi aplikasi harus menyala pada waktunya.</p>
+      <h1 style="max-width:24ch">Posting ke banyak akun YouTube, Facebook, Instagram, dan TikTok</h1>
+      <p class="muted" style="max-width:72ch">Hubungkan sebanyak mungkin channel dan akun, lalu pilih akun tujuan untuk tiap video. YouTube dan Facebook menayangkan sesuai jadwal walau laptop mati; jadwal Instagram dan TikTok dijalankan Clip Agent, jadi aplikasi harus menyala pada waktunya.</p>
     </div>
   </div>
   <div class="posting">
@@ -789,10 +809,8 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
       <h2>Posting baru</h2>
       <label class="field"><span>Video</span><select id="poVideo"></select></label>
       <video id="poPrev" controls playsinline preload="metadata" hidden></video>
-      <fieldset class="plats"><legend class="label">Platform</legend>
-        <label class="switch"><input type="checkbox" id="poYT" value="youtube"><span>YouTube <span class="small muted" data-st="youtube"></span></span></label>
-        <label class="switch"><input type="checkbox" id="poFB" value="facebook"><span>Facebook Reels <span class="small muted" data-st="facebook"></span></span></label>
-        <label class="switch"><input type="checkbox" id="poIG" value="instagram"><span>Instagram Reels <span class="small muted" data-st="instagram"></span></span></label>
+      <fieldset class="plats"><legend class="label">Akun tujuan</legend>
+        <div id="poAccts"></div>
       </fieldset>
       <label class="field"><span>Judul (YouTube)</span><input type="text" id="poTitle" maxlength="100"></label>
       <label class="field"><span>Deskripsi / caption</span><textarea id="poDesc" rows="4"></textarea></label>
@@ -801,49 +819,72 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
         <label class="field"><span>Privasi YouTube</span><select id="poPrivacy"><option value="public">Publik</option><option value="unlisted">Tidak publik</option><option value="private">Pribadi</option></select></label>
         <label class="field"><span>Kapan</span><input type="datetime-local" id="poWhen"></label>
       </div>
-      <label class="switch"><input type="checkbox" id="poAi"><span>Tandai sebagai konten buatan AI <span class="small muted">(YouTube "altered or synthetic", Instagram "AI info")</span></span></label>
+      <label class="switch"><input type="checkbox" id="poAi"><span>Tandai sebagai konten buatan AI <span class="small muted">(YouTube "altered or synthetic", Instagram "AI info", TikTok "AI-generated")</span></span></label>
+      <div id="poTT"></div>
       <p class="small muted">Kosongkan "Kapan" untuk langsung posting. Jadwal YouTube minimal 15 menit dari sekarang, Facebook 10 menit–29 hari.</p>
       <div class="row"><button class="btn primary" type="button" id="poGo">Posting</button><span class="small err" id="poMsg"></span></div>
       <h2 style="margin-top:18px">Antrean posting</h2>
       <div class="post-list" id="poList"></div>
     </div>
     <div style="display:grid;gap:20px;align-content:start">
-      <h2>Akun</h2>
+      <h2>Akun terhubung</h2>
       <section class="acct" id="acYT">
-        <div class="row" style="justify-content:space-between"><h3>YouTube</h3><span class="small" data-k="status"></span></div>
-        <div data-k="client" class="grid2">
+        <div class="row" style="justify-content:space-between"><h3>YouTube</h3><span class="small muted" data-k="count"></span></div>
+        <div class="acct-list" data-list="youtube"></div>
+        <div class="grid2">
           <label class="field"><span>OAuth Client ID</span><input type="text" id="ytCid" autocomplete="off"></label>
-          <label class="field"><span>OAuth Client Secret</span><input type="password" id="ytSec" autocomplete="off" placeholder="Biarkan kosong bila tidak diubah"></label>
+          <label class="field"><span>OAuth Client Secret</span><input type="password" id="ytSec" autocomplete="off"></label>
         </div>
-        <div class="row"><button class="btn small" type="button" id="ytSaveClient">Simpan client</button><button class="btn small primary" type="button" id="ytConnect">Hubungkan YouTube</button><button class="btn small ghost" type="button" id="ytDisc" hidden>Putuskan</button></div>
+        <div class="row"><button class="btn small" type="button" id="ytSaveClient">Simpan client</button><button class="btn small primary" type="button" id="ytConnect">Tambah channel YouTube</button></div>
         <details class="adv"><summary>Cara membuat OAuth Client (sekali saja, ±10 menit)</summary>
           <ol class="steps">
             <li>Buka console.cloud.google.com, buat proyek baru.</li>
             <li>APIs &amp; Services → Library → aktifkan <b>YouTube Data API v3</b>.</li>
-            <li>OAuth consent screen: pilih External, isi nama aplikasi, lalu tambahkan email Anda di <b>Test users</b>.</li>
-            <li>Credentials → Create credentials → OAuth client ID → jenis <b>Desktop app</b>. Salin Client ID dan Client Secret ke sini.</li>
-            <li>Klik <b>Hubungkan YouTube</b> dari browser di laptop, pilih akun dan channel, lalu izinkan.</li>
+            <li>Google Auth Platform → Audience: pilih External, lalu tambahkan <b>semua email Google</b> pemilik channel di Test users (atau klik Publish app).</li>
+            <li>Clients → Create client → jenis <b>Desktop app</b>. Salin Client ID dan Client Secret ke sini.</li>
+            <li>Klik <b>Tambah channel YouTube</b> dari browser di laptop, pilih akun dan channel, lalu izinkan. Ulangi untuk channel lain; pilih akun/channel lain di layar login Google.</li>
           </ol>
-          <p class="small muted">Selama aplikasi OAuth berstatus Testing, izin berlaku 7 hari lalu perlu dihubungkan ulang. Publish aplikasinya di consent screen agar izin tidak kedaluwarsa.</p>
+          <p class="small muted">Satu Client bisa dipakai untuk banyak channel. Selama status Testing, izin berlaku 7 hari; klik Publish app agar tidak kedaluwarsa.</p>
         </details>
       </section>
       <section class="acct" id="acMeta">
-        <div class="row" style="justify-content:space-between"><h3>Facebook &amp; Instagram</h3><span class="small" data-k="status"></span></div>
-        <label class="field" data-k="pagesel" hidden><span>Facebook Page</span><select id="metaPage"></select></label>
+        <div class="row" style="justify-content:space-between"><h3>Facebook &amp; Instagram</h3><span class="small muted" data-k="count"></span></div>
+        <div class="acct-list" data-list="facebook"></div>
+        <div class="acct-list" data-list="instagram"></div>
         <label class="field"><span>Access token Meta</span><textarea id="metaTok" rows="2" placeholder="Tempel User access token dari Graph API Explorer"></textarea></label>
         <div class="grid2">
           <label class="field"><span>App ID (opsional)</span><input type="text" id="metaApp" autocomplete="off"></label>
           <label class="field"><span>App Secret (opsional)</span><input type="password" id="metaSec" autocomplete="off"></label>
         </div>
-        <div class="row"><button class="btn small primary" type="button" id="metaConnect">Hubungkan</button><button class="btn small ghost" type="button" id="metaDisc" hidden>Putuskan</button></div>
-        <details class="adv"><summary>Cara mendapatkan token (sekali saja)</summary>
+        <div class="row"><button class="btn small primary" type="button" id="metaConnect">Tambah dari token</button></div>
+        <details class="adv"><summary>Cara mendapatkan token</summary>
           <ol class="steps">
-            <li>Instagram harus akun profesional (Business/Creator) yang terhubung ke Facebook Page Anda.</li>
+            <li>Instagram harus akun profesional (Business/Creator) yang terhubung ke Facebook Page.</li>
             <li>Buka developers.facebook.com → My Apps → buat aplikasi jenis Business.</li>
-            <li>Buka Graph API Explorer, pilih aplikasi tadi, lalu Get User Access Token dengan izin: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>business_management</code>.</li>
-            <li>Pilih Page Anda saat diminta, salin tokennya ke sini. Isi App ID dan App Secret agar token diubah menjadi token jangka panjang (token Page dari situ tidak kedaluwarsa).</li>
+            <li>Graph API Explorer → pilih aplikasi → Get User Access Token dengan izin: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>business_management</code>.</li>
+            <li>Centang <b>semua Page</b> yang ingin dipakai saat diminta. Semua Page dan akun Instagram yang terhubung akan ditambahkan sekaligus. Hapus yang tidak perlu dari daftar.</li>
+            <li>Untuk akun Facebook lain, buat token dari akun itu lalu klik Tambah dari token lagi.</li>
           </ol>
-          <p class="small muted">Batas API: Facebook Reels 30 posting per 24 jam per Page, Instagram 100 per 24 jam. Facebook Reels harus 3–90 detik.</p>
+          <p class="small muted">Isi App ID dan App Secret agar token diubah menjadi jangka panjang (token Page dari situ tidak kedaluwarsa). Batas: Facebook Reels 30 posting/24 jam per Page, Instagram 100/24 jam, Reels Facebook 3–90 detik.</p>
+        </details>
+      </section>
+      <section class="acct" id="acTT">
+        <div class="row" style="justify-content:space-between"><h3>TikTok</h3><span class="small muted" data-k="count"></span></div>
+        <div class="acct-list" data-list="tiktok"></div>
+        <div class="grid2">
+          <label class="field"><span>Client Key</span><input type="text" id="ttKey" autocomplete="off"></label>
+          <label class="field"><span>Client Secret</span><input type="password" id="ttSec" autocomplete="off"></label>
+        </div>
+        <div class="row"><button class="btn small" type="button" id="ttSaveClient">Simpan client</button><button class="btn small primary" type="button" id="ttConnect">Tambah akun TikTok</button></div>
+        <details class="adv"><summary>Cara membuat aplikasi TikTok (sekali saja)</summary>
+          <ol class="steps">
+            <li>Daftar di developers.tiktok.com → Manage apps → Connect an app.</li>
+            <li>Tambahkan produk <b>Login Kit</b> (platform <b>Desktop</b>) dan <b>Content Posting API</b>; aktifkan <b>Direct Post</b>.</li>
+            <li>Scope: <code>user.info.basic</code>, <code>video.publish</code>, <code>video.upload</code>.</li>
+            <li>Redirect URI Desktop: <code>http://127.0.0.1:*/oauth/tiktok/</code> (persis, termasuk garis miring di akhir).</li>
+            <li>Salin Client Key dan Client Secret ke sini, lalu klik <b>Tambah akun TikTok</b> dari browser di laptop. Untuk akun lain, keluar dulu dari TikTok di browser, lalu tambah lagi.</li>
+          </ol>
+          <p class="small muted">Sebelum aplikasi diaudit TikTok, Direct Post hanya bisa ke akun TikTok yang diset privat dengan privasi "Hanya saya". Mode "Kirim ke draf TikTok" mengirim video ke kotak masuk TikTok; Anda menyelesaikan posting di aplikasi TikTok. Ajukan audit agar bisa langsung terbit untuk publik.</p>
         </details>
       </section>
     </div>
@@ -1982,8 +2023,10 @@ $("#aeGo").addEventListener("click", () => {
   crJob($("#aeJob"), body, "edit otomatis", () => { loadCreative(CR.key, true); toast("Edit otomatis selesai"); });
 });
 
-/* ------------------------------------------------------------ posting */
-const PO = { videos: [], accounts: null, timer: null, want: "" };
+/* ------------------------------------------------------------ posting (banyak akun) */
+const PO = { videos: [], accounts: null, timer: null, want: "", sel: new Set(), tt: {}, creator: {} };
+const PLAT = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
+const TT_PRIV = { PUBLIC_TO_EVERYONE: "Semua orang", MUTUAL_FOLLOW_FRIENDS: "Teman (saling mengikuti)", FOLLOWER_OF_CREATOR: "Pengikut", SELF_ONLY: "Hanya saya" };
 async function initPosting() {
   try { PO.videos = (await api("/api/videos")).items; } catch (e) { toast(e.message, true); }
   const groups = {};
@@ -1993,7 +2036,9 @@ async function initPosting() {
     : `<option value="">Belum ada video. Buat klip atau video dulu.</option>`;
   if (cur && PO.videos.some(v => v.path === cur)) { sel.value = cur; pickVideo(PO.want === cur); }
   PO.want = "";
+  PO.creator = {};
   await loadPosts();
+  renderTT();
 }
 function pickVideo(fill = true) {
   const v = PO.videos.find(x => x.path === $("#poVideo").value);
@@ -2005,19 +2050,20 @@ function pickVideo(fill = true) {
     $("#poTags").value = (v.hashtags || []).join(", "); $("#poAi").checked = !!v.ai;
   }
 }
-$("#poVideo").addEventListener("change", () => pickVideo(true));
+$("#poVideo").addEventListener("change", () => { pickVideo(true); renderTT(); });
+$("#poPrev").addEventListener("loadedmetadata", renderTT);
 async function loadPosts() {
   clearTimeout(PO.timer);
   let r; try { r = await api("/api/posts"); } catch { return; }
   PO.accounts = r.accounts; renderAccounts();
-  const lab = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram" };
-  const stl = t => t.status === "done" ? (t.scheduled ? "Terjadwal" : "Terbit") : t.status === "running" ? `Mengunggah ${Math.round((t.progress || 0) * 100)}%` :
+  const stl = t => t.status === "done" ? (t.scheduled ? "Terjadwal" : t.note && !t.url ? "Selesai" : "Terbit") : t.status === "running" ? `Mengunggah ${Math.round((t.progress || 0) * 100)}%` :
     t.status === "queued" ? (t.due > r.now + 30 ? "Menunggu " + new Date(t.due * 1000).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : "Menunggu") :
     t.status === "error" ? "Gagal" : "Dibatalkan";
+  const lbl = (k, t) => t.label || PLAT[t.platform || k] || k;
   $("#poList").innerHTML = r.items.length ? r.items.map(p => `<article class="post">
       <header><b>${esc(p.title || p.name)}</b><span class="small muted">${new Date(p.created * 1000).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}${p.schedule ? ", jadwal " + new Date(p.schedule * 1000).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : ""}</span></header>
-      <div class="targets">${Object.entries(p.targets).map(([k, t]) => t.url && t.status === "done" ? `<a class="target done" href="${esc(t.url)}" target="_blank" rel="noopener">${lab[k]}: ${stl(t)}</a>` : `<span class="target ${t.status}">${lab[k]}: ${stl(t)}</span>`).join("")}</div>
-      ${Object.entries(p.targets).filter(([, t]) => t.error).map(([k, t]) => `<p class="err">${lab[k]}: ${esc(t.error)}</p>`).join("")}
+      <div class="targets">${Object.entries(p.targets).map(([k, t]) => t.url && t.status === "done" ? `<a class="target done" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(lbl(k, t))}: ${stl(t)}</a>` : `<span class="target ${t.status}">${esc(lbl(k, t))}: ${stl(t)}</span>`).join("")}</div>
+      ${Object.entries(p.targets).filter(([, t]) => t.error || t.note).map(([k, t]) => `<p class="${t.error ? "err" : "small muted"}">${esc(lbl(k, t))}: ${esc(t.error || t.note)}</p>`).join("")}
       <div class="row" style="gap:6px">
         ${Object.values(p.targets).some(t => ["error", "canceled"].includes(t.status)) ? `<button class="btn small" type="button" data-pa="retry" data-id="${p.id}">Coba lagi</button>` : ""}
         ${Object.values(p.targets).some(t => t.status === "queued") ? `<button class="btn small ghost" type="button" data-pa="cancel" data-id="${p.id}">Batalkan</button>` : ""}
@@ -2032,52 +2078,153 @@ $("#poList").addEventListener("click", async e => {
 });
 function renderAccounts() {
   const a = PO.accounts; if (!a) return;
-  const yt = a.youtube, meta = a.meta;
-  const ys = $("#acYT [data-k=status]");
-  ys.className = "small " + (yt.connected ? "ok" : "no"); ys.textContent = yt.connected ? "Terhubung: " + (yt.channel || "channel") : "Belum terhubung";
-  $("#ytConnect").textContent = yt.connected ? "Hubungkan ulang" : "Hubungkan YouTube";
-  $("#ytDisc").hidden = !yt.connected;
-  $("#ytSec").placeholder = yt.ready_client ? "Tersimpan. Isi hanya bila ingin mengganti" : "Client secret";
-  $("#ytCid").placeholder = yt.ready_client ? "Tersimpan. Isi hanya bila ingin mengganti" : "xxxx.apps.googleusercontent.com";
-  const ms = $("#acMeta [data-k=status]");
-  ms.className = "small " + (meta.connected ? "ok" : "no");
-  ms.textContent = meta.connected ? `Page: ${meta.page}${meta.instagram ? ", Instagram @" + meta.instagram : ", tanpa Instagram"}` : "Belum terhubung";
-  $("#acMeta [data-k=pagesel]").hidden = meta.pages.length < 2;
-  $("#metaPage").innerHTML = meta.pages.map(p => `<option value="${p.id}" ${p.id === meta.page_id ? "selected" : ""}>${esc(p.name)}${p.instagram ? " (IG @" + esc(p.instagram) + ")" : ""}</option>`).join("");
-  $("#metaDisc").hidden = !meta.connected;
-  const lab = { youtube: yt.connected ? "" : "(hubungkan dulu)", facebook: meta.connected ? "" : "(hubungkan dulu)", instagram: meta.instagram ? "" : "(hubungkan dulu)" };
-  $$(".plats [data-st]").forEach(el => el.textContent = lab[el.dataset.st]);
-  $("#poYT").disabled = !yt.connected; $("#poFB").disabled = !meta.connected; $("#poIG").disabled = !meta.instagram;
+  const acc = a.accounts;
+  const item = (plat, x) => `<div class="acct-item">${x.avatar ? `<img src="${esc(x.avatar)}" alt="">` : `<span class="av">${esc((x.name || "?")[0])}</span>`}
+      <b title="${esc(x.name)}">${esc(plat === "instagram" ? "@" + x.name : x.name)}${x.username ? ` <span class="small muted">@${esc(x.username)}</span>` : ""}</b>
+      <span class="small muted">${esc(plat === "instagram" ? x.detail || "" : plat === "facebook" ? "Page" : plat === "tiktok" ? (x.modes || []).map(m => m === "direct" ? "terbit langsung" : "draf").join(", ") : "channel")}</span>
+      <button class="btn small ghost" type="button" data-rm="${plat}" data-id="${esc(x.id)}">Hapus</button></div>`;
+  $$("[data-list]").forEach(el => { const plat = el.dataset.list; el.innerHTML = (acc[plat] || []).map(x => item(plat, x)).join(""); });
+  $("#acYT [data-k=count]").textContent = acc.youtube.length ? `${acc.youtube.length} channel` : "Belum ada";
+  $("#acMeta [data-k=count]").textContent = acc.facebook.length || acc.instagram.length ? `${acc.facebook.length} Page, ${acc.instagram.length} Instagram` : "Belum ada";
+  $("#acTT [data-k=count]").textContent = acc.tiktok.length ? `${acc.tiktok.length} akun` : "Belum ada";
+  $("#ytCid").placeholder = a.clients.youtube ? "Tersimpan. Isi hanya bila ingin mengganti" : "xxxx.apps.googleusercontent.com";
+  $("#ytSec").placeholder = a.clients.youtube ? "Tersimpan" : "GOCSPX-…";
+  $("#ttKey").placeholder = a.clients.tiktok ? "Tersimpan. Isi hanya bila ingin mengganti" : "Client key dari developers.tiktok.com";
+  $("#ttSec").placeholder = a.clients.tiktok ? "Tersimpan" : "Client secret";
+  // pilihan akun tujuan
+  const valid = new Set(Object.entries(acc).flatMap(([p, xs]) => xs.map(x => `${p}:${x.id}`)));
+  PO.sel = new Set([...PO.sel].filter(k => valid.has(k)));
+  const groups = Object.entries(acc).filter(([, xs]) => xs.length);
+  $("#poAccts").innerHTML = groups.length ? groups.map(([p, xs]) => `<div class="grp"><span>${PLAT[p]}</span><div>${xs.map(x => `<label class="chip-check"><input type="checkbox" data-acc="${p}:${esc(x.id)}" ${PO.sel.has(`${p}:${x.id}`) ? "checked" : ""}>${esc(p === "instagram" ? "@" + x.name : x.name)}</label>`).join("")}</div></div>`).join("")
+    : `<p class="small muted">Belum ada akun. Hubungkan akun di panel Akun terhubung.</p>`;
+}
+$("#poAccts").addEventListener("change", e => {
+  const k = e.target.dataset.acc; if (!k) return;
+  e.target.checked ? PO.sel.add(k) : PO.sel.delete(k);
+  if (k.startsWith("tiktok:")) renderTT();
+});
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-rm]"); if (!b) return;
+  if (!confirm(`Hapus akun ${PLAT[b.dataset.rm]} ini dari Clip Agent?`)) return;
+  try { PO.accounts = await api("/api/publish/account/remove", { method: "POST", body: { platform: b.dataset.rm, id: b.dataset.id } }); renderAccounts(); renderTT(); }
+  catch (err) { toast(err.message, true); }
+});
+
+/* TikTok: info kreator diambil ulang setiap kali halaman posting ditampilkan (aturan TikTok). */
+async function renderTT() {
+  const ids = [...PO.sel].filter(k => k.startsWith("tiktok:")).map(k => k.slice(7));
+  const box = $("#poTT");
+  if (!ids.length) { box.innerHTML = ""; return; }
+  for (const id of ids) {
+    if (!PO.creator[id]) {
+      PO.creator[id] = { loading: true };
+      api("/api/publish/tiktok/creator?account=" + encodeURIComponent(id)).then(c => { PO.creator[id] = c; renderTT(); })
+        .catch(err => { PO.creator[id] = { error: err.message }; renderTT(); });
+    }
+    PO.tt[id] = PO.tt[id] || { mode: "", privacy: "", allow_comment: false, allow_duet: false, allow_stitch: false, commercial: false, brand_organic: false, brand_content: false, consent: false };
+  }
+  const acc = Object.fromEntries((PO.accounts?.accounts.tiktok || []).map(x => [x.id, x]));
+  const dur = $("#poPrev").duration || 0;
+  box.innerHTML = ids.map(id => {
+    const c = PO.creator[id] || {}, o = PO.tt[id], a = acc[id] || {};
+    if (c.loading) return `<section class="tt-box"><p class="small muted">Memuat info akun TikTok ${esc(a.name || "")}…</p></section>`;
+    if (c.error) return `<section class="tt-box"><p class="err">TikTok ${esc(a.name || "")}: ${esc(c.error)}</p></section>`;
+    const modes = a.modes || [];
+    const mode = o.mode || (modes.includes("direct") ? "direct" : "inbox");
+    const direct = mode === "direct" && c.direct;
+    const tooLong = direct && c.max_duration && dur > c.max_duration;
+    const brandMsg = [o.brand_organic ? "Video akan diberi label \"Promotional content\"." : "", o.brand_content ? "Video akan diberi label \"Paid partnership\"." : ""].filter(Boolean).join(" ");
+    return `<section class="tt-box" data-tt="${esc(id)}">
+      <header>${c.avatar ? `<img src="${esc(c.avatar)}" alt="">` : ""}<div><b>TikTok: ${esc(c.nickname || a.name || "")}</b>${c.username ? ` <span class="small muted">@${esc(c.username)}</span>` : ""}</div></header>
+      ${modes.length > 1 ? `<label class="field"><span>Cara posting</span><select data-o="mode"><option value="direct" ${mode === "direct" ? "selected" : ""}>Langsung terbit</option><option value="inbox" ${mode === "inbox" ? "selected" : ""}>Kirim ke draf TikTok (selesaikan di aplikasi TikTok)</option></select></label>` : ""}
+      ${direct ? `
+        <label class="field"><span>Siapa yang bisa menonton video ini</span><select data-o="privacy"><option value="">Pilih…</option>${(c.privacy_options || []).map(v => `<option value="${v}" ${o.privacy === v ? "selected" : ""} ${o.brand_content && v === "SELF_ONLY" ? "disabled" : ""}>${esc(TT_PRIV[v] || v)}${o.brand_content && v === "SELF_ONLY" ? " (tidak untuk konten bermerek)" : ""}</option>`).join("")}</select></label>
+        <div class="opts"><span class="small">Izinkan pengguna:</span>
+          <label class="switch"><input type="checkbox" data-o="allow_comment" ${o.allow_comment ? "checked" : ""} ${c.comment_disabled ? "disabled" : ""}><span class="small">Komentar</span></label>
+          <label class="switch"><input type="checkbox" data-o="allow_duet" ${o.allow_duet ? "checked" : ""} ${c.duet_disabled ? "disabled" : ""}><span class="small">Duet</span></label>
+          <label class="switch"><input type="checkbox" data-o="allow_stitch" ${o.allow_stitch ? "checked" : ""} ${c.stitch_disabled ? "disabled" : ""}><span class="small">Stitch</span></label></div>
+        <label class="switch"><input type="checkbox" data-o="commercial" ${o.commercial ? "checked" : ""}><span class="small">Ungkap konten komersial (video ini mempromosikan merek, produk, atau jasa)</span></label>
+        ${o.commercial ? `<div class="opts">
+          <label class="switch"><input type="checkbox" data-o="brand_organic" ${o.brand_organic ? "checked" : ""}><span class="small">Merek Anda sendiri</span></label>
+          <label class="switch"><input type="checkbox" data-o="brand_content" ${o.brand_content ? "checked" : ""}><span class="small">Konten bermerek (kerja sama berbayar)</span></label></div>
+          ${brandMsg ? `<p class="notice">${brandMsg}</p>` : `<p class="err small">Pilih minimal satu jenis konten komersial.</p>`}` : ""}
+        ${tooLong ? `<p class="err small">Video ${Math.round(dur)} detik melebihi batas akun ini (${c.max_duration} detik).</p>` : ""}
+        <p class="notice">Setelah diposting, TikTok butuh beberapa menit untuk memproses video sebelum muncul di profil.</p>`
+      : `<p class="notice">Video dikirim ke kotak masuk TikTok akun ini. Buka notifikasi di aplikasi TikTok untuk mengedit dan memposting. Maksimal 5 video menunggu dalam 24 jam.</p>`}
+      <label class="switch"><input type="checkbox" data-o="consent" ${o.consent ? "checked" : ""}><span class="small">Dengan memposting, saya menyetujui <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a> TikTok${o.brand_content ? ` dan <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener">Branded Content Policy</a>` : ""}.</span></label>
+    </section>`;
+  }).join("");
+}
+$("#poTT").addEventListener("change", e => {
+  const t = e.target, box = t.closest("[data-tt]"); if (!box || !t.dataset.o) return;
+  const o = PO.tt[box.dataset.tt];
+  o[t.dataset.o] = t.type === "checkbox" ? t.checked : t.value;
+  if (t.dataset.o === "commercial" && !t.checked) { o.brand_organic = false; o.brand_content = false; }
+  if (o.brand_content && o.privacy === "SELF_ONLY") o.privacy = "";
+  renderTT();
+});
+function ttProblems() {
+  const out = [];
+  for (const k of PO.sel) {
+    if (!k.startsWith("tiktok:")) continue;
+    const id = k.slice(7), o = PO.tt[id] || {}, c = PO.creator[id] || {};
+    const a = (PO.accounts?.accounts.tiktok || []).find(x => x.id === id) || {};
+    const mode = o.mode || ((a.modes || []).includes("direct") ? "direct" : "inbox");
+    const name = c.nickname || a.name || "TikTok";
+    if (c.loading) out.push(`TikTok ${name}: info akun masih dimuat.`);
+    else if (c.error) out.push(`TikTok ${name}: ${c.error}`);
+    else if (mode === "direct" && c.direct) {
+      if (!o.privacy) out.push(`TikTok ${name}: pilih siapa yang bisa menonton.`);
+      if (o.commercial && !o.brand_organic && !o.brand_content) out.push(`TikTok ${name}: pilih jenis konten komersial.`);
+      if (c.max_duration && ($("#poPrev").duration || 0) > c.max_duration) out.push(`TikTok ${name}: video terlalu panjang.`);
+    }
+    if (!o.consent) out.push(`TikTok ${name}: centang persetujuan.`);
+  }
+  return out;
 }
 $("#ytSaveClient").addEventListener("click", async () => {
-  try { PO.accounts = { ...PO.accounts, ...(await api("/api/publish/youtube/client", { method: "POST", body: { client_id: $("#ytCid").value.trim(), client_secret: $("#ytSec").value.trim() } })) };
-        $("#ytSec").value = ""; renderAccounts(); toast("Client YouTube tersimpan"); } catch (e) { toast(e.message, true); }
+  try { PO.accounts = await api("/api/publish/youtube/client", { method: "POST", body: { client_id: $("#ytCid").value.trim(), client_secret: $("#ytSec").value.trim() } });
+        $("#ytCid").value = ""; $("#ytSec").value = ""; renderAccounts(); toast("Client YouTube tersimpan"); } catch (e) { toast(e.message, true); }
 });
-$("#ytConnect").addEventListener("click", async () => {
+$("#ttSaveClient").addEventListener("click", async () => {
+  try { PO.accounts = await api("/api/publish/tiktok/client", { method: "POST", body: { client_key: $("#ttKey").value.trim(), client_secret: $("#ttSec").value.trim() } });
+        $("#ttKey").value = ""; $("#ttSec").value = ""; renderAccounts(); toast("Client TikTok tersimpan"); } catch (e) { toast(e.message, true); }
+});
+async function connectOAuth(kind, saveBody) {
   try {
-    if ($("#ytCid").value.trim() || $("#ytSec").value.trim()) await api("/api/publish/youtube/client", { method: "POST", body: { client_id: $("#ytCid").value.trim(), client_secret: $("#ytSec").value.trim() } });
-    const r = await api("/api/publish/youtube/connect", { method: "POST" });
+    if (saveBody && Object.values(saveBody).some(Boolean)) await api(`/api/publish/${kind}/client`, { method: "POST", body: saveBody });
+    const before = (PO.accounts?.accounts[kind] || []).length;
+    const r = await api(`/api/publish/${kind}/connect`, { method: "POST" });
     window.open(r.url, "_blank", "noopener");
-    toast("Selesaikan login Google di tab baru, lalu kembali ke sini.");
-    let n = 0; const t = setInterval(async () => { n++; await loadPosts(); if (PO.accounts?.youtube.connected || n > 60) clearInterval(t); }, 3000);
+    toast("Selesaikan login di tab baru, lalu kembali ke sini.");
+    let n = 0; const t = setInterval(async () => { n++; await loadPosts(); if ((PO.accounts?.accounts[kind] || []).length > before || n > 60) { clearInterval(t); renderTT(); } }, 3000);
   } catch (e) { toast(e.message, true); }
-});
-$("#ytDisc").addEventListener("click", async () => { if (!confirm("Putuskan YouTube?")) return; await api("/api/publish/youtube/disconnect", { method: "POST" }); loadPosts(); });
+}
+$("#ytConnect").addEventListener("click", () => connectOAuth("youtube", { client_id: $("#ytCid").value.trim(), client_secret: $("#ytSec").value.trim() }));
+$("#ttConnect").addEventListener("click", () => connectOAuth("tiktok", { client_key: $("#ttKey").value.trim(), client_secret: $("#ttSec").value.trim() }));
 $("#metaConnect").addEventListener("click", async () => {
-  try { await api("/api/publish/meta/connect", { method: "POST", body: { token: $("#metaTok").value.trim(), app_id: $("#metaApp").value.trim(), app_secret: $("#metaSec").value.trim() } });
-        $("#metaTok").value = ""; $("#metaSec").value = ""; loadPosts(); toast("Facebook & Instagram terhubung"); } catch (e) { toast(e.message, true); }
+  try { const r = await api("/api/publish/meta/connect", { method: "POST", body: { token: $("#metaTok").value.trim(), app_id: $("#metaApp").value.trim(), app_secret: $("#metaSec").value.trim() } });
+        $("#metaTok").value = ""; $("#metaSec").value = ""; PO.accounts = r; renderAccounts();
+        toast(`Ditambahkan: ${r.added.facebook} Page, ${r.added.instagram} Instagram`); } catch (e) { toast(e.message, true); }
 });
-$("#metaPage").addEventListener("change", async e => { try { await api("/api/publish/meta/select", { method: "POST", body: { page_id: e.target.value } }); loadPosts(); } catch (err) { toast(err.message, true); } });
-$("#metaDisc").addEventListener("click", async () => { if (!confirm("Putuskan Facebook & Instagram?")) return; await api("/api/publish/meta/disconnect", { method: "POST" }); loadPosts(); });
 $("#poGo").addEventListener("click", async () => {
   $("#poMsg").textContent = "";
-  const platforms = ["#poYT", "#poFB", "#poIG"].filter(s => $(s).checked && !$(s).disabled).map(s => $(s).value);
   const when = $("#poWhen").value ? Math.floor(new Date($("#poWhen").value).getTime() / 1000) : 0;
-  const body = { file: $("#poVideo").value, platforms, title: $("#poTitle").value.trim(), description: $("#poDesc").value.trim(),
-                 hashtags: $("#poTags").value.split(",").map(t => t.trim()).filter(Boolean), privacy: $("#poPrivacy").value, ai: $("#poAi").checked, schedule: when };
+  const tiktok = {};
+  for (const k of PO.sel) if (k.startsWith("tiktok:")) {
+    const id = k.slice(7), o = PO.tt[id] || {};
+    const a = (PO.accounts?.accounts.tiktok || []).find(x => x.id === id) || {};
+    tiktok[id] = { ...o, mode: o.mode || ((a.modes || []).includes("direct") ? "direct" : "inbox") };
+  }
+  const body = { file: $("#poVideo").value, accounts: [...PO.sel], title: $("#poTitle").value.trim(), description: $("#poDesc").value.trim(),
+                 hashtags: $("#poTags").value.split(",").map(t => t.trim()).filter(Boolean), privacy: $("#poPrivacy").value, ai: $("#poAi").checked,
+                 schedule: when, tiktok };
   if (!body.file) { $("#poMsg").textContent = "Pilih video."; return; }
-  if (!platforms.length) { $("#poMsg").textContent = "Pilih minimal satu platform yang sudah terhubung."; return; }
-  try { await api("/api/posts", { method: "POST", body }); toast(when ? "Posting dijadwalkan" : "Posting dimulai"); $("#poWhen").value = ""; loadPosts(); }
+  if (!body.accounts.length) { $("#poMsg").textContent = "Pilih minimal satu akun tujuan."; return; }
+  const probs = ttProblems();
+  if (probs.length) { $("#poMsg").textContent = probs[0]; return; }
+  try { await api("/api/posts", { method: "POST", body }); toast(when ? "Posting dijadwalkan" : `Posting dimulai ke ${body.accounts.length} akun`);
+        $("#poWhen").value = ""; PO.tt = {}; PO.creator = {}; renderTT(); loadPosts(); }
   catch (e) { $("#poMsg").textContent = e.message; }
 });
 document.addEventListener("click", e => {

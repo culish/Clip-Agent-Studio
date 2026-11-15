@@ -63,21 +63,46 @@ Hasilnya `clips/<klip>__edit.mp4`. Kredit pembuat video stok otomatis ditambahka
 
 **Musik.** Ada 6 musik bawaan yang dibuat oleh aplikasi sendiri, sehingga bebas royalti: Santai, Semangat, Inspiratif, Dramatis, Misteri, dan Teknologi. Untuk musik yang lebih kaya, taruh MP3 sendiri di folder `music/` (misalnya dari YouTube Audio Library).
 
-## Posting otomatis
+## Posting otomatis ke banyak akun
 
-Tab **Posting** mengunggah video ke **YouTube**, **Facebook Reels**, dan **Instagram Reels**, langsung atau terjadwal. Tombol **Posting** juga ada di setiap kartu klip dan hasil video.
+Tab **Posting** mengunggah video ke **YouTube**, **Facebook Reels**, **Instagram Reels**, dan **TikTok**, langsung atau terjadwal. Setiap platform bisa punya **banyak akun**, misalnya 3 channel YouTube, 4 Page Facebook, 2 akun Instagram, dan 5 akun TikTok. Saat posting, centang akun tujuan mana saja. Setiap akun jadi target terpisah di antrean, lengkap dengan status, tautan hasil, dan tombol **Coba lagi** bila gagal. Tombol **Posting** juga ada di setiap kartu klip dan hasil video.
 
-- **YouTube**: butuh OAuth Client jenis *Desktop app* dari Google Cloud Console (langkahnya ada di tab Posting). Klik **Hubungkan YouTube** dari browser di laptop. Jadwal memakai fitur publish terjadwal YouTube, jadi laptop boleh mati.
-  - Selama aplikasi OAuth Anda berstatus Testing, izin berlaku 7 hari. Publish aplikasinya di consent screen agar tidak perlu menghubungkan ulang.
-- **Facebook & Instagram**: tempel User access token dari Graph API Explorer. Izin yang dibutuhkan: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
-  - Isi App ID dan App Secret agar token diubah menjadi token jangka panjang.
-  - Instagram harus akun profesional yang terhubung ke Facebook Page.
-  - Facebook Reels harus 3–90 detik.
-- **Jadwal**: Instagram tidak punya jadwal lewat API, jadi Clip Agent yang mengunggahnya pada waktunya. Aplikasi harus menyala saat itu.
-- **Tandai sebagai konten buatan AI** mengisi label AI resmi: `containsSyntheticMedia` di YouTube dan `is_ai_generated` di Instagram.
-- **Penyimpanan token**: token disimpan di `data/accounts.json`. Jangan bagikan folder `data/`.
+### Menambah akun
 
-TikTok belum didukung, karena API posting TikTok mewajibkan audit aplikasi sebelum video bisa diunggah publik.
+- **YouTube**
+  - Butuh satu OAuth Client jenis *Desktop app* dari Google Cloud Console (langkahnya ada di tab Posting). Satu Client dipakai untuk semua channel.
+  - Klik **Tambah channel YouTube** dari browser di laptop, lalu pilih akun dan channel. Ulangi untuk channel lain dengan memilih akun atau channel lain di layar login Google.
+  - Selama aplikasi OAuth berstatus Testing, semua email pemilik channel harus didaftarkan di Test users, dan izinnya berlaku 7 hari. Klik **Publish app** agar tidak kedaluwarsa.
+- **Facebook & Instagram**
+  - Tempel User access token dari Graph API Explorer lalu klik **Tambah dari token**. Semua Page beserta akun Instagram profesional yang terhubung langsung ditambahkan.
+  - Untuk akun Facebook lain, buat token dari akun itu dan tambahkan lagi.
+  - Izin yang dibutuhkan: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
+- **TikTok**
+  - Buat aplikasi di developers.tiktok.com dengan produk **Login Kit** (platform Desktop) dan **Content Posting API** (aktifkan Direct Post).
+  - Scope: `user.info.basic`, `video.publish`, `video.upload`. Redirect URI: `http://127.0.0.1:*/oauth/tiktok/`.
+  - Isi Client Key dan Client Secret, lalu klik **Tambah akun TikTok**. Untuk akun berikutnya, keluar dulu dari TikTok di browser, lalu tambah lagi.
+
+Akun yang tidak dipakai bisa dihapus satu per satu. Semua token tersimpan di `data/accounts.json`. Jangan bagikan folder `data/`, dan folder ini tidak ikut ke repo Git.
+
+### TikTok
+
+- **Langsung terbit (Direct Post)**: video langsung diposting ke profil. Sesuai aturan TikTok, Clip Agent menampilkan info akun terbaru setiap kali form posting dibuka. Isian yang diminta:
+  - pilihan **siapa yang bisa menonton**, tanpa nilai bawaan;
+  - izin Komentar, Duet, dan Stitch (bawaannya mati, dan dikunci bila dimatikan di akun);
+  - pengungkapan konten komersial (*Merek Anda* / *Konten bermerek*);
+  - persetujuan Music Usage Confirmation.
+
+  Durasi video juga dicek terhadap batas akun.
+- **Kirim ke draf TikTok**: video masuk ke kotak masuk aplikasi TikTok, lalu Anda menyelesaikan posting di HP. Maksimal 5 video menunggu dalam 24 jam.
+- **Sebelum aplikasi TikTok Anda diaudit**: Direct Post hanya bisa ke akun TikTok yang diset privat, dengan privasi "Hanya saya". Ajukan audit di developers.tiktok.com agar bisa terbit untuk publik, atau pakai mode **Kirim ke draf** sementara itu.
+- **Jadwal TikTok** dijalankan oleh Clip Agent, jadi aplikasi harus menyala pada waktunya.
+- **File besar**: video di atas 64 MB diunggah per potongan 10 MB, sesuai aturan TikTok.
+
+### Catatan
+
+- **Jadwal YouTube dan Facebook** memakai fitur jadwal platformnya (laptop boleh mati). **Jadwal Instagram dan TikTok** dijalankan Clip Agent.
+- **Tandai sebagai konten buatan AI** mengisi label resmi di setiap platform: `containsSyntheticMedia` (YouTube), `is_ai_generated` (Instagram), dan `is_aigc` (TikTok).
+- **Video yang sama di banyak channel**: hati-hati mengunggah video yang persis sama ke banyak channel. YouTube dan TikTok bisa menganggapnya spam atau konten "reused". Variasikan judul, caption, dan videonya.
 
 ## Cover dan versi kartun
 
@@ -130,7 +155,7 @@ APK ada di `android/ClipAgent.apk` (Android 7.0 ke atas). Aplikasi ini adalah **
 
 **Keamanan.** Akses dari HP hanya terbuka di jaringan lokal dan butuh kode akses. Percobaan kode yang salah dibatasi, dan **Buat kode baru** memutus HP yang sudah terhubung. Matikan Akses dari HP saat memakai Wi-Fi publik.
 
-**Membangun ulang APK** (opsional, untuk pengembang): `python android/build_apk.py --android-jar android.jar --aapt2 aapt2 --bundletool bundletool-all.jar --dx dx.jar`. Kode sumbernya ada di `android/src`, dengan keystore di `android/keystore` (sandi `clipagent`). Pakai keystore yang sama agar pembaruan bisa dipasang di atas versi lama.
+**Membangun ulang APK** (opsional, untuk pengembang): `python android/build_apk.py --android-jar android.jar --aapt2 aapt2 --bundletool bundletool-all.jar --dx dx.jar`. Kode sumbernya ada di `android/src`. Keystore penanda tangan (`android/keystore/clipagent-release.p12`, sandi `clipagent`) tidak disimpan di repo publik. Bila belum ada, skrip membuat keystore baru dengan `keytool`. Simpan cadangannya, karena APK dengan kunci berbeda tidak bisa memperbarui aplikasi yang sudah terpasang (harus uninstall dulu).
 
 ## Isi web app
 
@@ -214,7 +239,10 @@ output/<id_video>/
 - **Dua orang berjauhan di layar**: pakai pembingkaian "Video utuh dengan latar blur".
 - **"Remotion belum siap" di tab Edit & animasi atau Buat video**: pasang Node.js (`winget install OpenJS.NodeJS.LTS`), tutup lalu jalankan ulang `start.bat`. Bisa juga manual: `cd remotion` lalu `npm install`.
 - **Suara narasi gagal**: dengan Gemini, cek API key dan kuota. Model TTS bisa diganti di Pengaturan > Model lanjutan. Tanpa key, pasang suara gratis: `pip install edge-tts`, lalu pilih mesin suara Edge.
-- **YouTube: "Izin kedaluwarsa"**: hubungkan ulang di tab Posting. Ini terjadi tiap 7 hari selama aplikasi OAuth masih berstatus Testing.
+- **YouTube: "Izin kedaluwarsa"**: tambahkan ulang channel itu di tab Posting. Ini terjadi tiap 7 hari selama aplikasi OAuth masih berstatus Testing.
+- **YouTube: "Error 403: access_denied"**: email akun Google yang dipakai login belum ada di Test users (Google Auth Platform → Audience). Tambahkan email itu, atau klik Publish app.
+- **TikTok: "unaudited_client_can_only_post_to_private_accounts"**: aplikasi TikTok belum diaudit. Set akun TikTok ke privat dan pilih privasi "Hanya saya", pakai mode Kirim ke draf, atau ajukan audit.
+- **TikTok: login gagal / redirect_uri tidak cocok**: daftarkan Redirect URI persis `http://127.0.0.1:*/oauth/tiktok/` di Login Kit (platform Desktop). Bila token tetap ditolak, coba tambahkan `TIKTOK_PKCE_ENCODING=base64url` di `.env`.
 - **Meta: "token kedaluwarsa"**: buat token baru di Graph API Explorer. Isi App ID dan App Secret agar token jangka panjang.
 - **Remotion gagal mengunduh browser**: render pertama mengunduh Chrome Headless Shell (±90 MB). Bila jaringan memblokirnya, arahkan ke Chrome yang sudah ada lewat `.env`: `REMOTION_BROWSER_EXECUTABLE=C:\Program Files\Google\Chrome\Application\chrome.exe`.
 
