@@ -25,6 +25,7 @@ from . import broll, characters, music, tts, videogen
 from .animation import PRESETS, _AssetServer, _run_remotion, resolve_style
 from .config import Settings
 from .download import fetch_source_text, is_url
+from .gemini import QuotaError
 from .imagegen import ImageGen
 from .llm import LLMClient
 from .utils import ClipAgentError, check_cancel, log, progress, slugify
@@ -358,6 +359,7 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     used: set[int] = set()
     items = []
     paid = 0
+    blocked = {"image": "", "video": ""}                # kuota habis: jangan panggil lagi untuk adegan berikutnya
     for i, (sc, v) in enumerate(zip(scenes, vo)):
         check_cancel()
         progress(p0 + span * (0.35 + 0.6 * i / n), f"Visual adegan {i + 1}/{n}")
@@ -368,6 +370,9 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
             log(f"  Adegan {i + 1}: video AI belum diizinkan (centang izin biaya); memakai gambar AI.")
             kind = "ai_image"
         item = {"kind": kind, "dur": dur}
+        if kind in ("ai_image", "ai_video") and blocked["image"]:
+            kind = "stock" if broll.available() else "text"
+            item["kind"] = kind
         try:
             if kind == "stock":
                 got = broll.fetch(sc["stock"] or sc["heading"] or sc["narration"][:40], dur, st["aspect"], adir, used)
@@ -377,21 +382,43 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
                 else:
                     if not broll.available():
                         log(f"  Adegan {i + 1}: PEXELS_API_KEY belum diisi.")
-                    kind = "ai_image" if gen else "text"
+                    kind = "ai_image" if gen and not blocked["image"] else "text"
                     item["kind"] = kind
             if kind in ("ai_image", "ai_video"):
                 if gen is None:
                     log(f"  Adegan {i + 1}: gambar AI butuh GEMINI_API_KEY; memakai kartu teks.")
                     item["kind"] = kind = "text"
                 else:
-                    img_path = _ai_image(gen, ch, refs, sc, st, adir)
+                    try:
+                        img_path = _ai_image(gen, ch, refs, sc, st, adir)
+                    except QuotaError as exc:
+                        blocked["image"] = str(exc)
+                        log(f"  {exc}")
+                        log("  Adegan berikutnya memakai " + ("video stok Pexels." if broll.available() else "kartu teks."))
+                        raise
                     item["image"] = img_path.name
-                    if kind == "ai_video":
-                        clip = videogen.generate_clip(sc["prompt"] or sc["heading"], cv2.imread(str(img_path)),
-                                                      st["aspect"], adir)
-                        fit = videogen.fit_clip(clip, dur, W, H, adir / f"fit_{clip.stem}_{int(dur * 10)}.mp4")
-                        item["video"] = fit.name
-                        paid += 1
+                    if kind == "ai_video" and blocked["video"]:
+                        item["kind"] = "ai_image"
+                    elif kind == "ai_video":
+                        try:
+                            clip = videogen.generate_clip(sc["prompt"] or sc["heading"], cv2.imread(str(img_path)),
+                                                          st["aspect"], adir)
+                            fit = videogen.fit_clip(clip, dur, W, H, adir / f"fit_{clip.stem}_{int(dur * 10)}.mp4")
+                            item["video"] = fit.name
+                            paid += 1
+                        except ClipAgentError as exc:            # gambarnya tetap dipakai
+                            if isinstance(exc, QuotaError):
+                                blocked["video"] = str(exc)
+                            log(f"  Adegan {i + 1}: video AI gagal ({str(exc)[:200]}); memakai gambar AI.")
+                            item["kind"] = "ai_image"
+        except QuotaError:
+            fb = broll.fetch(sc["stock"] or sc["heading"] or sc["narration"][:40], dur, st["aspect"], adir, used) \
+                if broll.available() else None
+            if fb:
+                fit = videogen.fit_clip(fb["path"], dur, W, H, adir / f"fit_{fb['path'].stem}_{int(dur * 10)}.mp4")
+                item = {"kind": "stock", "dur": dur, "video": fit.name, "credit": fb["credit"]}
+            else:
+                item = {"kind": "text", "dur": dur}
         except ClipAgentError as exc:
             log(f"  Adegan {i + 1}: visual gagal ({str(exc)[:160]}); memakai kartu teks.")
             item = {"kind": "text", "dur": dur}

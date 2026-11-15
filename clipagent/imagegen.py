@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import requests
 
-from .utils import ClipAgentError, check_cancel
+from .utils import ClipAgentError, check_cancel, log
 
 DEFAULT_MODEL = "gemini-3.1-flash-lite-image"     # Nano Banana 2 Lite: paling cepat & murah
 DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta"
@@ -70,8 +70,15 @@ class ImageGen:
                 last = f"koneksi gagal ({type(exc).__name__})"
                 time.sleep(3 * (attempt + 1))
                 continue
-            if r.status_code in (429, 500, 502, 503, 504):
-                last = f"HTTP {r.status_code} (sibuk/kuota)"
+            if r.status_code == 429:
+                from .gemini import classify_429
+                wait = classify_429(r, "gambar", self.model)       # QuotaError bila kuota nol/harian habis
+                last = "batas permintaan per menit"
+                log(f"  Model gambar: {last}, menunggu {wait:.0f} detik...")
+                time.sleep(wait)
+                continue
+            if r.status_code in (500, 502, 503, 504):
+                last = f"HTTP {r.status_code} (server sibuk)"
                 time.sleep(6 * (attempt + 1))
                 continue
             if not r.ok:

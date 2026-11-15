@@ -12,6 +12,7 @@ import time
 from . import broll, music, videogen
 from .animation import _AssetServer, _run_remotion, _subtitle_words, resolve_style
 from .creative import ClipContext, clean_clip, plan_segments, save_plan
+from .gemini import QuotaError
 from .imagegen import ImageGen
 from .llm import LLMClient
 from .utils import ClipAgentError, check_cancel, log, probe, progress
@@ -132,6 +133,9 @@ def auto_edit(ctx: ClipContext, opts: dict) -> dict:
                 if not p.is_file():
                     cv2.imwrite(str(p), gen.generate(prompt, aspect))
                 cuts.append({**b, "image": p})
+        except QuotaError as exc:
+            log(f"  {exc} B-roll gambar AI dihentikan.")
+            gen = None
         except ClipAgentError as exc:
             log(f"  b-roll {k + 1} dilewati: {str(exc)[:120]}")
     log(f"B-roll: {len(cuts)} potongan ({SOURCES[source]}).")

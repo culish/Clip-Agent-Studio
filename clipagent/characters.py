@@ -18,6 +18,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from .gemini import QuotaError
 from .imagegen import ImageGen
 from .utils import ClipAgentError, check_cancel, log, progress
 
@@ -151,6 +152,8 @@ def generate_candidates(out_dir: Path, cid: str, n: int = 3) -> dict:
         progress(0.1 + 0.85 * i / n, f"Membuat gambar karakter {i + 1}/{n}")
         try:
             img = gen.generate(sheet_prompt(ch) + f" Variation {i + 1}.", "3:4")
+        except QuotaError as exc:
+            raise ClipAgentError(f"{exc} Atau unggah gambar karakter sendiri (tombol Unggah gambar).") from exc
         except ClipAgentError as exc:
             log(f"  Gambar {i + 1} gagal: {str(exc)[:160]}")
             continue

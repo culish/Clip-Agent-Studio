@@ -24,6 +24,7 @@ import cv2
 
 from .config import PROJECT_DIR
 from .creative import CAMERAS, TRANSITIONS, ClipContext, best_frame, clean_clip, face_box, save_plan
+from .gemini import QuotaError
 from .imagegen import ImageGen
 from .stylize import STYLES, stylize_image
 from .transcript import Word
@@ -334,6 +335,9 @@ def _scene_assets(ctx: ClipContext, clean: Path, scenes: list[dict], look: dict,
                         cv2.imwrite(str(path), res)
                     except Cancelled:
                         raise
+                    except QuotaError as exc:
+                        log(f"  {exc} Semua adegan memakai kartun lokal.")
+                        gen, path = None, None
                     except ClipAgentError as exc:
                         log(f"  adegan {i + 1}: AI gagal ({str(exc)[:120]}); memakai kartun lokal.")
                         path = None

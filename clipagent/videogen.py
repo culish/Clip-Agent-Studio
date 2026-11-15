@@ -57,7 +57,7 @@ def generate_clip(prompt: str, image: np.ndarray | None, aspect: str, cache_dir:
                 "generation_config": {"video_config": {"task": "image_to_video" if jpg else "text_to_video"}}}
 
     log("  Membuat video AI (bisa 1–3 menit per adegan)...")
-    data, _, model = with_fallbacks(video_models(), body, "video", timeout=900)
+    data, _, model = with_fallbacks(video_models(), body, "video", timeout=900, what="video")
     out.write_bytes(data)
     log(f"  Video AI siap ({model}).")
     return out

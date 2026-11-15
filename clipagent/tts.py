@@ -13,12 +13,13 @@ import json
 import os
 import re
 import subprocess
+import time
 import wave
 from pathlib import Path
 
 import numpy as np
 
-from .gemini import api_key, with_fallbacks
+from .gemini import QuotaError, api_key, with_fallbacks
 from .utils import ClipAgentError, log
 
 GEMINI_VOICES = {
@@ -41,6 +42,7 @@ EDGE_VOICES = {
     "id-ID-GadisNeural": "Gadis, wanita (Indonesia)",
 }
 DEFAULT_VOICE = {"gemini": "Puck", "edge": "en-US-AndrewMultilingualNeural"}
+_BLOCKED: dict[str, float] = {}
 
 
 def tts_models() -> list[str]:
@@ -141,7 +143,7 @@ def _gemini(text: str, voice: str, style: str, tmp: Path) -> None:
                 "response_format": {"type": "audio", "mime_type": "audio/wav"},
                 "generation_config": {"speech_config": [{"voice": voice}]}}
 
-    data, item, _ = with_fallbacks(tts_models(), body, "audio", timeout=180)
+    data, item, _ = with_fallbacks(tts_models(), body, "audio", timeout=180, what="suara")
     mime = (item.get("mime_type") or "audio/wav").lower()
     if "l16" in mime or "pcm" in mime:                     # PCM mentah tanpa header
         rate = int(re.search(r"rate=(\d+)", mime).group(1)) if re.search(r"rate=(\d+)", mime) else 24000
@@ -186,6 +188,8 @@ def synthesize(text: str, voice: str, engine: str, style: str, cache_dir: Path) 
     if not text:
         raise ClipAgentError("Narasi adegan kosong.")
     engine = pick_engine(engine)
+    if engine == "gemini" and _BLOCKED.get("gemini", 0) > time.time() and edge_available():
+        engine = "edge"                                   # kuota Gemini baru saja habis
     voices = GEMINI_VOICES if engine == "gemini" else EDGE_VOICES
     if voice not in voices:
         voice = DEFAULT_VOICE[engine]
@@ -198,7 +202,14 @@ def synthesize(text: str, voice: str, engine: str, style: str, cache_dir: Path) 
     tmp = cache_dir / f"vo_{key}.raw"
     words = None
     if engine == "gemini":
-        _gemini(text, voice, style, tmp)
+        try:
+            _gemini(text, voice, style, tmp)
+        except QuotaError as exc:
+            if not edge_available():
+                raise QuotaError(f"{exc} Atau pasang suara gratis: pip install edge-tts.") from exc
+            _BLOCKED["gemini"] = time.time() + 1800
+            log(f"{exc} Memakai suara Edge (gratis) untuk sisa narasi.")
+            return synthesize(text, DEFAULT_VOICE["edge"], "edge", style, cache_dir)
     else:
         words = _edge(text, voice, style, tmp)
     _to_wav48(tmp, wav)
