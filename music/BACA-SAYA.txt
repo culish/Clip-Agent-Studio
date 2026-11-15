@@ -1,0 +1,9 @@
+Taruh file musik Anda di folder ini (MP3, M4A, WAV, OGG, AAC, FLAC).
+File di sini muncul di pilihan "Musik" sebagai "File saya: <nama file>".
+
+Pakai musik yang memang boleh dipakai di YouTube/Facebook/Instagram, misalnya dari
+YouTube Audio Library (studio.youtube.com > Audio Library). Musik berhak cipta tanpa izin
+bisa membuat video kena klaim atau dibisukan.
+
+Tanpa file di sini pun Clip Agent punya 6 musik bawaan (dibuat otomatis oleh aplikasi,
+bebas royalti): Santai, Semangat, Inspiratif, Dramatis, Misteri, Teknologi.

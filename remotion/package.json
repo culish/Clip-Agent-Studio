@@ -1,0 +1,20 @@
+{
+  "name": "clip-agent-remotion",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Komposisi Remotion untuk animasi/kartun Clip Agent",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.536",
+    "@remotion/cli": "4.0.536",
+    "@remotion/renderer": "4.0.536",
+    "@remotion/transitions": "4.0.536",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "remotion": "4.0.536"
+  }
+}

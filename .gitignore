@@ -1,0 +1,11 @@
+output/
+data/
+.env
+.venv/
+__pycache__/
+*.pyc
+remotion/node_modules/
+remotion/.bundle/
+android/build/
+android/keystore/*.p12
+android/keystore/*.jks

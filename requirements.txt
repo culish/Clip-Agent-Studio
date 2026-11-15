@@ -1,0 +1,7 @@
+# Paket inti (cukup untuk video YouTube yang punya subtitle/auto-caption)
+yt-dlp[default]>=2025.11.12
+opencv-python-headless>=4.8
+numpy
+requests
+segno
+Pillow

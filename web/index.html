@@ -1,0 +1,2227 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clip Agent</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='7' y='2' width='18' height='28' rx='4' fill='%234A2FE6'/%3E%3Crect x='10' y='19' width='12' height='4' rx='1' fill='%23FFE24A'/%3E%3C/svg%3E">
+<style>
+@font-face { font-family: "Anton"; src: url("/fonts/Anton-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Montserrat Black"; src: url("/fonts/Montserrat-Black.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Bebas Neue"; src: url("/fonts/BebasNeue-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Poppins"; font-weight: 700; src: url("/fonts/Poppins-Bold.ttf") format("truetype"); font-display: swap; }
+
+:root {
+  --paper: #EDEFF5; --panel: #FFFFFF; --sunk: #E3E6F0;
+  --ink: #1B1836; --ink-2: #57547A; --line: #D6D8E6;
+  --violet: #4A2FE6; --violet-ink: #FFFFFF; --violet-soft: #E6E1FF;
+  --marker: #FFE24A; --marker-ink: #1B1836;
+  --good: #0B7A55; --bad: #C02A3F; --warn: #9A5B00;
+  --t1: #0B7A55; --t2: #2F6FB3; --t3: #7E7B9E; --t4: #A9A7C2; --t5: #C02A3F;
+  --display: "Anton", "Impact", "Arial Narrow", sans-serif;
+  --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Roboto, sans-serif;
+  --r-lg: 18px; --r-md: 12px; --r-sm: 9px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121128; --panel: #1B1938; --sunk: #24214A;
+    --ink: #EFEEFF; --ink-2: #A9A6CF; --line: #312E5A;
+    --violet: #8F7DFF; --violet-ink: #120F2E; --violet-soft: #2D2862;
+    --good: #43C99A; --bad: #FF6B7F; --warn: #F2B14C;
+    --t1: #43C99A; --t2: #6FA8E8; --t3: #9C99C0; --t4: #6E6B93; --t5: #FF6B7F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121128; --panel: #1B1938; --sunk: #24214A;
+  --ink: #EFEEFF; --ink-2: #A9A6CF; --line: #312E5A;
+  --violet: #8F7DFF; --violet-ink: #120F2E; --violet-soft: #2D2862;
+  --good: #43C99A; --bad: #FF6B7F; --warn: #F2B14C;
+  --t1: #43C99A; --t2: #6FA8E8; --t3: #9C99C0; --t4: #6E6B93; --t5: #FF6B7F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+input[type="range"], input[type="checkbox"] { accent-color: var(--violet); }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
+a { color: var(--violet); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- header */
+.top { max-width: 1240px; margin: 0 auto; padding: 18px 24px 8px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.brand { font-family: var(--display); font-size: 26px; letter-spacing: .01em; line-height: 1; display: flex; align-items: center; gap: 10px; }
+.brand-mark { width: 16px; height: 26px; border-radius: 4px; background: var(--violet); position: relative; }
+.brand-mark::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 6px; height: 4px; border-radius: 1px; background: var(--marker); }
+nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.tabs button { border: 0; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--ink-2); }
+nav.tabs button:hover { color: var(--ink); }
+nav.tabs button[aria-selected="true"] { color: var(--marker-ink); background: linear-gradient(transparent 12%, var(--marker) 12%, var(--marker) 88%, transparent 88%); }
+.top .spacer { flex: 1; }
+.ai-status { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t3); display: inline-block; }
+.dot.ok { background: var(--good); } .dot.bad { background: var(--bad); }
+
+main { max-width: 1240px; margin: 0 auto; padding: 8px 24px 80px; }
+section[role="tabpanel"][hidden] { display: none; }
+
+h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: .005em; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 58px); line-height: 1.02; max-width: 20ch; }
+h2 { font-size: 24px; line-height: 1.1; }
+h3 { font-size: 18px; line-height: 1.15; }
+p { margin: 0; }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- controls */
+.field { display: grid; gap: 6px; }
+.field > span, .label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+input[type="text"], input[type="number"], input[type="password"], input[type="url"], select, textarea {
+  width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 9px 11px; min-height: 40px;
+}
+textarea { resize: vertical; min-height: 64px; }
+input[type="color"] { width: 44px; height: 36px; padding: 2px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); cursor: pointer; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-sm); padding: 9px 16px; cursor: pointer; font-weight: 600; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: var(--ink); }
+.btn:hover { border-color: var(--ink-2); }
+.btn.primary { background: var(--violet); color: var(--violet-ink); border-color: var(--violet); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.small { min-height: 32px; padding: 5px 11px; font-size: 13px; }
+.btn[disabled] { opacity: .55; cursor: progress; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; background: var(--panel); gap: 2px; flex-wrap: wrap; }
+.seg button { flex: 1 1 auto; border: 0; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--marker); color: var(--marker-ink); }
+.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.switch input { appearance: none; width: 38px; height: 22px; border-radius: 11px; background: var(--line); position: relative; cursor: pointer; flex: none; transition: background .15s; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--panel); transition: transform .15s; }
+.switch input:checked { background: var(--violet); }
+.switch input:checked::after { transform: translateX(16px); }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 16px; }
+
+/* ---------- studio */
+.studio { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; align-items: start; margin-top: 18px; }
+.hero { display: grid; gap: 18px; padding-bottom: 8px; }
+.source-bar { display: flex; gap: 10px; }
+.source-bar input { font-size: 16px; min-height: 50px; padding: 12px 14px; border-width: 2px; border-color: var(--ink); border-radius: var(--r-md); }
+.source-bar .btn { min-height: 50px; padding: 0 22px; font-size: 16px; border-radius: var(--r-md); white-space: nowrap; }
+.aud { display: grid; gap: 8px; }
+.aud .note { font-size: 13px; color: var(--ink-2); max-width: 64ch; }
+.block { border-top: 1px solid var(--line); padding: 22px 0 6px; display: grid; gap: 16px; }
+.block > header { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.anim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.anim-grid button { text-align: left; border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-sm); padding: 9px 11px; cursor: pointer; display: grid; gap: 2px; min-height: 64px; }
+.anim-grid button b { font-size: 14px; }
+.anim-grid button span { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+.anim-grid button[aria-pressed="true"] { background: var(--marker); border-color: var(--marker-ink); color: var(--marker-ink); }
+.anim-grid button[aria-pressed="true"] span { color: var(--marker-ink); opacity: .8; }
+details.adv summary { cursor: pointer; font-weight: 600; color: var(--ink-2); padding: 6px 0; }
+details.adv[open] summary { margin-bottom: 12px; }
+
+/* ---------- phone preview */
+.preview { position: sticky; top: 18px; display: grid; gap: 10px; justify-items: center; }
+.phone { width: 270px; aspect-ratio: 9 / 16; border-radius: 30px; background: #0E0D1C; padding: 8px; box-shadow: 0 0 0 1px var(--line); }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 23px; overflow: hidden; background: #241F45; container-type: inline-size; }
+.screen.r11 { aspect-ratio: 1; height: auto; top: 50%; transform: translateY(-50%); }
+.screen.r45 { aspect-ratio: 4 / 5; height: auto; top: 50%; transform: translateY(-50%); }
+.media { position: absolute; inset: 0; transition: transform .12s ease-out; }
+.media video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media .fake { position: absolute; inset: 0; background:
+   radial-gradient(42% 28% at 50% 40%, #E8B89A 0 60%, transparent 61%),
+   radial-gradient(70% 40% at 50% 92%, #3B5BA8 0 70%, transparent 71%),
+   radial-gradient(120% 80% at 20% 0%, #4A3F7A, #1A1633); }
+.media .fake::after { content: ""; position: absolute; left: 33%; right: 33%; top: 18%; height: 16%; border-radius: 50% 50% 40% 40%; background: #2A2036; }
+.media.zoom { transform: scale(1.12); }
+.cap { position: absolute; left: 7%; right: 7%; text-align: center; line-height: 1.12; color: #fff; z-index: 2;
+  -webkit-text-stroke: .09em #000; paint-order: stroke fill; text-shadow: .04em .06em 0 rgba(0,0,0,.6); }
+.cap.lower { bottom: 24%; } .cap.middle { top: 58%; transform: translateY(-50%); } .cap.upper { top: 20%; }
+.cap .w { display: inline-block; margin: 0 .12em; }
+.cap .hide { visibility: hidden; }
+.cap .boxed { border-radius: .22em; padding: 0 .16em; -webkit-text-stroke: 0; text-shadow: none; }
+.cap.anim-pop .grp, .cap.anim-bounce .grp { display: inline-block; animation: pop .17s ease-out both; }
+.cap.anim-bounce .grp { animation: bounce .16s ease-out both; }
+.cap.anim-fade .grp { display: inline-block; animation: rise .2s ease-out both; }
+@keyframes pop { 0% { transform: scale(.75); } 55% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes bounce { 0% { transform: scale(.55); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@keyframes rise { 0% { transform: translateY(.4em); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.hookbox { position: absolute; top: 7.5%; left: 7%; right: 7%; text-align: center; z-index: 3; line-height: 1.3; }
+.hookbox span { display: inline; padding: .18em .4em; border-radius: .2em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.hookbox.show { animation: pop .22s ease-out both; }
+.pbar { position: absolute; left: 0; bottom: 0; height: 4px; z-index: 3; transition: width .42s linear; }
+.preview .small { text-align: center; max-width: 270px; }
+
+/* ---------- job + results */
+.job { margin-top: 36px; border-top: 1px solid var(--line); padding-top: 22px; display: grid; gap: 14px; }
+.job[hidden] { display: none; }
+.jobhead { display: flex; gap: 16px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.track { height: 8px; border-radius: 4px; background: var(--sunk); overflow: hidden; }
+.track > i { display: block; height: 100%; width: 0; background: var(--violet); transition: width .4s ease; }
+.track.error > i { background: var(--bad); }
+.track.done > i { background: var(--good); }
+pre.log { margin: 0; max-height: 260px; overflow: auto; background: var(--sunk); border-radius: var(--r-sm); padding: 12px; font: 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.err { color: var(--bad); white-space: pre-wrap; }
+.clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+.clip { display: grid; gap: 8px; align-content: start; }
+.clip video { width: 100%; aspect-ratio: 9 / 16; object-fit: contain; background: #000; border-radius: var(--r-md); display: block; }
+.clip video.wide { aspect-ratio: 16 / 9; } .clip video.square { aspect-ratio: 1; } .clip video.r45 { aspect-ratio: 4 / 5; }
+.clip h3 { font-family: var(--body); font-weight: 700; font-size: 15px; line-height: 1.3; }
+.clip .meta { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 10px; flex-wrap: wrap; }
+.clip .caption { font-size: 13px; background: var(--sunk); border-radius: var(--r-sm); padding: 8px 10px; }
+.clip .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.queue { display: grid; gap: 6px; font-size: 13px; }
+.queue div { display: flex; gap: 10px; color: var(--ink-2); }
+
+/* ---------- trend radar */
+.radar-head { display: flex; gap: 18px; align-items: end; justify-content: space-between; flex-wrap: wrap; margin: 18px 0 8px; }
+.radar { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 40px; margin-top: 18px; align-items: start; }
+ol.trends { list-style: none; margin: 12px 0 0; padding: 0; display: grid; }
+ol.trends li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); align-items: start; }
+ol.trends .rank { font-family: var(--display); font-size: 22px; line-height: 1; color: var(--ink-2); }
+ol.trends .t { font-weight: 700; }
+ol.trends .h { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+ol.trends .h a { color: inherit; }
+ol.trends li.empty, ul.checks li.empty { display: block; }
+ol.trends li.tier5 .t { text-decoration: line-through; text-decoration-color: var(--t5); }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.badge::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--tc, var(--t3)); }
+.badge.tier1 { --tc: var(--t1); } .badge.tier2 { --tc: var(--t2); } .badge.tier3 { --tc: var(--t3); } .badge.tier4 { --tc: var(--t4); } .badge.tier5 { --tc: var(--t5); }
+.ideas { display: grid; gap: 12px; margin-top: 12px; }
+.idea { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; display: grid; gap: 8px; }
+.idea .hookline { font-family: "Montserrat Black", var(--display); font-size: 17px; line-height: 1.2; }
+.idea .hookline mark { background: var(--marker); color: var(--marker-ink); padding: 0 .15em; }
+.niche-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.niche-row button { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; display: inline-flex; gap: 8px; align-items: center; }
+.search { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 22px; display: grid; gap: 14px; }
+.filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.filters .field { min-width: 140px; }
+.results { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.vid { display: grid; gap: 6px; align-content: start; }
+.vid img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-md); background: var(--sunk); display: block; }
+.vid .thumb { position: relative; }
+.vid .dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.78); color: #fff; font-size: 12px; padding: 1px 6px; border-radius: 4px; }
+.vid h3 { font-family: var(--body); font-size: 14px; font-weight: 700; line-height: 1.3; }
+.empty { padding: 28px 0; color: var(--ink-2); }
+
+/* ---------- library & settings */
+.lib-item { border-top: 1px solid var(--line); padding: 22px 0; display: grid; gap: 14px; }
+.lib-item header { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+.settings { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; margin-top: 18px; align-items: start; }
+.checks { list-style: none; padding: 0; margin: 12px 0 0; display: grid; }
+.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.checks .ic { font-weight: 700; }
+.checks .ok { color: var(--good); } .checks .no { color: var(--bad); } .checks .opt { color: var(--warn); }
+
+.lan { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 22px; display: grid; gap: 14px; }
+.lan-box { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
+.lan-box .qr { background: #fff; border-radius: var(--r-md); padding: 0; line-height: 0; overflow: hidden; }
+.lan-box .qr svg { width: 196px; height: 196px; display: block; }
+.code { font-family: var(--display); font-size: 34px; letter-spacing: .08em; line-height: 1.1; }
+#lanOn:not([hidden]) { display: grid; gap: 14px; }
+ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; color: var(--ink-2); }
+@media (max-width: 560px) { .lan-box { grid-template-columns: minmax(0, 1fr); } }
+/* ---------- cover & animasi */
+.creative { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 44px; margin-top: 18px; align-items: start; }
+.cr-side { position: sticky; top: 18px; display: grid; gap: 8px; }
+.cr-side video { width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: var(--r-md); object-fit: contain; display: block; }
+.cr-side h3 { font-family: var(--body); font-weight: 700; font-size: 15px; line-height: 1.3; }
+.cr-sec { border-top: 1px solid var(--line); padding: 22px 0 30px; display: grid; gap: 16px; }
+.cr-sec:first-child { border-top: 0; padding-top: 0; }
+.crjob { display: grid; gap: 8px; }
+.crjob .row { justify-content: space-between; }
+.covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.cover { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: start; }
+.cover img { width: 100%; display: block; border-radius: var(--r-sm); background: var(--sunk); }
+.cover .v { aspect-ratio: 9 / 16; object-fit: cover; }
+.cover .h { aspect-ratio: 16 / 9; object-fit: cover; }
+.cover .info { display: grid; gap: 8px; }
+ol.flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 26px; }
+ol.flow > li { display: grid; gap: 12px; }
+.flow-head { display: flex; align-items: center; gap: 12px; }
+.step { width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--paper); display: inline-grid; place-items: center; font-family: var(--display); font-size: 16px; flex: none; }
+.note-box { background: var(--violet-soft); border-radius: var(--r-sm); padding: 10px 12px; font-size: 14px; max-width: 76ch; }
+.sb-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.sb-opt { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-md); padding: 12px; display: grid; gap: 10px; align-content: start; }
+.sb-opt.on { border-color: var(--violet); box-shadow: 0 0 0 2px var(--violet); }
+.sb-opt .bh { display: grid; gap: 2px; }
+.sb-opt ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); display: grid; gap: 2px; }
+.sb-opt ul li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.strip { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; }
+.strip img { width: 44px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 5px; flex: none; background: var(--sunk); }
+.sc-list { display: grid; gap: 10px; counter-reset: sc; }
+.sc-row { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); padding: 10px; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: start; }
+.sc-row > img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 6px; display: block; background: var(--sunk); }
+.sc-body { display: grid; gap: 8px; min-width: 0; }
+.sc-top { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; }
+.sc-top b { font-size: 14px; margin-right: auto; }
+.sc-top label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.sc-top input { width: 76px; min-height: 32px; padding: 4px 8px; }
+.sc-tools { display: flex; gap: 4px; }
+.sc-body .quote { font-size: 12.5px; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; }
+.sc-grid .field > span { font-size: 12px; }
+.sc-grid input, .sc-grid select, .sc-grid textarea { min-height: 34px; padding: 5px 8px; font-size: 13px; }
+.sc-grid .wide { grid-column: 1 / -1; }
+.sc-grid textarea { min-height: 52px; }
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.preset { text-align: left; border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-md); padding: 8px; cursor: pointer; display: grid; gap: 6px; align-content: start; }
+.preset[aria-pressed="true"] { border-color: var(--violet); box-shadow: 0 0 0 2px var(--violet); }
+.preset .sw { position: relative; aspect-ratio: 9 / 13; border-radius: 7px; overflow: hidden; background: var(--sunk); }
+.preset .sw img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.preset .sw .fr { position: absolute; left: 12%; right: 12%; top: 16%; height: 52%; }
+.preset .sw .ln { position: absolute; left: 14%; right: 14%; bottom: 16%; height: 7%; border-radius: 3px; }
+.preset b { font-size: 14px; line-height: 1.2; }
+.preset span { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+.custom { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px; border-left: 3px solid var(--marker); padding: 4px 0 4px 14px; }
+.custom .wide { grid-column: 1 / -1; }
+.custom .colors { display: flex; gap: 12px; flex-wrap: wrap; }
+.custom .colors label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); justify-items: start; }
+.pv-frames { display: grid; grid-template-columns: repeat(3, minmax(0, 200px)); gap: 12px; }
+.pv-frames figure { margin: 0; display: grid; gap: 4px; }
+.pv-frames img { width: 100%; border-radius: var(--r-sm); display: block; background: #000; }
+.pv-frames figcaption { font-size: 12px; color: var(--ink-2); }
+@media (max-width: 980px) {
+  .creative { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .cr-side { position: static; grid-template-columns: 110px minmax(0, 1fr); column-gap: 14px; align-content: start; }
+  .cr-side video { grid-row: span 2; }
+  .custom { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .sc-row { grid-template-columns: 54px minmax(0, 1fr); gap: 10px; }
+  .sc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .sc-grid .f-heading, .sc-grid .f-bubble { grid-column: 1 / -1; }
+  .custom { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-left: 10px; }
+  .pv-frames { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* ---------- riset viral */
+.viral-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.vcard { display: grid; gap: 8px; align-content: start; }
+.vcard .thumb { position: relative; display: block; }
+.vcard img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-md); background: var(--sunk); display: block; }
+.vcard .dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.78); color: #fff; font-size: 12px; padding: 1px 6px; border-radius: 4px; }
+.vcard .score { position: absolute; left: 8px; top: 8px; background: var(--marker); color: var(--marker-ink); border-radius: 8px; padding: 2px 8px; font-family: var(--display); font-size: 20px; line-height: 1.2; display: flex; gap: 6px; align-items: baseline; }
+.vcard .score small { font-family: var(--body); font-size: 11px; font-weight: 700; }
+.vcard h3 { font-family: var(--body); font-size: 14px; font-weight: 700; line-height: 1.3; }
+.metrics { display: flex; gap: 6px; flex-wrap: wrap; }
+.metrics span { font-size: 12px; background: var(--sunk); border-radius: 999px; padding: 2px 8px; }
+.metrics span.hot { background: var(--violet-soft); color: var(--violet); font-weight: 700; }
+/* ---------- buat video */
+.make { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px; margin-top: 18px; align-items: start; }
+.mk-side { position: sticky; top: 18px; display: grid; gap: 10px; }
+.side-list { display: grid; gap: 6px; }
+.side-list button { text-align: left; border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-sm); padding: 8px 10px; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+.side-list button[aria-current="true"] { border-color: var(--violet); box-shadow: 0 0 0 2px var(--violet); }
+.side-list button b { font-size: 13.5px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-list button span { font-size: 12px; color: var(--ink-2); grid-column: 2; }
+.side-list .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--sunk); grid-row: span 2; }
+.side-list .ic { width: 36px; height: 36px; border-radius: 8px; background: var(--sunk); grid-row: span 2; display: grid; place-items: center; font-family: var(--display); }
+.mk-panel { display: grid; gap: 16px; }
+.sim { font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--sunk); white-space: nowrap; }
+.sim.ok { color: var(--good); } .sim.warn { color: var(--warn); }
+.sc-row textarea.narr { min-height: 64px; font-size: 14px; }
+.sc-row .vo { width: 100%; height: 32px; }
+.ch-grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: start; }
+.ch-ref { display: grid; gap: 8px; justify-items: stretch; }
+.ch-img { aspect-ratio: 3 / 4; border-radius: var(--r-md); background: var(--sunk); display: grid; place-items: center; overflow: hidden; }
+.ch-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ch-cands { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.ch-cands figure { margin: 0; display: grid; gap: 6px; }
+.ch-cands img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--r-sm); background: var(--sunk); }
+/* ---------- posting */
+.posting { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 48px; margin-top: 18px; align-items: start; }
+#poPrev { width: min(100%, 260px); aspect-ratio: 9 / 16; background: #000; border-radius: var(--r-md); object-fit: contain; }
+fieldset.plats, fieldset.keys { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px; }
+.acct { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-md); padding: 14px; display: grid; gap: 12px; }
+.acct .ok { color: var(--good); font-weight: 700; } .acct .no { color: var(--ink-2); }
+.post-list { display: grid; gap: 10px; }
+.post { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r-md); padding: 10px 12px; display: grid; gap: 8px; }
+.post header { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+.post header b { font-size: 14px; }
+.targets { display: flex; gap: 8px; flex-wrap: wrap; }
+.target { font-size: 12.5px; border-radius: 999px; padding: 3px 10px; background: var(--sunk); }
+.target.done { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); font-weight: 700; }
+.target.error { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.target.running { background: var(--violet-soft); color: var(--violet); font-weight: 700; }
+.post .err { font-size: 12.5px; }
+@media (max-width: 980px) {
+  .make, .posting { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .mk-side { position: static; }
+}
+@media (max-width: 560px) {
+  .ch-grid { grid-template-columns: minmax(0, 1fr); }
+  .ch-ref { grid-template-columns: 120px minmax(0, 1fr); align-items: start; }
+  .ch-img { grid-row: span 2; }
+  .viral-list { grid-template-columns: minmax(0, 1fr); }
+}
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: var(--r-sm); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: min(560px, calc(100vw - 32px)); }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.toast.bad { background: var(--bad); color: #fff; }
+
+@media (max-width: 980px) {
+  .studio, .radar, .settings { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .preview { position: static; }
+  .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .top, main { padding-left: 16px; padding-right: 16px; }
+  .source-bar { flex-direction: column; }
+  .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); }
+  .phone { width: 230px; }
+  .top { gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Clip Agent</div>
+  <nav class="tabs" role="tablist" aria-label="Menu">
+    <button role="tab" data-tab="studio" aria-selected="true">Studio</button>
+    <button role="tab" data-tab="radar" aria-selected="false">Riset viral</button>
+    <button role="tab" data-tab="make" aria-selected="false">Buat video</button>
+    <button role="tab" data-tab="creative" aria-selected="false">Edit &amp; animasi</button>
+    <button role="tab" data-tab="library" aria-selected="false">Klip saya</button>
+    <button role="tab" data-tab="posting" aria-selected="false">Posting</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Pengaturan</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="ai-status" id="aiStatus"><span class="dot"></span><span>Memeriksa AI…</span></div>
+</div>
+
+<main>
+<!-- ================================================================ STUDIO -->
+<section role="tabpanel" id="tab-studio">
+  <div class="studio">
+    <form id="studioForm" autocomplete="off">
+      <div class="hero">
+        <h1>Satu video panjang, jadi klip pendek siap unggah</h1>
+        <div class="source-bar">
+          <label class="sr" for="source">Link YouTube atau path file video</label>
+          <input id="source" name="source" type="text" placeholder="Tempel link YouTube, atau path video di komputer ini" required>
+          <button class="btn primary" type="submit" id="goBtn">Buat klip</button>
+        </div>
+        <div class="aud">
+          <span class="label" id="audLabel">Target penonton</span>
+          <div class="seg" role="group" aria-labelledby="audLabel" data-name="audience">
+            <button type="button" data-value="us">Amerika &amp; global (Inggris)</button>
+            <button type="button" data-value="id">Indonesia</button>
+          </div>
+          <p class="note" id="audNote"></p>
+        </div>
+      </div>
+
+      <div class="block">
+        <header><h2>Klip</h2></header>
+        <div class="grid3">
+          <label class="field"><span>Jumlah klip</span><input type="number" name="num_clips" min="1" max="15" step="1"></label>
+          <label class="field"><span>Durasi minimal (detik)</span><input type="number" name="min_dur" min="5" max="180" step="1"></label>
+          <label class="field"><span>Durasi maksimal (detik)</span><input type="number" name="max_dur" min="10" max="180" step="1"></label>
+        </div>
+        <label class="field"><span>Arahan untuk agen (opsional)</span>
+          <textarea name="instructions" rows="2" placeholder="Contoh: fokus pada tips investasi dan cerita pribadi narasumber; lewati bagian sponsor"></textarea></label>
+      </div>
+
+      <div class="block">
+        <header><h2>Subtitle &amp; animasi</h2><span class="small muted">Pratinjau langsung di layar ponsel</span></header>
+        <div class="grid3">
+          <label class="field"><span>Bahasa subtitle</span>
+            <select name="sub_lang">
+              <option value="en">Inggris (terjemahkan bila perlu)</option>
+              <option value="auto">Sesuai ucapan di video</option>
+              <option value="id">Indonesia (terjemahkan bila perlu)</option>
+            </select></label>
+          <label class="field"><span>Font</span><select name="font" id="fontSel"></select></label>
+          <div class="field"><span>Posisi</span>
+            <div class="seg" role="group" aria-label="Posisi subtitle" data-name="position">
+              <button type="button" data-value="upper">Atas</button>
+              <button type="button" data-value="middle">Tengah</button>
+              <button type="button" data-value="lower">Bawah</button>
+            </div></div>
+        </div>
+        <div class="field"><span id="animLabel">Animasi</span>
+          <div class="anim-grid" role="group" aria-labelledby="animLabel" id="animGrid"></div></div>
+        <div class="row" style="gap:22px">
+          <label class="row" style="gap:8px"><input type="color" name="text_color" aria-label="Warna teks"><span class="small">Teks</span></label>
+          <label class="row" style="gap:8px"><input type="color" name="highlight_color" aria-label="Warna sorotan"><span class="small">Sorotan</span></label>
+          <label class="field" style="min-width:170px"><span>Kata per tampilan: <b id="wplVal">3</b></span>
+            <input type="range" name="words_per_line" min="1" max="6" step="1"></label>
+          <label class="switch"><input type="checkbox" name="uppercase"><span>Huruf kapital</span></label>
+          <label class="switch"><input type="checkbox" name="subtitles"><span>Tampilkan subtitle</span></label>
+        </div>
+      </div>
+
+      <div class="block">
+        <header><h2>Efek video</h2></header>
+        <div class="row" style="gap:22px">
+          <label class="switch"><input type="checkbox" name="hook_overlay"><span>Judul di awal klip</span></label>
+          <label class="switch"><input type="checkbox" name="progress_bar"><span>Progress bar</span></label>
+          <label class="switch"><input type="checkbox" name="zoom_punch"><span>Zoom bergantian per kalimat</span></label>
+        </div>
+        <div class="grid2">
+          <div class="field"><span>Rasio</span>
+            <div class="seg" role="group" aria-label="Rasio" data-name="aspect">
+              <button type="button" data-value="9:16">9:16</button>
+              <button type="button" data-value="4:5">4:5</button>
+              <button type="button" data-value="1:1">1:1</button>
+              <button type="button" data-value="original">Asli</button>
+            </div></div>
+          <label class="field"><span>Pembingkaian</span>
+            <select name="crop">
+              <option value="face">Ikuti wajah pembicara</option>
+              <option value="center">Potong bagian tengah</option>
+              <option value="blur">Video utuh dengan latar blur</option>
+            </select></label>
+        </div>
+        <details class="adv">
+          <summary>Pengaturan lanjutan</summary>
+          <div class="grid3">
+            <label class="field"><span>Bahasa ucapan (kode, opsional)</span><input type="text" name="language" placeholder="otomatis, mis. en atau id"></label>
+            <label class="field"><span>Model Whisper (video tanpa subtitle)</span>
+              <select name="whisper_model"><option>tiny</option><option>base</option><option>small</option><option>medium</option><option>large-v3</option></select></label>
+            <label class="field"><span>Resolusi unduhan maks.</span>
+              <select name="max_height"><option value="720">720p</option><option value="1080">1080p</option><option value="1440">1440p</option></select></label>
+          </div>
+        </details>
+      </div>
+    </form>
+
+    <aside class="preview" aria-label="Pratinjau gaya subtitle">
+      <div class="phone"><div class="screen" id="screen">
+        <div class="media" id="media"><div class="fake"></div></div>
+        <div class="hookbox" id="pvHook"></div>
+        <div class="cap lower" id="pvCap"></div>
+        <div class="pbar" id="pvBar"></div>
+      </div></div>
+      <p class="small muted" id="pvNote">Perkiraan tampilan. Hasil akhir dirender oleh ffmpeg dengan font yang sama.</p>
+    </aside>
+  </div>
+
+  <section class="job" id="jobPanel" hidden aria-live="polite">
+    <div class="jobhead">
+      <div><h2 id="jobTitle">Memproses</h2><p class="small muted" id="jobSource"></p></div>
+      <div class="row"><span class="num" id="jobPct">0%</span><button class="btn small" type="button" id="cancelBtn">Batalkan</button></div>
+    </div>
+    <div class="track" id="jobTrack"><i></i></div>
+    <p id="jobStage" class="muted small">Menunggu giliran</p>
+    <p class="err small" id="jobError" hidden></p>
+    <details><summary class="small muted" style="cursor:pointer">Lihat log</summary><pre class="log" id="jobLog"></pre></details>
+    <div class="row" id="jobActions" hidden>
+      <button class="btn small" type="button" id="rerenderBtn">Render ulang dengan gaya saat ini</button>
+      <button class="btn small ghost local-only" type="button" id="openFolderBtn">Buka folder hasil</button>
+    </div>
+    <div class="clips" id="jobClips"></div>
+    <div class="queue" id="queue"></div>
+  </section>
+</section>
+
+<!-- ================================================================ TREND RADAR -->
+<section role="tabpanel" id="tab-radar" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:18ch">Topik yang sedang naik, diurutkan untuk niche CPM tinggi</h1>
+      <p class="muted" style="max-width:68ch">Data pencarian Google Trends hari ini. Warna menandai perkiraan CPM niche-nya untuk video panjang di AS (vidIQ, 2026). Pendapatan Shorts per tayangan jauh lebih kecil, jadi pakai ini untuk membandingkan niche, bukan menghitung penghasilan.</p>
+    </div>
+    <div class="row">
+      <label class="field"><span>Negara</span>
+        <select id="geo"><option value="US">Amerika Serikat</option><option value="GB">Inggris</option><option value="CA">Kanada</option><option value="AU">Australia</option><option value="ID">Indonesia</option></select></label>
+      <button class="btn" type="button" id="reloadTrends" style="align-self:end">Muat ulang</button>
+    </div>
+  </div>
+  <div class="radar">
+    <div>
+      <h2>Lagi ramai dicari</h2>
+      <ol class="trends" id="trendList"><li class="empty">Memuat tren…</li></ol>
+    </div>
+    <div>
+      <div class="row" style="justify-content:space-between">
+        <h2>Ide klip</h2>
+        <button class="btn primary small" type="button" id="ideasBtn">Buat ide topik</button>
+      </div>
+      <p class="small muted" id="ideasNote" style="margin-top:6px">AI menggabungkan tren hari ini dengan niche CPM tinggi, lalu menyiapkan kata kunci untuk mencari video sumber.</p>
+      <div class="ideas" id="ideaList"></div>
+      <h3 style="margin-top:28px">Niche CPM tinggi (evergreen)</h3>
+      <div class="niche-row" id="nicheRow"></div>
+    </div>
+  </div>
+
+  <section class="search" id="viralPanel">
+    <div class="row" style="justify-content:space-between"><h2>Riset video viral</h2><span class="small muted" id="vSource"></span></div>
+    <p class="small muted" style="max-width:76ch">Cari video yang sedang naik cepat untuk penonton AS. Skor 0–100 menggabungkan views per jam, rasio views terhadap subscriber (outlier: video kecil yang tiba-tiba meledak), dan interaksi.</p>
+    <form class="filters" id="viralForm">
+      <label class="field" style="flex:1 1 260px"><span>Kata kunci</span><input type="text" id="vq" placeholder="mis. personal finance, AI tools, credit card"></label>
+      <label class="field"><span>Diunggah</span><select id="vPeriod"><option value="today">24 jam terakhir</option><option value="week" selected>7 hari terakhir</option><option value="month">30 hari terakhir</option></select></label>
+      <label class="field"><span>Format</span><select id="vLength"><option value="short" selected>Pendek / Shorts (&lt; 4 menit)</option><option value="medium">4–20 menit</option><option value="long">Lebih dari 20 menit</option><option value="any">Semua</option></select></label>
+      <label class="switch" style="align-self:center"><input type="checkbox" id="vCC"><span>Hanya Creative Commons</span></label>
+      <button class="btn primary" type="submit">Cari video viral</button>
+      <button class="btn" type="button" id="vTrending">Populer di AS sekarang</button>
+    </form>
+    <div class="niche-row" id="vNiches"></div>
+    <div class="viral-list" id="viralList"></div>
+  </section>
+
+  <div class="search" id="searchPanel">
+    <h2>Cari video sumber untuk diklip</h2>
+    <form class="filters" id="searchForm">
+      <label class="field" style="flex:1 1 280px"><span>Kata kunci</span><input type="text" id="sq" placeholder="mis. personal finance podcast"></label>
+      <label class="field"><span>Diunggah</span><select id="sPeriod"><option value="week">Minggu ini</option><option value="month" selected>Bulan ini</option><option value="year">Tahun ini</option><option value="any">Kapan saja</option></select></label>
+      <label class="field"><span>Durasi</span><select id="sLength"><option value="long" selected>Lebih dari 20 menit</option><option value="medium">4–20 menit</option><option value="any">Semua</option></select></label>
+      <label class="field"><span>Urutkan</span><select id="sSort"><option value="views" selected>Paling banyak ditonton</option><option value="relevance">Paling relevan</option><option value="date">Terbaru</option></select></label>
+      <label class="switch" style="align-self:center"><input type="checkbox" id="sCC" checked><span>Hanya Creative Commons</span></label>
+      <button class="btn primary" type="submit">Cari</button>
+    </form>
+    <p class="small muted" style="max-width:76ch">Video berlisensi Creative Commons (CC BY) boleh dipakai ulang selama sumbernya dicantumkan; Clip Agent menambahkan kredit otomatis di ringkasan klip. Memotong video orang lain tanpa izin berisiko kena klaim hak cipta, dan YouTube biasanya tidak memonetisasi konten pakai-ulang tanpa tambahan orisinal.</p>
+    <div class="results" id="results"></div>
+  </div>
+</section>
+
+<!-- ================================================================ BUAT VIDEO -->
+<section role="tabpanel" id="tab-make" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:20ch">Video orisinal dari topik yang sedang viral</h1>
+      <p class="muted" style="max-width:70ch">AI memakai video viral hanya sebagai riset, lalu menulis naskah baru dengan kata-kata sendiri. Suara narasi, gambar dengan karakter tetap, b-roll, musik, dan caption dibuat otomatis.</p>
+    </div>
+  </div>
+  <p class="note-box" id="mkWarn" hidden></p>
+  <div class="make">
+    <aside class="mk-side">
+      <div class="row" style="justify-content:space-between"><h3>Proyek</h3><button class="btn small primary" type="button" id="mkNewBtn">Proyek baru</button></div>
+      <div class="side-list" id="mkProjects"></div>
+      <div class="row" style="justify-content:space-between;margin-top:18px"><h3>Karakter</h3><button class="btn small" type="button" id="chNewBtn">Karakter baru</button></div>
+      <div class="side-list" id="mkChars"></div>
+    </aside>
+    <div class="mk-main">
+      <!-- proyek baru -->
+      <section class="mk-panel" id="mkNew">
+        <h2>Proyek baru</h2>
+        <label class="field"><span>Link video viral atau topik</span><textarea id="nSource" rows="2" placeholder="https://www.youtube.com/watch?v=…  atau  'kenapa bunga tabungan turun setelah Fed memangkas suku bunga'"></textarea></label>
+        <div class="grid3">
+          <label class="field"><span>Durasi</span><select id="nLength"></select></label>
+          <label class="field"><span>Format</span><select id="nAspect"><option value="9:16">9:16 Shorts/Reels/TikTok</option><option value="16:9">16:9 YouTube biasa</option></select></label>
+          <label class="field"><span>Penonton & bahasa</span><select id="nAudience"><option value="us">AS, bahasa Inggris</option><option value="id">Indonesia</option></select></label>
+          <label class="field"><span>Karakter</span><select id="nChar"></select></label>
+          <label class="field" style="grid-column:span 2"><span>Sudut pandang / arahan (opsional)</span><input type="text" id="nAngle" placeholder="mis. jelaskan untuk pemula, beri 3 tips praktis"></label>
+        </div>
+        <div class="row"><button class="btn primary" type="button" id="nGo">Tulis naskah orisinal</button><button class="btn ghost" type="button" id="nBlank">Tulis sendiri</button></div>
+        <div class="crjob" id="nJob" hidden></div>
+      </section>
+
+      <!-- editor proyek -->
+      <section class="mk-panel" id="mkEdit" hidden>
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div style="display:grid;gap:4px;flex:1 1 320px"><label class="field"><span>Judul video</span><input type="text" id="pTitle" maxlength="100"></label>
+            <p class="small muted" id="pSource"></p></div>
+          <span class="sim" id="pSim" hidden></span>
+        </div>
+        <ol class="flow">
+          <li>
+            <div class="flow-head"><span class="step">1</span><h3>Naskah per adegan</h3><span class="small muted num" id="pSum"></span></div>
+            <div class="sc-list" id="pScenes"></div>
+            <div class="row"><button class="btn small" type="button" id="pAdd">Tambah adegan</button><button class="btn small ghost" type="button" id="pRewrite">Tulis ulang naskah dengan AI</button></div>
+            <div class="crjob" id="pRwJob" hidden></div>
+          </li>
+          <li>
+            <div class="flow-head"><span class="step">2</span><h3>Suara, visual, dan gaya</h3></div>
+            <div class="grid3" id="pSettings"></div>
+            <p class="small muted" id="pCost"></p>
+          </li>
+          <li>
+            <div class="flow-head"><span class="step">3</span><h3>Deskripsi dan tagar</h3></div>
+            <label class="field"><span>Deskripsi (untuk YouTube, Facebook, Instagram)</span><textarea id="pDesc" rows="3"></textarea></label>
+            <label class="field"><span>Tagar (pisahkan koma)</span><input type="text" id="pTags"></label>
+          </li>
+          <li>
+            <div class="flow-head"><span class="step">4</span><h3>Pratinjau lalu buat video</h3></div>
+            <p class="small muted">Siapkan suara dan gambar dulu untuk mengecek tiap adegan. Hasilnya disimpan, jadi tombol Buat video hanya membuat ulang adegan yang berubah.</p>
+            <div class="row"><button class="btn" type="button" id="pAssets">Siapkan suara &amp; gambar</button><button class="btn primary" type="button" id="pRender">Buat video</button>
+              <span class="small muted" id="pSaved" aria-live="polite"></span></div>
+            <div class="crjob" id="pJob" hidden></div>
+            <div class="clips" id="pRenders"></div>
+          </li>
+        </ol>
+        <div class="row" style="margin-top:24px"><button class="btn small ghost" type="button" id="pDelete">Hapus proyek</button></div>
+      </section>
+
+      <!-- karakter -->
+      <section class="mk-panel" id="mkChar" hidden>
+        <h2 id="chHead">Karakter baru</h2>
+        <p class="small muted" style="max-width:68ch">Karakter dipakai sebagai pembawa acara di setiap adegan. Gambar referensinya ikut dikirim ke AI setiap kali adegan digambar, sehingga wajah, rambut, dan pakaiannya tetap sama dari video ke video.</p>
+        <div class="ch-grid">
+          <div class="ch-ref"><div class="ch-img" id="chImg"><span class="small muted">Belum ada gambar</span></div>
+            <label class="btn small" style="cursor:pointer">Unggah gambar<input type="file" id="chFile" accept="image/*" hidden></label>
+            <button class="btn small" type="button" id="chGen">Buat dengan AI</button></div>
+          <div style="display:grid;gap:12px">
+            <div class="grid2">
+              <label class="field"><span>Nama</span><input type="text" id="chName" maxlength="40" placeholder="mis. Max"></label>
+              <label class="field"><span>Gaya gambar</span><select id="chArt"></select></label>
+            </div>
+            <label class="field"><span>Persona (cara bicara dan peran)</span><input type="text" id="chPersona" maxlength="300" placeholder="mis. pelatih keuangan yang santai dan lucu"></label>
+            <label class="field"><span>Penampilan (bahasa Inggris lebih akurat)</span><textarea id="chLook" rows="2" maxlength="500" placeholder="mis. young man with round glasses, green hoodie, short curly brown hair"></textarea></label>
+            <div class="grid2">
+              <label class="field"><span>Mesin suara</span><select id="chEngine"><option value="gemini">Gemini (API key)</option><option value="edge">Edge (gratis)</option></select></label>
+              <label class="field"><span>Suara</span><select id="chVoice"></select></label>
+            </div>
+            <label class="field"><span>Gaya bicara (opsional)</span><input type="text" id="chStyle" maxlength="120" placeholder="mis. energetic and friendly"></label>
+            <div class="row"><button class="btn primary" type="button" id="chSave">Simpan karakter</button><button class="btn small ghost" type="button" id="chDel" hidden>Hapus</button></div>
+          </div>
+        </div>
+        <div class="crjob" id="chJob" hidden></div>
+        <div class="ch-cands" id="chCands"></div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ COVER & ANIMASI -->
+<section role="tabpanel" id="tab-creative" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:20ch">Cover dan versi kartun untuk klip Anda</h1>
+      <p class="muted" style="max-width:66ch">Pilih satu klip. Buat cover untuk thumbnail, lalu ubah klipnya menjadi kartun atau animasi lewat storyboard.</p>
+    </div>
+    <label class="field" style="width:min(100%,440px)"><span>Klip</span><select id="crClip"></select></label>
+  </div>
+  <p class="empty" id="crEmpty" hidden>Belum ada klip. Buat klip dulu di Studio, lalu kembali ke sini.</p>
+  <div class="creative" id="crMain" hidden>
+    <aside class="cr-side">
+      <video id="crVideo" controls playsinline preload="metadata"></video>
+      <h3 id="crTitle"></h3>
+      <p class="small muted num" id="crMeta"></p>
+    </aside>
+    <div>
+      <section class="cr-sec">
+        <div class="row" style="justify-content:space-between"><h2>Cover</h2><span class="small muted">9:16 untuk Shorts, 16:9 untuk thumbnail YouTube</span></div>
+        <div class="grid3">
+          <label class="field" style="grid-column: span 2"><span>Teks cover</span><input type="text" id="cvText" maxlength="60" placeholder="Kosongkan agar AI menulis 3 pilihan"></label>
+          <label class="field"><span>Font</span><select id="cvFont"><option>Anton</option><option>Montserrat Black</option><option>Bebas Neue</option><option>Poppins</option></select></label>
+          <label class="field"><span>Gaya untuk varian kartun</span><select id="cvStyle"></select></label>
+          <label class="row" style="gap:8px;align-self:end;min-height:40px"><input type="color" id="cvAccent" value="#FFE24A" aria-label="Warna sorotan cover"><span class="small">Warna sorotan</span></label>
+          <label class="switch" style="align-self:end;min-height:40px"><input type="checkbox" id="cvAi"><span>Tambah versi AI</span></label>
+        </div>
+        <div><button class="btn primary" type="button" id="cvGo">Buat cover</button></div>
+        <div class="crjob" id="cvJob" hidden></div>
+        <div class="covers" id="cvList"></div>
+      </section>
+
+      <section class="cr-sec">
+        <div class="row" style="justify-content:space-between"><h2>Edit otomatis</h2><span class="small muted">B-roll, musik, dan caption</span></div>
+        <p class="small muted" style="max-width:68ch">AI memilih momen yang cocok untuk b-roll, lalu klip dirender ulang dengan caption karaoke dan musik latar yang otomatis mengecil saat ada orang bicara.</p>
+        <div class="grid3">
+          <label class="field"><span>Sumber b-roll</span><select id="aeSrc"><option value="stock">Video stok (Pexels)</option><option value="ai_image">Gambar AI</option><option value="none">Tanpa b-roll</option></select></label>
+          <label class="field"><span>Jumlah b-roll</span><select id="aeCount"><option value="">Otomatis</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+          <label class="field"><span>Gaya caption</span><select id="aePreset"></select></label>
+          <label class="field"><span>Musik</span><select id="aeMusic"></select></label>
+          <label class="field"><span>Volume musik: <b class="num" id="aeVolV">30%</b></span><input type="range" id="aeVol" min="0" max="0.8" step="0.05" value="0.3"></label>
+          <div class="row" style="gap:14px;align-self:end"><label class="switch"><input type="checkbox" id="aeHook" checked><span class="small">Judul di awal</span></label>
+            <label class="switch"><input type="checkbox" id="aeBar"><span class="small">Progress bar</span></label></div>
+        </div>
+        <p class="small muted" id="aeNote"></p>
+        <div><button class="btn primary" type="button" id="aeGo">Edit otomatis</button></div>
+        <div class="crjob" id="aeJob" hidden></div>
+      </section>
+
+      <section class="cr-sec">
+        <div class="row" style="justify-content:space-between"><h2>Kartun dan animasi</h2><span class="small muted">Dirender dengan Remotion</span></div>
+        <p class="note-box" id="rmWarn" hidden></p>
+        <ol class="flow">
+          <li>
+            <div class="flow-head"><span class="step">1</span><h3>Storyboard</h3></div>
+            <p class="small muted" style="max-width:68ch">Minta AI menyusun tiga pilihan storyboard, atau tulis adegan sendiri. Storyboard yang dipilih bisa diedit di langkah 2.</p>
+            <div class="row"><button class="btn" type="button" id="sbGo">Buat pilihan storyboard</button><button class="btn ghost" type="button" id="sbOwn">Tulis sendiri</button></div>
+            <div class="crjob" id="sbJob" hidden></div>
+            <div class="sb-opts" id="sbOpts"></div>
+          </li>
+          <li id="sbEdit" hidden>
+            <div class="flow-head"><span class="step">2</span><h3>Edit adegan</h3><span class="small muted num" id="sbSum"></span></div>
+            <p class="small muted" style="max-width:68ch">Atur waktu, judul di layar, balon kata, efek suara, gerak kamera, dan transisi. Bagian klip yang tidak masuk adegan mana pun akan dipotong dari video.</p>
+            <div class="sc-list" id="sbScenes"></div>
+            <div><button class="btn small" type="button" id="scAdd">Tambah adegan</button></div>
+          </li>
+          <li id="stPick" hidden>
+            <div class="flow-head"><span class="step">3</span><h3>Gaya animasi</h3></div>
+            <div class="presets" id="stPresets" role="group" aria-label="Preset gaya"></div>
+            <div class="row"><button class="btn small" type="button" id="stGallery">Lihat contoh semua gaya</button><span class="small muted">Satu frame per gaya dari klip Anda, tanpa gambar AI.</span></div>
+            <div class="crjob" id="stJob" hidden></div>
+            <label class="switch"><input type="checkbox" id="stCustomOn"><span>Atur gaya sendiri (mulai dari preset terpilih)</span></label>
+            <div class="custom" id="stCustom" hidden></div>
+            <div class="grid3">
+              <label class="field"><span>Bahasa subtitle</span><select id="anLang"><option value="auto">Sesuai ucapan</option><option value="en">Inggris</option><option value="id">Indonesia</option></select></label>
+              <label class="switch" style="align-self:end;min-height:40px"><input type="checkbox" id="anHook"><span>Judul di 3 detik awal</span></label>
+              <label class="switch" style="align-self:end;min-height:40px"><input type="checkbox" id="anBar"><span>Progress bar</span></label>
+            </div>
+          </li>
+          <li id="anMake" hidden>
+            <div class="flow-head"><span class="step">4</span><h3>Pratinjau, lalu buat video</h3></div>
+            <p class="small muted" id="anNote" style="max-width:68ch"></p>
+            <div class="row"><button class="btn" type="button" id="pvGo">Pratinjau 3 frame</button><button class="btn primary" type="button" id="anGo">Buat video</button></div>
+            <div class="crjob" id="pvJob" hidden></div>
+            <div class="pv-frames" id="pvFrames"></div>
+            <div class="crjob" id="anJob" hidden></div>
+          </li>
+        </ol>
+        <h3 id="anHead" hidden style="margin-top:8px">Hasil edit dan animasi</h3>
+        <div class="clips" id="anList"></div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ POSTING -->
+<section role="tabpanel" id="tab-posting" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:22ch">Posting ke YouTube, Facebook, dan Instagram</h1>
+      <p class="muted" style="max-width:70ch">Unggah langsung atau jadwalkan. YouTube dan Facebook menayangkan sesuai jadwal walau laptop mati; jadwal Instagram dijalankan Clip Agent, jadi aplikasi harus menyala pada waktunya.</p>
+    </div>
+  </div>
+  <div class="posting">
+    <div style="display:grid;gap:16px;align-content:start">
+      <h2>Posting baru</h2>
+      <label class="field"><span>Video</span><select id="poVideo"></select></label>
+      <video id="poPrev" controls playsinline preload="metadata" hidden></video>
+      <fieldset class="plats"><legend class="label">Platform</legend>
+        <label class="switch"><input type="checkbox" id="poYT" value="youtube"><span>YouTube <span class="small muted" data-st="youtube"></span></span></label>
+        <label class="switch"><input type="checkbox" id="poFB" value="facebook"><span>Facebook Reels <span class="small muted" data-st="facebook"></span></span></label>
+        <label class="switch"><input type="checkbox" id="poIG" value="instagram"><span>Instagram Reels <span class="small muted" data-st="instagram"></span></span></label>
+      </fieldset>
+      <label class="field"><span>Judul (YouTube)</span><input type="text" id="poTitle" maxlength="100"></label>
+      <label class="field"><span>Deskripsi / caption</span><textarea id="poDesc" rows="4"></textarea></label>
+      <label class="field"><span>Tagar (pisahkan koma)</span><input type="text" id="poTags"></label>
+      <div class="grid2">
+        <label class="field"><span>Privasi YouTube</span><select id="poPrivacy"><option value="public">Publik</option><option value="unlisted">Tidak publik</option><option value="private">Pribadi</option></select></label>
+        <label class="field"><span>Kapan</span><input type="datetime-local" id="poWhen"></label>
+      </div>
+      <label class="switch"><input type="checkbox" id="poAi"><span>Tandai sebagai konten buatan AI <span class="small muted">(YouTube "altered or synthetic", Instagram "AI info")</span></span></label>
+      <p class="small muted">Kosongkan "Kapan" untuk langsung posting. Jadwal YouTube minimal 15 menit dari sekarang, Facebook 10 menit–29 hari.</p>
+      <div class="row"><button class="btn primary" type="button" id="poGo">Posting</button><span class="small err" id="poMsg"></span></div>
+      <h2 style="margin-top:18px">Antrean posting</h2>
+      <div class="post-list" id="poList"></div>
+    </div>
+    <div style="display:grid;gap:20px;align-content:start">
+      <h2>Akun</h2>
+      <section class="acct" id="acYT">
+        <div class="row" style="justify-content:space-between"><h3>YouTube</h3><span class="small" data-k="status"></span></div>
+        <div data-k="client" class="grid2">
+          <label class="field"><span>OAuth Client ID</span><input type="text" id="ytCid" autocomplete="off"></label>
+          <label class="field"><span>OAuth Client Secret</span><input type="password" id="ytSec" autocomplete="off" placeholder="Biarkan kosong bila tidak diubah"></label>
+        </div>
+        <div class="row"><button class="btn small" type="button" id="ytSaveClient">Simpan client</button><button class="btn small primary" type="button" id="ytConnect">Hubungkan YouTube</button><button class="btn small ghost" type="button" id="ytDisc" hidden>Putuskan</button></div>
+        <details class="adv"><summary>Cara membuat OAuth Client (sekali saja, ±10 menit)</summary>
+          <ol class="steps">
+            <li>Buka console.cloud.google.com, buat proyek baru.</li>
+            <li>APIs &amp; Services → Library → aktifkan <b>YouTube Data API v3</b>.</li>
+            <li>OAuth consent screen: pilih External, isi nama aplikasi, lalu tambahkan email Anda di <b>Test users</b>.</li>
+            <li>Credentials → Create credentials → OAuth client ID → jenis <b>Desktop app</b>. Salin Client ID dan Client Secret ke sini.</li>
+            <li>Klik <b>Hubungkan YouTube</b> dari browser di laptop, pilih akun dan channel, lalu izinkan.</li>
+          </ol>
+          <p class="small muted">Selama aplikasi OAuth berstatus Testing, izin berlaku 7 hari lalu perlu dihubungkan ulang. Publish aplikasinya di consent screen agar izin tidak kedaluwarsa.</p>
+        </details>
+      </section>
+      <section class="acct" id="acMeta">
+        <div class="row" style="justify-content:space-between"><h3>Facebook &amp; Instagram</h3><span class="small" data-k="status"></span></div>
+        <label class="field" data-k="pagesel" hidden><span>Facebook Page</span><select id="metaPage"></select></label>
+        <label class="field"><span>Access token Meta</span><textarea id="metaTok" rows="2" placeholder="Tempel User access token dari Graph API Explorer"></textarea></label>
+        <div class="grid2">
+          <label class="field"><span>App ID (opsional)</span><input type="text" id="metaApp" autocomplete="off"></label>
+          <label class="field"><span>App Secret (opsional)</span><input type="password" id="metaSec" autocomplete="off"></label>
+        </div>
+        <div class="row"><button class="btn small primary" type="button" id="metaConnect">Hubungkan</button><button class="btn small ghost" type="button" id="metaDisc" hidden>Putuskan</button></div>
+        <details class="adv"><summary>Cara mendapatkan token (sekali saja)</summary>
+          <ol class="steps">
+            <li>Instagram harus akun profesional (Business/Creator) yang terhubung ke Facebook Page Anda.</li>
+            <li>Buka developers.facebook.com → My Apps → buat aplikasi jenis Business.</li>
+            <li>Buka Graph API Explorer, pilih aplikasi tadi, lalu Get User Access Token dengan izin: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>business_management</code>.</li>
+            <li>Pilih Page Anda saat diminta, salin tokennya ke sini. Isi App ID dan App Secret agar token diubah menjadi token jangka panjang (token Page dari situ tidak kedaluwarsa).</li>
+          </ol>
+          <p class="small muted">Batas API: Facebook Reels 30 posting per 24 jam per Page, Instagram 100 per 24 jam. Facebook Reels harus 3–90 detik.</p>
+        </details>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ LIBRARY -->
+<section role="tabpanel" id="tab-library" hidden>
+  <div class="radar-head"><h1 style="max-width:none">Klip saya</h1>
+    <button class="btn" type="button" id="reloadLib">Muat ulang</button></div>
+  <div id="libList"></div>
+</section>
+
+<!-- ================================================================ SETTINGS -->
+<section role="tabpanel" id="tab-settings" hidden>
+  <div class="settings">
+    <form id="settingsForm" style="display:grid;gap:16px">
+      <h1 style="font-size:40px">Pengaturan AI</h1>
+      <label class="field"><span>Penyedia AI</span><select id="provider"></select></label>
+      <label class="field"><span id="keyLabel">API key</span><input type="password" id="apiKey" placeholder="Biarkan kosong bila tidak diubah"></label>
+      <p class="small muted" id="keyHint"></p>
+      <label class="field"><span>Model</span><input type="text" id="model"></label>
+      <label class="field"><span>Model cadangan bila sibuk (pisahkan koma)</span><input type="text" id="fallbacks"></label>
+      <label class="field"><span>Cookies browser untuk YouTube (bila diminta verifikasi bot)</span>
+        <select id="cookies"><option value="">Tidak dipakai</option><option value="firefox">Firefox (paling andal)</option><option value="chrome">Chrome (tidak bisa di Windows)</option><option value="edge">Edge (tidak bisa di Windows)</option><option value="brave">Brave (tidak bisa di Windows)</option></select>
+        <small class="muted">Login YouTube dulu di browser yang dipilih. Di Windows pakai Firefox: Chrome, Edge, dan Brave versi baru mengenkripsi cookies sehingga tidak bisa dibaca.</small></label>
+      <fieldset class="keys"><legend class="label">Kunci API tambahan (opsional)</legend>
+        <label class="field"><span>Gemini API key untuk suara, gambar, dan video AI <span class="muted" data-key="GEMINI_API_KEY"></span></span><input type="password" data-env="GEMINI_API_KEY" placeholder="Biarkan kosong bila tidak diubah"></label>
+        <label class="field"><span>Pexels API key untuk b-roll stok gratis <span class="muted" data-key="PEXELS_API_KEY"></span></span><input type="password" data-env="PEXELS_API_KEY" placeholder="pexels.com/api"></label>
+        <label class="field"><span>YouTube Data API key untuk riset viral yang lebih lengkap <span class="muted" data-key="YOUTUBE_API_KEY"></span></span><input type="password" data-env="YOUTUBE_API_KEY" placeholder="console.cloud.google.com"></label>
+        <details class="adv"><summary>Model lanjutan</summary>
+          <div class="grid3">
+            <label class="field"><span>Model gambar</span><input type="text" data-plain="IMAGE_MODEL" placeholder="gemini-3.1-flash-lite-image"></label>
+            <label class="field"><span>Model suara</span><input type="text" data-plain="TTS_MODEL" placeholder="gemini-3.8-flash-tts"></label>
+            <label class="field"><span>Model video</span><input type="text" data-plain="VIDEO_MODEL" placeholder="gemini-omni-1.1-flash"></label>
+          </div></details>
+      </fieldset>
+      <div class="row"><button class="btn primary" type="submit">Simpan pengaturan</button><button class="btn" type="button" id="testAi">Tes koneksi AI</button></div>
+      <p class="small" id="settingsMsg" aria-live="polite"></p>
+    </form>
+    <div>
+      <h2>Pemeriksaan sistem</h2>
+      <ul class="checks" id="checks"><li class="empty">Memeriksa…</li></ul>
+
+      <section class="lan" id="lanPanel" hidden>
+        <div class="row" style="justify-content:space-between">
+          <h2>Akses dari HP</h2>
+          <label class="switch"><input type="checkbox" id="lanToggle"><span>Izinkan HP terhubung</span></label>
+        </div>
+        <p class="small muted">HP dan laptop harus memakai Wi-Fi yang sama. Proses klip tetap berjalan di laptop; HP menjadi remote untuk membuat, memantau, dan mengunduh klip.</p>
+        <div id="lanOn" hidden>
+          <div class="lan-box">
+            <div class="qr" id="lanQr"></div>
+            <div style="display:grid;gap:8px">
+              <span class="label">Alamat</span><b class="num" id="lanAddr"></b>
+              <span class="label">Kode akses</span><span class="code" id="lanCode"></span>
+            </div>
+          </div>
+          <ol class="steps">
+            <li>Pindai QR dengan kamera HP, lalu buka tautannya.</li>
+            <li>Pilih <b>Unduh aplikasi Android</b> untuk memasang APK, atau <b>Lanjut di browser</b>.</li>
+            <li>Di aplikasi, masukkan alamat dan kode di atas (atau pindai QR lagi lalu pilih <b>Buka di aplikasi</b>).</li>
+          </ol>
+          <p class="small muted">Bila Windows menampilkan peringatan firewall untuk Python, centang <b>Private networks</b> lalu pilih <b>Allow</b>. Pastikan profil Wi-Fi laptop diatur sebagai Private.</p>
+          <div class="row"><button class="btn small" type="button" id="lanRegen">Buat kode baru</button><span class="small muted">HP yang sudah terhubung perlu memasukkan kode baru.</span></div>
+        </div>
+        <p class="small err" id="lanMsg" hidden></p>
+      </section>
+
+      <section class="lan" id="appPanel" hidden>
+        <h2>Aplikasi Android</h2>
+        <p class="small muted" id="appServer"></p>
+        <div><button class="btn" type="button" id="changeServer">Ganti server</button></div>
+      </section>
+    </div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+async function api(path, { method = "GET", body } = {}) {
+  const r = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && data.auth) { location.href = "/connect?next=" + encodeURIComponent(location.pathname + location.hash); }
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+let toastTimer;
+function toast(msg, bad = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = "toast show" + (bad ? " bad" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", bad ? 6000 : 2400);
+}
+const fmtTime = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}` : `${m}:${String(x).padStart(2, "0")}`; };
+const fmtViews = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace(".0", "") + " jt" : n >= 1e3 ? Math.round(n / 1e3) + " rb" : String(n || 0);
+function ago(ts) { if (!ts) return ""; const d = (Date.now() / 1000 - ts) / 86400;
+  return d < 1 ? "hari ini" : d < 30 ? `${Math.round(d)} hari lalu` : d < 365 ? `${Math.round(d / 30)} bulan lalu` : `${Math.round(d / 365)} tahun lalu`; }
+
+/* ------------------------------------------------------------ tabs */
+function showTab(name) {
+  $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  $$("section[role=tabpanel]").forEach(s => s.hidden = s.id !== "tab-" + name);
+  if (location.hash.split("?")[0] !== "#" + name) history.replaceState(null, "", "#" + name);
+  if (name === "radar") initRadar();
+  if (name === "library") loadLibrary();
+  if (name === "settings") loadSettings();
+  if (name === "creative") { initCreative(); initAutoEdit(); }
+  if (name === "make") initMake();
+  if (name === "posting") initPosting();
+  if (name === "radar") initViral();
+}
+$$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+/* ------------------------------------------------------------ studio form */
+const DEFAULTS = { audience: "us", sub_lang: "en", num_clips: 5, min_dur: 20, max_dur: 55, instructions: "",
+  anim: "pop", font: "Montserrat Black", uppercase: true, subtitles: true, text_color: "#FFFFFF", highlight_color: "#FFE24A",
+  words_per_line: 3, position: "lower", hook_overlay: true, progress_bar: false, zoom_punch: false, aspect: "9:16",
+  crop: "face", language: "", whisper_model: "small", max_height: "1080" };
+let META = { animations: {}, fonts: [] };
+let CLIENT = { local: true, app: /ClipAgentApp/.test(navigator.userAgent) };
+let form = { ...DEFAULTS, ...store.get("clipagent.studio.v1", {}) };
+const F = $("#studioForm");
+
+function setSeg(name, value) {
+  $$(`.seg[data-name="${name}"] button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === value)));
+}
+function fillForm() {
+  for (const el of F.elements) {
+    if (!el.name || !(el.name in form)) continue;
+    if (el.type === "checkbox") el.checked = !!form[el.name];
+    else el.value = form[el.name];
+  }
+  syncUi();
+}
+function syncUi() {
+  ["audience", "position", "aspect"].forEach(n => setSeg(n, form[n]));
+  $$("#animGrid button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === form.anim)));
+  $("#wplVal").textContent = form.anim === "bounce" ? "1" : form.words_per_line;
+  F.elements.words_per_line.disabled = form.anim === "bounce";
+  $("#audNote").textContent = form.audience === "us"
+    ? "Agen memilih momen yang menarik untuk penonton AS. Judul, caption, dan hashtag ditulis dalam bahasa Inggris; subtitle diterjemahkan ke Inggris bila videonya berbahasa lain."
+    : "Judul, caption, dan hashtag ditulis dalam bahasa Indonesia untuk penonton lokal.";
+}
+function readForm() {
+  for (const el of F.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") form[el.name] = el.checked;
+    else if ((el.type === "number" || el.type === "range") && el.value !== "") form[el.name] = Number(el.value);
+    else if (el.type !== "number") form[el.name] = el.value;
+  }
+  store.set("clipagent.studio.v1", { ...form, source: undefined });
+}
+F.addEventListener("input", () => { readForm(); syncUi(); restartPreview(); });
+$$(".seg").forEach(seg => seg.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const name = seg.dataset.name; form[name] = b.dataset.value;
+  if (name === "audience") { form.sub_lang = b.dataset.value === "us" ? "en" : "auto"; F.elements.sub_lang.value = form.sub_lang; }
+  store.set("clipagent.studio.v1", { ...form, source: undefined }); syncUi(); restartPreview();
+}));
+function buildAnimGrid() {
+  $("#animGrid").innerHTML = Object.entries(META.animations).map(([k, d]) =>
+    `<button type="button" data-value="${esc(k)}"><b>${esc(k[0].toUpperCase() + k.slice(1))}</b><span>${esc(d)}</span></button>`).join("");
+  $("#animGrid").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    form.anim = b.dataset.value; store.set("clipagent.studio.v1", { ...form, source: undefined }); syncUi(); restartPreview();
+  });
+  $("#fontSel").innerHTML = META.fonts.map(f => `<option>${esc(f)}</option>`).join("");
+}
+function jobOptions(extra = {}) {
+  readForm();
+  const o = { ...form, zoom: form.zoom_punch ? "punch" : "none" };
+  delete o.zoom_punch;
+  o.max_height = Number(o.max_height);
+  if (!o.language) delete o.language;
+  return { ...o, ...extra };
+}
+F.addEventListener("submit", async e => {
+  e.preventDefault();
+  const src = F.elements.source.value.trim();
+  if (!src) { F.elements.source.focus(); return; }
+  await startJob(jobOptions({ source: src }));
+});
+
+/* ------------------------------------------------------------ preview */
+const SAMPLE = { us: "This one habit changed how I invest my money forever",
+                 id: "Satu kebiasaan ini mengubah cara saya mengatur uang" };
+const HOOK = { us: "The habit that made me rich", id: "Kebiasaan yang bikin saya kaya" };
+const METRICS = { "Montserrat Black": 1, "Anton": 1.18, "Bebas Neue": 1.3, "Poppins": 1, "Arial": 1 };
+const pv = { timer: null, step: 0 };
+function contrast(hex) { const n = parseInt(hex.slice(1), 16); const r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.55 ? "#111" : "#fff"; }
+function groupsOf(words) {
+  const n = form.anim === "bounce" ? 1 : Math.max(1, form.words_per_line); const out = [];
+  for (let i = 0; i < words.length; i += n) out.push(words.slice(i, i + n));
+  return out;
+}
+function restartPreview() { clearTimeout(pv.timer); pv.step = 0; renderPreview(true); }
+function renderPreview(first) {
+  const words = (SAMPLE[form.audience] || SAMPLE.us).split(" ");
+  const groups = groupsOf(words);
+  const W = $("#screen").clientWidth || 254;
+  const scale = W / 1080;
+  const vertical = form.aspect === "9:16" || form.aspect === "4:5";
+  const size = 1920 * (vertical ? 0.045 : 0.065) * (METRICS[form.font] || 1) * scale * (form.anim === "bounce" ? 1.35 : 1) * (form.aspect === "9:16" ? 1 : 0.8);
+  const scr = $("#screen"); scr.className = "screen" + (form.aspect === "1:1" || form.aspect === "original" ? " r11" : form.aspect === "4:5" ? " r45" : "");
+  const cap = $("#pvCap");
+  cap.className = `cap ${form.position} anim-${form.anim}`;
+  cap.style.fontFamily = `"${form.font}", var(--display)`;
+  cap.style.fontWeight = form.font === "Poppins" || form.font === "Arial" ? "700" : "400";
+  cap.style.fontSize = size + "px";
+  cap.style.color = form.text_color;
+  cap.hidden = !form.subtitles;
+
+  const total = words.length + 3;              // 3 langkah jeda di akhir putaran
+  const step = pv.step % total;
+  const idx = Math.min(step, words.length - 1);
+  let gi = 0, wi = idx;
+  for (; gi < groups.length; gi++) { if (wi < groups[gi].length) break; wi -= groups[gi].length; }
+  const g = groups[gi] || [];
+  const toks = g.map(w => form.uppercase ? w.toUpperCase() : w);
+  const hl = form.highlight_color, base = form.text_color;
+  let html;
+  if (form.anim === "static" || form.anim === "fade") html = toks.map(t => `<span class="w">${esc(t)}</span>`).join("");
+  else html = toks.map((t, k) => {
+    if (form.anim === "bounce") return `<span class="w" style="color:${/[\d$%]/.test(t) || t.replace(/\W/g, "").length >= 7 ? hl : base}">${esc(t)}</span>`;
+    if (form.anim === "box" && k === wi) return `<span class="w boxed" style="background:${hl};color:${contrast(hl)}">${esc(t)}</span>`;
+    if (form.anim === "typewriter" && k > wi) return `<span class="w hide">${esc(t)}</span>`;
+    if (k === wi && form.anim !== "box") return `<span class="w" style="color:${hl}">${esc(t)}</span>`;
+    return `<span class="w">${esc(t)}</span>`;
+  }).join("");
+  const key = gi + ":" + (form.anim === "bounce" ? idx : "");
+  if (cap.dataset.key !== key || first) {
+    cap.innerHTML = `<span class="grp">${html}</span>`;
+    cap.dataset.key = key;
+  } else {
+    cap.firstElementChild.innerHTML = html;
+  }
+  // hook di detik awal
+  const hook = $("#pvHook");
+  const showHook = form.hook_overlay && step < 6;
+  if (showHook && !hook.classList.contains("show")) {
+    hook.innerHTML = `<span style="background:${hl};color:${contrast(hl)};font-family:'${form.font}',var(--display);font-weight:${form.font === "Poppins" || form.font === "Arial" ? 700 : 400};font-size:${1920 * 0.031 * (METRICS[form.font] || 1) * scale}px">${esc(HOOK[form.audience] || HOOK.us)}</span>`;
+    hook.classList.add("show");
+  } else if (!showHook) { hook.classList.remove("show"); hook.innerHTML = ""; }
+  // progress bar & zoom
+  const bar = $("#pvBar"); bar.style.background = hl;
+  bar.style.display = form.progress_bar ? "block" : "none";
+  bar.style.width = (step === 0 ? 0 : (step / (total - 1)) * 100) + "%";
+  $("#media").classList.toggle("zoom", !!form.zoom_punch && Math.floor(gi / 2) % 2 === 1);
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    pv.timer = setTimeout(() => { pv.step++; renderPreview(false); }, 420);
+  }
+}
+function setPreviewMedia(url) {
+  if (!url) return;
+  $("#media").innerHTML = `<video src="${esc(url)}#t=60" muted loop autoplay playsinline preload="metadata"></video>`;
+}
+
+/* ------------------------------------------------------------ jobs */
+let active = null, logCount = 0, pollTimer = null, lastJobOptions = null;
+async function startJob(options) {
+  const btn = $("#goBtn"); btn.disabled = true;
+  try {
+    const j = await api("/api/jobs", { method: "POST", body: options });
+    lastJobOptions = options; attachJob(j.id, true);
+    toast("Job dimulai");
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; }
+}
+function attachJob(id, scroll) {
+  active = id; logCount = 0; $("#jobLog").textContent = ""; $("#jobClips").innerHTML = "";
+  $("#jobError").hidden = true; $("#jobActions").hidden = true;
+  $("#jobPanel").hidden = false;
+  if (scroll) $("#jobPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  clearTimeout(pollTimer); poll();
+}
+async function poll() {
+  if (!active) return;
+  let j;
+  try { j = await api(`/api/jobs/${active}?since=${logCount}`); }
+  catch (e) { pollTimer = setTimeout(poll, 2500); return; }
+  if (j.logs && j.logs.length) {
+    const log = $("#jobLog"); log.textContent += j.logs.join("\n") + "\n"; log.scrollTop = log.scrollHeight;
+    logCount = j.log_count;
+  }
+  const pct = Math.round(j.progress * 100);
+  $("#jobPct").textContent = pct + "%";
+  $("#jobTrack").className = "track" + (j.status === "error" ? " error" : j.status === "done" ? " done" : "");
+  $("#jobTrack i").style.width = (j.status === "error" ? 100 : pct) + "%";
+  $("#jobStage").textContent = j.status === "error" ? "Gagal" : j.status === "canceled" ? "Dibatalkan" : j.stage;
+  $("#jobTitle").textContent = j.result?.title || (j.status === "done" ? "Selesai" : "Memproses");
+  $("#jobSource").textContent = j.source;
+  $("#cancelBtn").hidden = !["queued", "running"].includes(j.status);
+  if (j.status === "error") { $("#jobError").hidden = false; $("#jobError").textContent = j.error; }
+  if (j.status === "done" && j.result) {
+    lastJobOptions = j.options;
+    $("#jobActions").hidden = false;
+    $("#jobActions").dataset.video = j.result.video_id;
+    $("#jobClips").innerHTML = (j.result.clips || []).map(c => clipCard(c, j.options.aspect, j.result.video_id)).join("") ||
+      `<p class="empty">Tidak ada klip yang berhasil dirender. Buka log untuk detailnya.</p>`;
+  }
+  if (["queued", "running"].includes(j.status)) pollTimer = setTimeout(poll, 1000);
+  refreshQueue();
+}
+async function refreshQueue() {
+  try {
+    const { jobs } = await api("/api/jobs");
+    const others = jobs.filter(j => j.id !== active && ["queued", "running"].includes(j.status));
+    $("#queue").innerHTML = others.length ? `<span class="label">Antrean</span>` + others.map(j =>
+      `<div><span>${j.status === "running" ? "Berjalan" : "Menunggu"}</span><span>${esc(j.title || j.source)}</span></div>`).join("") : "";
+  } catch {}
+}
+$("#cancelBtn").addEventListener("click", async () => {
+  if (!active) return;
+  try { await api(`/api/jobs/${active}/cancel`, { method: "POST" }); toast("Membatalkan…"); } catch (e) { toast(e.message, true); }
+});
+$("#rerenderBtn").addEventListener("click", () => {
+  if (!lastJobOptions) return;
+  startJob(jobOptions({ source: lastJobOptions.source, reuse_plan: true }));
+});
+$("#openFolderBtn").addEventListener("click", () => openFolder($("#jobActions").dataset.video));
+async function openFolder(vid) { try { await api("/api/open-folder", { method: "POST", body: { video_id: vid } }); } catch (e) { toast(e.message, true); } }
+
+function clipCard(c, aspect, vid) {
+  const cls = aspect === "original" ? "wide" : aspect === "1:1" ? "square" : aspect === "4:5" ? "r45" : "";
+  const caption = [c.caption, (c.hashtags || []).join(" "), c.credit].filter(Boolean).join("\n");
+  return `<article class="clip">
+    <video class="${cls}" src="${esc(c.video_url)}" controls preload="metadata" playsinline></video>
+    <h3>${esc(c.title || "Klip " + c.rank)}</h3>
+    <div class="meta num"><span>${fmtTime(c.start)}–${fmtTime(c.end)}</span><span>${Math.round(c.duration)} dtk</span>${c.score != null ? `<span>Skor ${Math.round(c.score)}</span>` : ""}${c.sub_lang ? `<span>Subtitle ${esc(c.sub_lang.toUpperCase())}</span>` : ""}</div>
+    ${caption ? `<p class="caption">${esc(caption).replace(/\n/g, "<br>")}</p>` : ""}
+    <div class="actions">
+      ${caption ? `<button class="btn small" type="button" data-copy="${esc(caption)}">Salin caption</button>` : ""}
+      <a class="btn small" href="${esc(c.video_url)}?download=1">Unduh MP4</a>
+      <a class="btn small ghost" href="${esc(c.srt_url)}?download=1">SRT</a>
+      ${vid ? `<button class="btn small" type="button" data-creative="${esc(vid)}|${esc(c.rank)}">Edit &amp; animasi</button>` : ""}
+      <button class="btn small" type="button" data-post="${esc(pathOf(c.video_url))}">Posting</button>
+    </div></article>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-copy]"); if (!b) return;
+  if (await copyText(b.dataset.copy)) toast("Caption tersalin"); else toast("Gagal menyalin", true);
+});
+
+async function copyText(text) {
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; } } catch {}
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch {}
+  ta.remove(); return ok;
+}
+
+/* ------------------------------------------------------------ radar */
+let radarReady = false;
+function initRadar() { if (radarReady) return; radarReady = true; loadTrends(); loadNiches(); }
+function badge(x) { return `<span class="badge tier${x.tier}" title="${esc(x.tier_label)}">${esc(x.niche_label)} <span class="num">${esc(x.cpm)}</span></span>`; }
+async function loadTrends() {
+  const geo = $("#geo").value; const list = $("#trendList");
+  list.innerHTML = `<li class="empty">Memuat tren ${esc(geo)}…</li>`;
+  try {
+    const { items } = await api(`/api/trends?geo=${geo}`);
+    if (!items.length) { list.innerHTML = `<li class="empty">Google Trends tidak mengembalikan data. Coba muat ulang sebentar lagi.</li>`; return; }
+    list.innerHTML = items.slice(0, 20).map((t, i) => {
+      const n = t.news?.[0];
+      return `<li class="tier${t.tier}"><span class="rank">${i + 1}</span>
+        <div><div class="t">${esc(t.title)}</div>
+          ${n ? `<div class="h"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>${n.source ? ` (${esc(n.source)})` : ""}</div>` : ""}
+          <div class="row" style="gap:10px;margin-top:6px">${badge(t)}<span class="small muted num">${esc(t.traffic)} pencarian</span></div></div>
+        ${t.tier < 5 ? `<button class="btn small" type="button" data-search="${esc(t.title + " explained")}">Cari video</button>` : `<span class="small muted">Hindari</span>`}</li>`;
+    }).join("");
+  } catch (e) { list.innerHTML = `<li class="empty">${esc(e.message)}</li>`; }
+}
+async function loadNiches() {
+  try {
+    const { items } = await api("/api/niches");
+    $("#nicheRow").innerHTML = items.filter(n => n.tier <= 2).map(n =>
+      `<button type="button" data-search="${esc(n.queries[0])}">${badge(n)}</button>`).join("");
+  } catch {}
+}
+$("#reloadTrends").addEventListener("click", loadTrends);
+$("#geo").addEventListener("change", loadTrends);
+$("#ideasBtn").addEventListener("click", async () => {
+  const b = $("#ideasBtn"); b.disabled = true; b.textContent = "Membuat ide…";
+  try {
+    const { ideas, source, trend_count } = await api("/api/ideas", { method: "POST", body: { geo: $("#geo").value, n: 8 } });
+    $("#ideasNote").textContent = source === "ai"
+      ? (trend_count ? `Dibuat AI dari ${trend_count} tren hari ini dan daftar niche CPM tinggi.` : "Tren hari ini tidak bisa dimuat, jadi AI memakai daftar niche CPM tinggi saja.")
+      : "AI tidak tersedia, jadi ide dibuat dengan aturan sederhana. Atur AI di tab Pengaturan untuk hasil yang lebih tajam.";
+    $("#ideaList").innerHTML = ideas.map(i => `<article class="idea">
+        <div class="row" style="justify-content:space-between">${badge(i)}${i.trend ? `<span class="small muted">Tren: ${esc(i.trend)}</span>` : `<span class="small muted">Evergreen</span>`}</div>
+        <h3>${esc(i.topic)}</h3>
+        <p class="hookline">“${esc(i.hook)}”</p>
+        ${i.why_now ? `<p class="small">${esc(i.why_now)}</p>` : ""}
+        ${i.angle ? `<p class="small muted">Sudut pandang: ${esc(i.angle)}</p>` : ""}
+        <div><button class="btn small" type="button" data-search="${esc(i.search_query)}" data-instr="${esc(i.angle || i.topic)}">Cari video sumber</button></div></article>`).join("");
+  } catch (e) { toast(e.message, true); }
+  finally { b.disabled = false; b.textContent = "Buat ide topik"; }
+});
+let pendingInstruction = "";
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-search]"); if (!b) return;
+  $("#sq").value = b.dataset.search; pendingInstruction = b.dataset.instr || "";
+  runSearch(); $("#searchPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("#searchForm").addEventListener("submit", e => { e.preventDefault(); runSearch(); });
+async function runSearch() {
+  const q = $("#sq").value.trim(); if (!q) return;
+  const box = $("#results"); box.innerHTML = `<p class="empty">Mencari “${esc(q)}”…</p>`;
+  const params = new URLSearchParams({ q, cc: $("#sCC").checked ? "1" : "0", period: $("#sPeriod").value, length: $("#sLength").value, sort: $("#sSort").value });
+  try {
+    const r = await api("/api/search?" + params);
+    if (!r.results.length) { box.innerHTML = `<p class="empty">Tidak ada hasil. Coba matikan filter Creative Commons, perluas periode, atau ganti kata kunci.</p>`; return; }
+    box.innerHTML = (r.widened ? `<p class="small muted" style="grid-column:1/-1">Tidak ada hasil untuk periode itu, jadi ditampilkan hasil dari semua waktu.</p>` : "") +
+      r.results.map(v => `<article class="vid">
+        <a class="thumb" href="${esc(v.url)}" target="_blank" rel="noopener"><img src="${esc(v.thumbnail)}" alt="" loading="lazy">${v.duration ? `<span class="dur num">${fmtTime(v.duration)}</span>` : ""}</a>
+        <h3>${esc(v.title)}</h3>
+        <p class="small muted num">${esc(v.channel)}${v.views ? `, ${fmtViews(v.views)} tayangan` : ""}${v.timestamp ? `, ${ago(v.timestamp)}` : ""}${v.cc ? ", CC BY" : ""}</p>
+        <div><button class="btn small primary" type="button" data-use="${esc(v.url)}">Pakai video ini</button></div></article>`).join("");
+  } catch (e) { box.innerHTML = `<p class="empty err">${esc(e.message)}</p>`; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-use]"); if (!b) return;
+  F.elements.source.value = b.dataset.use;
+  if (pendingInstruction && !F.elements.instructions.value) { F.elements.instructions.value = "Fokus: " + pendingInstruction; readForm(); }
+  showTab("studio"); window.scrollTo({ top: 0, behavior: "smooth" }); F.elements.source.focus();
+  toast("Video dipilih. Atur gaya lalu klik Buat klip.");
+});
+
+/* ------------------------------------------------------------ cover & animasi */
+const CR = { key: "", state: null, sb: [], from: "", preset: "komik", useCustom: false, custom: null, loaded: false };
+function crJob(box, body, label, onDone) {
+  box.hidden = false;
+  box.innerHTML = `<div class="row"><span class="small" data-k="stage">Menyiapkan ${esc(label)}…</span><span class="row" style="gap:10px"><span class="num small" data-k="pct">0%</span><button class="btn small" type="button" data-k="cancel">Batalkan</button></span></div>
+    <div class="track"><i></i></div><p class="err small" data-k="err" hidden></p>
+    <details><summary class="small muted" style="cursor:pointer">Lihat log</summary><pre class="log" data-k="log"></pre></details>`;
+  const q = k => box.querySelector(`[data-k="${k}"]`);
+  let id = null, n = 0;
+  q("cancel").addEventListener("click", async () => { if (id) { try { await api(`/api/jobs/${id}/cancel`, { method: "POST" }); } catch {} } });
+  const tick = async () => {
+    let j; try { j = await api(`/api/jobs/${id}?since=${n}`); } catch { setTimeout(tick, 2500); return; }
+    if (j.logs?.length) { const lg = q("log"); lg.textContent += j.logs.join("\n") + "\n"; lg.scrollTop = lg.scrollHeight; n = j.log_count; }
+    const pct = Math.round(j.progress * 100);
+    q("pct").textContent = pct + "%";
+    box.querySelector(".track").className = "track" + (j.status === "error" ? " error" : j.status === "done" ? " done" : "");
+    box.querySelector(".track i").style.width = (j.status === "error" ? 100 : pct) + "%";
+    q("stage").textContent = j.status === "queued" ? "Menunggu giliran (ada proses lain)" : j.status === "error" ? "Gagal" : j.status === "canceled" ? "Dibatalkan" : j.stage;
+    q("cancel").hidden = !["queued", "running"].includes(j.status);
+    if (j.status === "error") { q("err").hidden = false; q("err").textContent = j.error; }
+    if (["queued", "running"].includes(j.status)) setTimeout(tick, 1000);
+    else if (j.status === "done") { onDone && onDone(j); }
+  };
+  api("/api/jobs", { method: "POST", body }).then(j => { id = j.id; tick(); })
+    .catch(e => { q("err").hidden = false; q("err").textContent = e.message; q("cancel").hidden = true; q("stage").textContent = "Gagal"; });
+}
+async function initCreative(select) {
+  let items = [];
+  try { items = (await api("/api/library")).items; } catch (e) { toast(e.message, true); }
+  const sel = $("#crClip");
+  $("#crEmpty").hidden = items.length > 0; $("#crMain").hidden = !items.length;
+  sel.innerHTML = items.map(v => `<optgroup label="${esc(v.title)}">${v.clips.map(c =>
+    `<option value="${esc(v.video_id)}|${esc(c.rank)}">#${esc(c.rank)} ${esc(c.title || "Klip")}</option>`).join("")}</optgroup>`).join("");
+  const want = select || CR.want || CR.key || store.get("clipagent.creative.clip", "");
+  CR.want = "";
+  if (want && [...sel.options].some(o => o.value === want)) sel.value = want;
+  if (!CR.loaded) {
+    $("#cvStyle").innerHTML = Object.entries(META.styles || {}).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+    CR.loaded = true;
+  }
+  if (sel.value) loadCreative(sel.value);
+}
+$("#crClip").addEventListener("change", e => loadCreative(e.target.value));
+
+/* Draft animasi (storyboard yang diedit + gaya) disimpan per klip di browser ini. */
+const draftKey = () => "clipagent.anim." + CR.key;
+function saveDraft() {
+  if (!CR.state) return;
+  store.set(draftKey(), { range: [CR.state.clip.start, CR.state.clip.end], sb: CR.sb, from: CR.from, preset: CR.preset,
+    useCustom: CR.useCustom, custom: CR.custom, lang: $("#anLang").value, hook: $("#anHook").checked, bar: $("#anBar").checked });
+}
+function loadDraft() {
+  const d = store.get(draftKey(), null), st = CR.state;
+  const fresh = d && d.range && Math.abs(d.range[0] - st.clip.start) < 0.05 && Math.abs(d.range[1] - st.clip.end) < 0.05;
+  const studio = jobOptions({});
+  CR.sb = fresh && Array.isArray(d.sb) ? d.sb : [];
+  CR.from = fresh ? d.from || "" : "";
+  CR.preset = fresh && st.presets[d.preset] ? d.preset : "komik";
+  CR.useCustom = !!(fresh && d.useCustom);
+  CR.custom = fresh && d.custom ? d.custom : null;
+  $("#anLang").value = fresh && d.lang ? d.lang : (studio.sub_lang || "auto");
+  $("#anHook").checked = fresh && "hook" in d ? d.hook : studio.hook_overlay !== false;
+  $("#anBar").checked = fresh && "bar" in d ? d.bar : !!studio.progress_bar;
+}
+async function loadCreative(key, keep) {
+  const [vid, rank] = key.split("|");
+  const changed = CR.key !== key;
+  CR.key = key; store.set("clipagent.creative.clip", key);
+  let st; try { st = await api(`/api/creative?video=${encodeURIComponent(vid)}&rank=${encodeURIComponent(rank)}`); }
+  catch (e) { toast(e.message, true); return; }
+  CR.state = st;
+  if (changed || !keep) loadDraft();
+  const v = $("#crVideo"); if (st.clip.video_url && v.getAttribute("src") !== st.clip.video_url) v.src = st.clip.video_url;
+  $("#crTitle").textContent = st.clip.title || "Klip " + st.rank;
+  $("#crMeta").textContent = `${st.title}, ${fmtTime(st.clip.start)}–${fmtTime(st.clip.end)}`;
+  $("#cvAi").closest("label").title = st.image_ai ? "" : "Butuh GEMINI_API_KEY di Pengaturan";
+  const rm = st.remotion;
+  $("#rmWarn").hidden = rm.ready; $("#rmWarn").textContent = rm.ready ? "" : "Remotion belum siap. " + rm.hint;
+  renderCovers(); renderAnimTab(); renderAnimations();
+}
+function renderAnimTab() { renderOptions(); renderScenes(); renderPresets(); renderCustom(); renderPreviewFrames(); updateNote(); }
+function renderCovers() {
+  const c = CR.state.covers;
+  $("#cvList").innerHTML = !c ? "" : c.covers.map(x => `<article class="cover">
+      <img class="v" src="${esc(x.v_url)}" alt="Cover 9:16: ${esc(x.text)}" loading="lazy">
+      <div class="info"><img class="h" src="${esc(x.h_url)}" alt="Thumbnail 16:9: ${esc(x.text)}" loading="lazy">
+        <p class="small"><b>${esc(x.label)}</b>, detik ${esc(x.time)}</p>
+        <div class="row" style="gap:6px"><a class="btn small" href="${esc(x.v_url)}&download=1" download>Unduh 9:16</a><a class="btn small" href="${esc(x.h_url)}&download=1" download>Unduh 16:9</a></div>
+      </div></article>`).join("");
+}
+$("#cvGo").addEventListener("click", () => {
+  if (!CR.state) return;
+  const body = { kind: "covers", video_id: CR.state.video_id, rank: CR.state.rank, text: $("#cvText").value.trim(),
+    font: $("#cvFont").value, style: $("#cvStyle").value, accent: $("#cvAccent").value, ai: $("#cvAi").checked };
+  crJob($("#cvJob"), body, "cover", () => { loadCreative(CR.key, true); toast("Cover siap"); });
+});
+
+/* ---- langkah 1: pilihan storyboard */
+const frameUrl = t => `/api/creative/frame?video=${encodeURIComponent(CR.state.video_id)}&rank=${CR.state.rank}&t=${Math.max(0, t).toFixed(1)}`;
+const sceneMid = s => (Number(s.start) + Number(s.end)) / 2;
+const r1 = x => Math.round(Number(x) * 10) / 10;
+function spoken(s) {
+  return (CR.state.segments || []).filter(g => { const m = (g.start + g.end) / 2; return m >= s.start && m < s.end; }).map(g => g.text).join(" ");
+}
+function blankScene(start, end, k) {
+  const d = CR.state.duration;
+  return { start: Math.min(d, r1(start)), end: Math.min(d, r1(end)), heading: "", bubble: "", sfx: "", prompt: "",
+           camera: ["zoom_in", "pan_right", "zoom_out", "pan_left"][k % 4], transition: "fade" };
+}
+function useScenes(scenes, from) {
+  CR.sb = scenes.map((s, k) => ({ ...blankScene(s.start, s.end, k), heading: s.heading || "", bubble: s.bubble || "",
+    sfx: s.sfx || "", prompt: s.prompt || "", camera: s.camera || "zoom_in", transition: s.transition || "fade" }));
+  CR.from = from; saveDraft(); renderAnimTab();
+  $("#sbEdit").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderOptions() {
+  const sb = CR.state.storyboards;
+  $("#sbGo").textContent = sb ? "Buat ulang pilihan storyboard" : "Buat pilihan storyboard";
+  $("#sbOpts").innerHTML = !sb ? "" : sb.options.map(o => `<article class="sb-opt ${CR.from === o.id ? "on" : ""}">
+      <div class="bh"><b>${esc(o.name)}</b><span class="small muted">${esc(o.desc)}</span></div>
+      <div class="strip">${o.scenes.slice(0, 10).map(s => `<img src="${esc(frameUrl(sceneMid(s)))}" alt="" loading="lazy">`).join("")}</div>
+      <ul>${o.scenes.slice(0, 3).map(s => `<li>${esc(s.heading || s.bubble || s.title || s.text)}</li>`).join("")}${o.scenes.length > 3 ? `<li>dan ${o.scenes.length - 3} adegan lagi</li>` : ""}</ul>
+      <div class="row" style="justify-content:space-between"><span class="small muted num">${o.scenes.length} adegan</span>
+        <button class="btn small ${CR.from === o.id ? "" : "primary"}" type="button" data-sbuse="${esc(o.id)}">${CR.from === o.id ? "Pakai ulang (reset edit)" : "Pakai storyboard ini"}</button></div>
+    </article>`).join("") + (sb ? `<p class="small muted" style="grid-column:1/-1">Disusun ${sb.source === "ai" ? "oleh AI" : "otomatis per kalimat (AI tidak tersedia)"}.</p>` : "");
+}
+$("#sbGo").addEventListener("click", () => {
+  if (!CR.state) return;
+  crJob($("#sbJob"), { kind: "storyboard", video_id: CR.state.video_id, rank: CR.state.rank }, "storyboard",
+    () => { loadCreative(CR.key, true); toast("Pilihan storyboard siap. Pilih salah satu."); });
+});
+$("#sbOpts").addEventListener("click", e => {
+  const b = e.target.closest("[data-sbuse]"); if (!b) return;
+  const o = CR.state.storyboards.options.find(x => x.id === b.dataset.sbuse);
+  if (o) { useScenes(o.scenes, o.id); toast(`Storyboard "${o.name}" dipakai. Edit adegannya di bawah.`); }
+});
+$("#sbOwn").addEventListener("click", () => {
+  if (!CR.state) return;
+  if (CR.sb.length && !confirm("Ganti adegan yang sedang diedit dengan storyboard kosong?")) return;
+  const segs = CR.state.segments || [];
+  const scenes = segs.length ? segs.map((g, k) => blankScene(g.start, g.end, k))
+    : Array.from({ length: Math.max(1, Math.round(CR.state.duration / 4)) }, (_, k, a) =>
+        blankScene(CR.state.duration * k / a.length, CR.state.duration * (k + 1) / a.length, k));
+  CR.sb = scenes; CR.from = "sendiri"; saveDraft(); renderAnimTab();
+  $("#sbEdit").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+/* ---- langkah 2: editor adegan */
+function curLook() {
+  const p = CR.state.presets[CR.preset];
+  return CR.useCustom && CR.custom ? { ...p, ...CR.custom, style: { ...p.style, ...CR.custom } } : p;
+}
+function renderScenes() {
+  const has = CR.sb.length > 0;
+  $("#sbEdit").hidden = $("#stPick").hidden = $("#anMake").hidden = !has;
+  if (!has) { $("#sbScenes").innerHTML = ""; return; }
+  const st = CR.state, ai = curLook().media === "ai";
+  const opt = (map, v) => Object.entries(map).map(([k, l]) => `<option value="${k}" ${k === v ? "selected" : ""}>${esc(l)}</option>`).join("");
+  $("#sbScenes").innerHTML = CR.sb.map((s, i) => `<article class="sc-row" data-i="${i}">
+      <img src="${esc(frameUrl(sceneMid(s)))}" alt="Frame adegan ${i + 1}" loading="lazy">
+      <div class="sc-body">
+        <div class="sc-top"><b>Adegan ${i + 1}</b>
+          <label>Mulai <input type="number" step="0.1" min="0" max="${st.duration}" value="${r1(s.start)}" data-f="start" aria-label="Mulai adegan ${i + 1} (detik)"></label>
+          <label>Selesai <input type="number" step="0.1" min="0" max="${st.duration}" value="${r1(s.end)}" data-f="end" aria-label="Selesai adegan ${i + 1} (detik)"></label>
+          <span class="sc-tools">
+            <button class="btn small ghost" type="button" data-act="split" title="Bagi dua">Bagi</button>
+            ${i < CR.sb.length - 1 ? `<button class="btn small ghost" type="button" data-act="merge" title="Gabung dengan adegan berikutnya">Gabung</button>` : ""}
+            <button class="btn small ghost" type="button" data-act="del">Hapus</button></span></div>
+        <p class="quote">${esc(spoken(s) || "(tanpa ucapan)")}</p>
+        <div class="sc-grid">
+          <label class="field f-heading"><span>Judul di layar</span><input type="text" maxlength="80" value="${esc(s.heading)}" data-f="heading"></label>
+          <label class="field f-bubble"><span>Balon kata</span><input type="text" maxlength="120" value="${esc(s.bubble)}" data-f="bubble" placeholder="Kosong = kalimat yang diucapkan"></label>
+          <label class="field"><span>Efek suara</span><input type="text" maxlength="20" value="${esc(s.sfx)}" data-f="sfx" placeholder="mis. BOOM!"></label>
+          <label class="field"><span>Gerak kamera</span><select data-f="camera">${opt(st.cameras, s.camera)}</select></label>
+          <label class="field"><span>Transisi ke berikutnya</span><select data-f="transition">${opt(st.transitions, s.transition)}</select></label>
+          ${ai ? `<label class="field wide"><span>Deskripsi gambar untuk AI (bahasa Inggris lebih akurat)</span><textarea rows="2" maxlength="200" data-f="prompt" placeholder="mis. an astronaut floating inside a bright space station">${esc(s.prompt)}</textarea></label>` : ""}
+        </div>
+      </div></article>`).join("");
+  const total = CR.sb.reduce((a, s) => a + Math.max(0, s.end - s.start), 0);
+  $("#sbSum").textContent = `${CR.sb.length} adegan, ${total.toFixed(1)} dtk dari ${st.duration.toFixed(1)} dtk`;
+}
+function fixScenes() {
+  const d = CR.state.duration;
+  CR.sb.forEach(s => { s.start = Math.min(d, Math.max(0, r1(s.start))); s.end = Math.min(d, Math.max(0, r1(s.end))); });
+  CR.sb.sort((a, b) => a.start - b.start);
+}
+$("#sbScenes").addEventListener("input", e => {
+  const t = e.target, row = t.closest("[data-i]"); if (!row || !t.dataset.f) return;
+  const s = CR.sb[+row.dataset.i];
+  if (["start", "end"].includes(t.dataset.f)) return;      // waktu diproses saat 'change'
+  s[t.dataset.f] = t.value; saveDraft();
+});
+$("#sbScenes").addEventListener("change", e => {
+  const t = e.target, row = t.closest("[data-i]"); if (!row || !t.dataset.f) return;
+  const s = CR.sb[+row.dataset.i];
+  if (["start", "end"].includes(t.dataset.f)) {
+    s[t.dataset.f] = Number(t.value) || 0;
+    if (s.end - s.start < 0.5) toast("Adegan minimal 0,5 detik; adegan yang terlalu pendek dilewati saat render.", true);
+    fixScenes(); renderScenes(); updateNote();
+  } else s[t.dataset.f] = t.value;
+  saveDraft();
+});
+$("#sbScenes").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const i = +b.closest("[data-i]").dataset.i, s = CR.sb[i];
+  if (b.dataset.act === "del") CR.sb.splice(i, 1);
+  if (b.dataset.act === "split") {
+    if (s.end - s.start < 1) { toast("Adegan terlalu pendek untuk dibagi.", true); return; }
+    const m = r1(sceneMid(s));
+    CR.sb.splice(i + 1, 0, { ...s, start: m, heading: "", bubble: "", sfx: "", camera: s.camera === "zoom_in" ? "zoom_out" : "zoom_in" });
+    s.end = m;
+  }
+  if (b.dataset.act === "merge") { const n = CR.sb[i + 1]; s.end = n.end; CR.sb.splice(i + 1, 1); }
+  saveDraft(); renderAnimTab();
+});
+$("#scAdd").addEventListener("click", () => {
+  const d = CR.state.duration, last = CR.sb[CR.sb.length - 1];
+  if (last && last.end < d - 0.5) CR.sb.push(blankScene(last.end, Math.min(d, last.end + 4), CR.sb.length));
+  else if (last && last.end - last.start >= 1) {
+    const m = r1(sceneMid(last)); CR.sb.push(blankScene(m, last.end, CR.sb.length)); last.end = m;
+  } else if (!last) CR.sb.push(blankScene(0, Math.min(d, 4), 0));
+  else { toast("Tidak ada sisa waktu klip. Perpendek adegan lain dulu.", true); return; }
+  saveDraft(); renderAnimTab();
+});
+
+/* ---- langkah 3: gaya */
+function renderPresets() {
+  if (!CR.sb.length) return;
+  const gallery = Object.fromEntries((CR.state.previews.styles || []).map(x => [x.preset, x.url]));
+  $("#stPresets").innerHTML = Object.entries(CR.state.presets).map(([id, p]) => {
+    const s = p.style;
+    const sw = gallery[id] ? `<img src="${esc(gallery[id])}" alt="Contoh gaya ${esc(p.name)}" loading="lazy">`
+      : `<span class="fr" style="background:${s.bg2};border:3px solid ${s.ink};${s.frame === "card" ? "border-radius:8px;" : ""}${s.frame === "full" ? "inset:0;height:auto;border:0;" : ""}"></span><span class="ln" style="background:${s.accent}"></span>`;
+    return `<button type="button" class="preset" data-preset="${esc(id)}" aria-pressed="${id === CR.preset}">
+      <span class="sw" style="background:linear-gradient(${s.bg}, ${s.bg2})">${sw}</span>
+      <b>${esc(p.name)}</b><span>${esc(p.desc)}</span></button>`;
+  }).join("");
+}
+$("#stPresets").addEventListener("click", e => {
+  const b = e.target.closest("[data-preset]"); if (!b) return;
+  CR.preset = b.dataset.preset;
+  if (CR.useCustom) CR.custom = customFrom(CR.state.presets[CR.preset]);
+  saveDraft(); renderPresets(); renderCustom(); renderScenes(); updateNote();
+});
+$("#stGallery").addEventListener("click", () => {
+  if (!CR.sb.length) return;
+  crJob($("#stJob"), { kind: "styles_preview", video_id: CR.state.video_id, rank: CR.state.rank, scenes: CR.sb, sub_lang: $("#anLang").value },
+    "contoh gaya", () => { loadCreative(CR.key, true); toast("Contoh gaya siap"); });
+});
+function customFrom(p) {
+  return { name: p.name + " (kustom)", media: p.media, cartoon: p.cartoon, ai_prompt: p.ai_prompt, ...p.style };
+}
+function renderCustom() {
+  $("#stCustomOn").checked = CR.useCustom;
+  const box = $("#stCustom"); box.hidden = !CR.useCustom;
+  if (!CR.useCustom) { box.innerHTML = ""; return; }
+  if (!CR.custom) CR.custom = customFrom(CR.state.presets[CR.preset]);
+  const c = CR.custom, o = CR.state.style_options;
+  const sel = (key, label, map) => `<label class="field"><span>${label}</span><select data-c="${key}">${Object.entries(map).map(([k, l]) =>
+    `<option value="${esc(k)}" ${k === c[key] ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+  const fonts = Object.fromEntries(o.fonts.map(f => [f, f]));
+  const col = (key, label) => `<label>${label}<input type="color" data-c="${key}" value="${esc(c[key])}"></label>`;
+  box.innerHTML = `
+    <label class="field wide"><span>Nama gaya</span><input type="text" maxlength="40" data-c="name" value="${esc(c.name)}"></label>
+    ${sel("media", "Sumber gambar", o.media)}
+    ${["kartun", "ai"].includes(c.media) ? sel("cartoon", "Gaya kartun", o.cartoon) : ""}
+    ${sel("frame", "Bingkai", o.frame)}
+    ${c.media === "ai" ? `<label class="field wide"><span>Arahan gaya untuk AI (bahasa Inggris)</span><textarea rows="2" maxlength="400" data-c="ai_prompt" placeholder="mis. soft watercolor children's book illustration, warm light">${esc(c.ai_prompt)}</textarea></label>` : ""}
+    ${sel("captions", "Caption", o.captions)}
+    ${sel("texture", "Tekstur", o.texture)}
+    ${sel("motion", "Gerak", o.motion)}
+    ${c.media === "video" ? sel("videoFilter", "Filter video", o.videoFilter) : ""}
+    ${sel("font", "Font judul", fonts)}
+    ${sel("captionFont", "Font caption", fonts)}
+    <label class="field"><span>Durasi transisi: <b class="num" data-k="ts">${Number(c.transitionSec).toFixed(2)}</b> dtk</span><input type="range" min="0.1" max="1" step="0.05" data-c="transitionSec" value="${c.transitionSec}"></label>
+    <div class="row" style="gap:14px;align-self:end">
+      <label class="switch"><input type="checkbox" data-c="uppercase" ${c.uppercase ? "checked" : ""}><span class="small">Huruf kapital</span></label>
+      <label class="switch"><input type="checkbox" data-c="sfx" ${c.sfx ? "checked" : ""}><span class="small">Efek suara</span></label></div>
+    <div class="colors wide">${col("bg", "Latar")}${col("bg2", "Latar 2")}${col("accent", "Aksen")}${col("ink", "Garis")}${col("text", "Teks")}</div>`;
+}
+$("#stCustomOn").addEventListener("change", e => {
+  CR.useCustom = e.target.checked;
+  if (CR.useCustom && !CR.custom) CR.custom = customFrom(CR.state.presets[CR.preset]);
+  saveDraft(); renderCustom(); renderScenes(); updateNote();
+});
+$("#stCustom").addEventListener("input", e => {
+  const t = e.target, k = t.dataset.c; if (!k) return;
+  CR.custom[k] = t.type === "checkbox" ? t.checked : t.type === "range" ? Number(t.value) : t.value;
+  if (k === "transitionSec") $("#stCustom [data-k=ts]").textContent = Number(t.value).toFixed(2);
+  saveDraft();
+  if (k === "media") { renderCustom(); renderScenes(); updateNote(); }
+});
+["#anLang", "#anHook", "#anBar"].forEach(s => $(s).addEventListener("change", saveDraft));
+
+/* ---- langkah 4: pratinjau & render */
+function animBody(kind) {
+  const custom = CR.useCustom && CR.custom ? Object.fromEntries(Object.entries(CR.custom).filter(([, v]) => v !== undefined)) : undefined;
+  return { kind, video_id: CR.state.video_id, rank: CR.state.rank, scenes: CR.sb, preset: CR.preset, custom,
+           sub_lang: $("#anLang").value, hook_overlay: $("#anHook").checked, progress_bar: $("#anBar").checked, allow_ai: true };
+}
+function updateNote() {
+  if (!CR.state || !CR.sb.length) return;
+  const look = curLook(), ok = CR.sb.filter(s => s.end - s.start >= 0.5).length;
+  const total = CR.sb.reduce((a, s) => a + Math.max(0, s.end - s.start), 0);
+  const media = CR.state.style_options.media[look.media] || look.media;
+  let note = `${ok} adegan, ${total.toFixed(1)} dtk. Gaya: ${CR.useCustom ? CR.custom.name : look.name}. Sumber gambar: ${media.toLowerCase()}.`;
+  if (look.media === "ai") note += CR.state.image_ai ? " Gambar AI dibuat sekali per adegan lalu disimpan, jadi pratinjau dan video memakai gambar yang sama." : " API key Gemini belum diisi, jadi gambar memakai kartun lokal.";
+  if (look.media === "video") note += " Mode video bergerak paling lama dirender.";
+  $("#anNote").textContent = note;
+}
+function renderPreviewFrames() {
+  const fr = CR.state.previews.frames || [];
+  $("#pvFrames").innerHTML = fr.map(f => `<figure><img src="${esc(f.url)}" alt="Pratinjau ${esc(f.label)}"><figcaption>${esc(f.label)}, ${esc(f.style)}</figcaption></figure>`).join("");
+}
+function canRender() {
+  if (!CR.state.remotion.ready) { toast(CR.state.remotion.hint, true); return false; }
+  if (!CR.sb.some(s => s.end - s.start >= 0.5)) { toast("Tambahkan minimal satu adegan (minimal 0,5 detik).", true); return false; }
+  return true;
+}
+$("#pvGo").addEventListener("click", () => {
+  if (!CR.state || !canRender()) return;
+  crJob($("#pvJob"), animBody("preview"), "pratinjau", () => { loadCreative(CR.key, true); toast("Pratinjau siap"); });
+});
+$("#anGo").addEventListener("click", () => {
+  if (!CR.state || !canRender()) return;
+  crJob($("#anJob"), animBody("animate"), "animasi", () => { loadCreative(CR.key, true); toast("Video animasi selesai"); });
+});
+function renderAnimations() {
+  const list = CR.state.animations || [];
+  $("#anHead").hidden = !list.length;
+  $("#anList").innerHTML = list.length ? list.map(a => `<article class="clip">
+      <video src="${esc(a.video_url)}" controls preload="metadata" playsinline></video>
+      <h3>${esc(a.label)}</h3>
+      <div class="meta num"><span>${esc(a.scenes)} adegan</span><span>${Math.round(a.duration)} dtk</span>${a.ai_images ? `<span>${esc(a.ai_images)} gambar AI</span>` : ""}</div>
+      <div class="actions"><a class="btn small" href="${esc(a.video_url)}&download=1" download>Unduh MP4</a>${a.path ? `<button class="btn small" type="button" data-post="${esc(a.path)}">Posting</button>` : ""}</div></article>`).join("") : "";
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-creative]"); if (!b) return;
+  CR.want = b.dataset.creative; showTab("creative"); window.scrollTo({ top: 0 });
+});
+
+/* ------------------------------------------------------------ data studio bersama */
+let STUDIO = null;
+async function studioMeta(force) {
+  if (!STUDIO || force) { try { STUDIO = await api("/api/studio/meta"); } catch (e) { toast(e.message, true); STUDIO = STUDIO || null; } }
+  return STUDIO;
+}
+const optHtml = (map, cur) => Object.entries(map).map(([k, l]) => `<option value="${esc(k)}" ${String(k) === String(cur) ? "selected" : ""}>${esc(l)}</option>`).join("");
+const pathOf = url => decodeURIComponent(String(url || "").replace(/^\/files\//, "").split("?")[0]);
+const fmtK = n => n == null ? "?" : n >= 1e6 ? (n / 1e6).toFixed(1).replace(".0", "") + " jt" : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(".0", "") + " rb" : String(Math.round(n));
+
+/* ------------------------------------------------------------ riset viral */
+function initViral() {
+  const box = $("#vNiches");
+  if (box.dataset.ready) return;
+  box.dataset.ready = "1";
+  api("/api/niches").then(({ items }) => {
+    box.innerHTML = items.filter(n => n.tier <= 2).map(n => `<button type="button" data-vq="${esc(n.queries[0].replace(/ podcast| interview/g, ""))}">${badge(n)}</button>`).join("");
+  }).catch(() => {});
+  studioMeta().then(m => { if (m && !m.keys.youtube_api) $("#vTrending").title = "Butuh YOUTUBE_API_KEY di Pengaturan"; });
+}
+$("#vNiches").addEventListener("click", e => { const b = e.target.closest("[data-vq]"); if (!b) return; $("#vq").value = b.dataset.vq; runViral(); });
+$("#viralForm").addEventListener("submit", e => { e.preventDefault(); runViral(); });
+$("#vTrending").addEventListener("click", () => runViral(true));
+async function runViral(trending) {
+  const q = $("#vq").value.trim();
+  if (!trending && !q) { $("#vq").focus(); return; }
+  const box = $("#viralList");
+  box.innerHTML = `<p class="empty">${trending ? "Memuat video populer di AS…" : `Mencari video viral “${esc(q)}”… (tanpa YouTube API key bisa 20–40 detik)`}</p>`;
+  try {
+    const r = trending ? await api("/api/viral/trending") :
+      await api("/api/viral?" + new URLSearchParams({ q, period: $("#vPeriod").value, length: $("#vLength").value, cc: $("#vCC").checked ? "1" : "0" }));
+    $("#vSource").textContent = r.source === "youtube-api" ? "Data: YouTube Data API" : "Data: yt-dlp (isi YOUTUBE_API_KEY untuk data lebih lengkap)";
+    if (!r.items.length) { box.innerHTML = `<p class="empty">Tidak ada video. Coba perluas periode atau ganti kata kunci.</p>`; return; }
+    box.innerHTML = r.items.map(v => `<article class="vcard">
+      <a class="thumb" href="${esc(v.url)}" target="_blank" rel="noopener"><img src="${esc(v.thumbnail)}" alt="" loading="lazy">
+        <span class="score num">${v.score}<small>${esc(v.label)}</small></span>${v.duration ? `<span class="dur num">${fmtTime(v.duration)}</span>` : ""}</a>
+      <h3>${esc(v.title)}</h3>
+      <p class="small muted num">${esc(v.channel)}, ${fmtViews(v.views)} tayangan${v.timestamp ? `, ${ago(v.timestamp)}` : ""}${v.cc ? ", CC BY" : ""}</p>
+      <div class="metrics num">
+        ${v.vph != null ? `<span class="${v.vph > 1000 ? "hot" : ""}">${fmtK(v.vph)} views/jam</span>` : ""}
+        ${v.outlier != null ? `<span class="${v.outlier >= 5 ? "hot" : ""}">${v.outlier >= 1 ? v.outlier.toFixed(v.outlier < 10 ? 1 : 0) + "x subscriber" : "di bawah rata-rata channel"}</span>` : ""}
+        ${v.engagement != null ? `<span>interaksi ${(v.engagement * 100).toFixed(1)}%</span>` : ""}
+        ${badge(v)}
+      </div>
+      <div class="row" style="gap:6px"><button class="btn small primary" type="button" data-remake="${esc(v.url)}">Buat versi orisinal</button>
+        ${v.cc ? `<button class="btn small" type="button" data-use="${esc(v.url)}">Klip video ini</button>` : ""}</div>
+    </article>`).join("");
+  } catch (e) { box.innerHTML = `<p class="empty err">${esc(e.message)}</p>`; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-remake]"); if (!b) return;
+  MK.prefill = b.dataset.remake; showTab("make"); window.scrollTo({ top: 0 });
+});
+
+/* ------------------------------------------------------------ buat video */
+const MK = { view: "new", pid: "", proj: null, cid: "", chars: [], projects: [], saveTimer: null, prefill: "" };
+async function initMake() {
+  const m = await studioMeta(true);
+  if (!m) return;
+  $("#nLength").innerHTML = m.lengths.map(n => `<option value="${n}" ${n === 45 ? "selected" : ""}>${n < 60 ? n + " detik" : n / 60 + " menit"}</option>`).join("");
+  $("#chArt").innerHTML = optHtml(m.art_styles);
+  const warn = [];
+  if (!m.keys.gemini) warn.push("Isi Gemini API key di Pengaturan untuk suara narasi Gemini, gambar AI, dan karakter.");
+  if (!m.engines.gemini && !m.engines.edge) warn.push("Belum ada mesin suara: isi Gemini API key atau pasang suara gratis (pip install edge-tts).");
+  if (!m.remotion.ready) warn.push("Remotion belum siap: " + m.remotion.hint);
+  $("#mkWarn").hidden = !warn.length; $("#mkWarn").textContent = warn.join(" ");
+  await Promise.all([loadProjects(), loadChars()]);
+  if (MK.prefill) { MK.view = "new"; $("#nSource").value = MK.prefill; MK.prefill = ""; }
+  if (MK.view === "edit" && MK.pid) openProject(MK.pid); else if (MK.view === "char") openChar(MK.cid); else showMk("new");
+}
+function showMk(view) {
+  MK.view = view;
+  $("#mkNew").hidden = view !== "new"; $("#mkEdit").hidden = view !== "edit"; $("#mkChar").hidden = view !== "char";
+  $$("#mkProjects button").forEach(b => b.setAttribute("aria-current", String(view === "edit" && b.dataset.pid === MK.pid)));
+  $$("#mkChars button").forEach(b => b.setAttribute("aria-current", String(view === "char" && b.dataset.cid === MK.cid)));
+}
+async function loadProjects() {
+  try { MK.projects = (await api("/api/projects")).items; } catch { MK.projects = []; }
+  $("#mkProjects").innerHTML = MK.projects.length ? MK.projects.map(p => `<button type="button" data-pid="${p.id}"><span class="ic">${p.renders || "·"}</span>
+      <b>${esc(p.title || p.source || "Proyek")}</b><span>${esc(p.updated.slice(5, 16))}${p.renders ? `, ${p.renders} video` : ""}</span></button>`).join("")
+    : `<p class="small muted">Belum ada proyek.</p>`;
+  showMk(MK.view);
+}
+async function loadChars() {
+  try { MK.chars = (await api("/api/characters")).items; } catch { MK.chars = []; }
+  $("#mkChars").innerHTML = MK.chars.length ? MK.chars.map(c => `<button type="button" data-cid="${c.id}">${c.ref_url ? `<img class="av" src="${esc(c.ref_url)}" alt="">` : `<span class="ic">${esc(c.name[0] || "?")}</span>`}
+      <b>${esc(c.name)}</b><span>${esc(c.art_label)}</span></button>`).join("")
+    : `<p class="small muted">Belum ada karakter. Karakter membuat semua video terlihat seperti satu channel.</p>`;
+  const opts = `<option value="">Tanpa karakter</option>` + MK.chars.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  $("#nChar").innerHTML = opts;
+  showMk(MK.view);
+}
+$("#mkNewBtn").addEventListener("click", () => showMk("new"));
+$("#mkProjects").addEventListener("click", e => { const b = e.target.closest("[data-pid]"); if (b) openProject(b.dataset.pid); });
+$("#mkChars").addEventListener("click", e => { const b = e.target.closest("[data-cid]"); if (b) openChar(b.dataset.cid); });
+function newSettings() {
+  return { length: +$("#nLength").value, aspect: $("#nAspect").value, audience: $("#nAudience").value,
+           character: $("#nChar").value, angle: $("#nAngle").value.trim() };
+}
+$("#nGo").addEventListener("click", async () => {
+  const source = $("#nSource").value.trim();
+  if (!source) { $("#nSource").focus(); return; }
+  try {
+    const proj = await api("/api/projects", { method: "POST", body: { source, settings: newSettings() } });
+    MK.pid = proj.id;
+    crJob($("#nJob"), { kind: "remake_script", project: proj.id }, "naskah", async () => {
+      $("#nJob").hidden = true; await loadProjects(); openProject(proj.id); toast("Naskah orisinal siap. Periksa dan edit tiap adegan.");
+    });
+  } catch (e) { toast(e.message, true); }
+});
+$("#nBlank").addEventListener("click", async () => {
+  try {
+    const proj = await api("/api/projects", { method: "POST", body: { source: $("#nSource").value.trim(), settings: newSettings(), blank: true } });
+    await loadProjects(); openProject(proj.id);
+  } catch (e) { toast(e.message, true); }
+});
+async function openProject(pid) {
+  try { MK.proj = await api("/api/projects/" + pid); } catch (e) { toast(e.message, true); return; }
+  MK.pid = pid; showMk("edit"); renderProject();
+}
+function renderProject() {
+  const p = MK.proj, sc = p.script, st = p.settings;
+  $("#pTitle").value = sc.title || "";
+  const src = p.source?.url ? `Sumber riset: <a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.title || p.source.url)}</a>${p.source.channel ? ` (${esc(p.source.channel)})` : ""}` : p.topic ? `Topik: ${esc(p.topic)}` : "";
+  $("#pSource").innerHTML = src;
+  const sim = p.similarity;
+  $("#pSim").hidden = sim == null;
+  if (sim != null) { $("#pSim").className = "sim " + (sim <= 0.1 ? "ok" : "warn"); $("#pSim").textContent = `Kemiripan dengan sumber ${(sim * 100).toFixed(0)}%${sim <= 0.1 ? ", orisinal" : ", sebaiknya ditulis ulang"}`; }
+  $("#pDesc").value = sc.description || ""; $("#pTags").value = (sc.hashtags || []).join(", ");
+  renderScenesMk(); renderSettingsMk(); renderRenders();
+}
+function sceneVisualMap() { return { "": "Ikuti pengaturan", ...STUDIO.visuals }; }
+function renderScenesMk() {
+  const p = MK.proj, scenes = p.script.scenes || [];
+  const prev = Object.fromEntries(((p.preview || {}).scenes || []).map(x => [x.id, x]));
+  const opt = (arr, v) => arr.map(k => `<option value="${k}" ${k === v ? "selected" : ""}>${esc(CR.state?.cameras?.[k] || CR.state?.transitions?.[k] || ({ zoom_in: "Zoom masuk", zoom_out: "Zoom keluar", pan_left: "Geser ke kiri", pan_right: "Geser ke kanan", static: "Diam", fade: "Pudar", slide: "Geser", wipe: "Sapu", flip: "Balik", clockwipe: "Putar jam", iris: "Lingkaran", none: "Potong langsung" })[k] || k)}</option>`).join("");
+  $("#pScenes").innerHTML = scenes.map((s, i) => {
+    const pv = prev[s.id] || {};
+    return `<article class="sc-row" data-i="${i}">
+      ${pv.thumb_url ? `<img src="${esc(pv.thumb_url)}" alt="Visual adegan ${i + 1}">` : `<div class="ch-img" style="aspect-ratio:9/16"><span class="small muted">${i + 1}</span></div>`}
+      <div class="sc-body">
+        <div class="sc-top"><b>Adegan ${i + 1}</b>${pv.dur ? `<span class="small muted num">${pv.dur.toFixed(1)} dtk, ${esc(STUDIO.visuals[pv.kind] || pv.kind)}</span>` : ""}
+          <span class="sc-tools"><button class="btn small ghost" type="button" data-act="up" ${i ? "" : "disabled"} aria-label="Naikkan">↑</button>
+          <button class="btn small ghost" type="button" data-act="down" ${i < scenes.length - 1 ? "" : "disabled"} aria-label="Turunkan">↓</button>
+          <button class="btn small ghost" type="button" data-act="del">Hapus</button></span></div>
+        <label class="field"><span>Narasi (diucapkan)</span><textarea class="narr" rows="2" data-f="narration" maxlength="600">${esc(s.narration)}</textarea></label>
+        ${pv.audio_url ? `<audio class="vo" controls preload="none" src="${esc(pv.audio_url)}"></audio>` : ""}
+        <div class="sc-grid">
+          <label class="field f-heading"><span>Judul di layar</span><input type="text" data-f="heading" maxlength="80" value="${esc(s.heading)}"></label>
+          <label class="field"><span>Visual</span><select data-f="visual">${optHtml(sceneVisualMap(), s.visual || "")}</select></label>
+          <label class="field"><span>Kata kunci stok</span><input type="text" data-f="stock" maxlength="80" value="${esc(s.stock)}" placeholder="mis. bank savings money"></label>
+          <label class="field wide"><span>Deskripsi gambar (bahasa Inggris)</span><textarea rows="2" data-f="prompt" maxlength="400">${esc(s.prompt)}</textarea></label>
+          <label class="field"><span>Gerak kamera</span><select data-f="camera">${opt(STUDIO.cameras, s.camera)}</select></label>
+          <label class="field"><span>Transisi ke berikutnya</span><select data-f="transition">${opt(STUDIO.transitions, s.transition)}</select></label>
+          ${pv.credit ? `<p class="small muted wide">Stok: ${esc(pv.credit)}</p>` : ""}
+        </div>
+      </div></article>`;
+  }).join("");
+  updateSum();
+}
+function updateSum() {
+  const scenes = MK.proj.script.scenes || [];
+  const words = scenes.reduce((n, s) => n + (s.narration || "").split(/\s+/).filter(Boolean).length, 0);
+  const rate = MK.proj.settings.audience === "us" ? 2.5 : 2.2;
+  $("#pSum").textContent = `${scenes.length} adegan, ${words} kata, perkiraan ${Math.round(words / rate)} dtk`;
+  updateCost();
+}
+function renderSettingsMk() {
+  const st = MK.proj.settings, m = STUDIO;
+  const ch = MK.chars.find(c => c.id === st.character);
+  const engine = ch?.voice_engine || st.voice_engine;
+  const voices = m.voices[engine] || {};
+  const engines = { gemini: "Gemini" + (m.engines.gemini ? "" : " (butuh API key)"), edge: "Edge, gratis" + (m.engines.edge ? "" : " (belum terpasang)") };
+  const presets = Object.fromEntries(Object.entries(m.presets).map(([k, v]) => [k, v.name]));
+  $("#pSettings").innerHTML = `
+    <label class="field"><span>Karakter</span><select data-s="character"><option value="">Tanpa karakter</option>${MK.chars.map(c => `<option value="${c.id}" ${c.id === st.character ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
+    <label class="field"><span>Mesin suara</span><select data-s="voice_engine" ${ch ? "disabled title=\"Mengikuti karakter\"" : ""}>${optHtml(engines, engine)}</select></label>
+    <label class="field"><span>Suara</span><select data-s="voice"><option value="">${ch?.voice ? "Suara karakter (" + esc(ch.voice) + ")" : "Bawaan"}</option>${optHtml(Object.fromEntries(Object.entries(voices).map(([k, d]) => [k, engine === "gemini" ? `${k}, ${d}` : d])), st.voice)}</select></label>
+    <label class="field"><span>Gaya bicara</span><input type="text" data-s="voice_style" maxlength="120" value="${esc(st.voice_style)}" placeholder="mis. energetic and friendly"></label>
+    <label class="field"><span>Visual default</span><select data-s="visual">${optHtml(m.visuals, st.visual)}</select></label>
+    <label class="field"><span>Gaya gambar${ch ? " (ikut karakter)" : ""}</span><select data-s="art" ${ch ? "disabled" : ""}>${optHtml(m.art_styles, ch?.art || st.art)}</select></label>
+    <label class="field"><span>Gaya video & caption</span><select data-s="preset">${optHtml(presets, st.preset)}</select></label>
+    <label class="field"><span>Musik</span><select data-s="music">${optHtml(m.music, st.music)}</select></label>
+    <label class="field"><span>Suasana musik otomatis</span><select data-m="mood">${optHtml(m.moods, MK.proj.script.mood)}</select></label>
+    <label class="field"><span>Volume musik: <b class="num" data-k="vol">${Math.round(st.music_volume * 100)}%</b></span><input type="range" min="0" max="0.8" step="0.05" data-s="music_volume" value="${st.music_volume}"></label>
+    <label class="field"><span>Format</span><select data-s="aspect">${optHtml({ "9:16": "9:16 vertikal", "16:9": "16:9 horizontal" }, st.aspect)}</select></label>
+    <label class="field"><span>Penonton</span><select data-s="audience">${optHtml({ us: "AS, bahasa Inggris", id: "Indonesia" }, st.audience)}</select></label>
+    <div class="row" style="gap:14px;grid-column:1/-1">
+      <label class="switch"><input type="checkbox" data-s="captions" ${st.captions ? "checked" : ""}><span class="small">Caption</span></label>
+      <label class="switch"><input type="checkbox" data-s="hook" ${st.hook ? "checked" : ""}><span class="small">Judul di 3 detik awal</span></label>
+      <label class="switch"><input type="checkbox" data-s="progress_bar" ${st.progress_bar ? "checked" : ""}><span class="small">Progress bar</span></label>
+      <label class="switch"><input type="checkbox" data-s="allow_paid_video" ${st.allow_paid_video ? "checked" : ""}><span class="small">Izinkan video AI berbayar</span></label>
+    </div>`;
+  updateCost();
+}
+function updateCost() {
+  const st = MK.proj.settings, m = STUDIO;
+  const scenes = MK.proj.script.scenes || [];
+  const vids = scenes.filter(s => (s.visual || st.visual) === "ai_video").length;
+  const imgs = scenes.filter(s => ["ai_image", "ai_video"].includes(s.visual || st.visual)).length;
+  const stock = scenes.filter(s => (s.visual || st.visual) === "stock").length;
+  const parts = [];
+  if (imgs) parts.push(`${imgs} gambar AI` + (m.keys.gemini ? "" : " (butuh Gemini API key, sementara memakai kartu teks)"));
+  if (stock) parts.push(`${stock} video stok` + (m.keys.pexels ? "" : " (butuh Pexels API key)"));
+  if (vids) parts.push(st.allow_paid_video ? `${vids} video AI, perkiraan biaya US$${(vids * m.video_price.seconds * m.video_price.per_second).toFixed(2)}` : `${vids} adegan video AI akan memakai gambar AI karena izin biaya belum dicentang`);
+  $("#pCost").textContent = parts.length ? "Visual: " + parts.join(", ") + "." : "";
+}
+function scheduleSave() {
+  clearTimeout(MK.saveTimer);
+  $("#pSaved").textContent = "Menyimpan…";
+  MK.saveTimer = setTimeout(saveProject, 700);
+}
+async function saveProject() {
+  clearTimeout(MK.saveTimer);
+  const p = MK.proj;
+  p.script.title = $("#pTitle").value.trim();
+  p.script.description = $("#pDesc").value.trim();
+  p.script.hashtags = $("#pTags").value.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean);
+  try {
+    const saved = await api("/api/projects/" + p.id, { method: "POST", body: { settings: p.settings, script: p.script } });
+    MK.proj.settings = saved.settings; MK.proj.updated = saved.updated;
+    $("#pSaved").textContent = "Tersimpan";
+  } catch (e) { $("#pSaved").textContent = e.message; }
+}
+["#pTitle", "#pDesc", "#pTags"].forEach(s => $(s).addEventListener("input", scheduleSave));
+$("#pScenes").addEventListener("input", e => {
+  const t = e.target, row = t.closest("[data-i]"); if (!row || !t.dataset.f) return;
+  MK.proj.script.scenes[+row.dataset.i][t.dataset.f] = t.value;
+  if (t.dataset.f === "narration") updateSum();
+  if (t.dataset.f === "visual") updateCost();
+  scheduleSave();
+});
+$("#pScenes").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const sc = MK.proj.script.scenes, i = +b.closest("[data-i]").dataset.i;
+  if (b.dataset.act === "del") { if (sc.length > 1 || confirm("Hapus adegan terakhir?")) sc.splice(i, 1); }
+  if (b.dataset.act === "up" && i > 0) [sc[i - 1], sc[i]] = [sc[i], sc[i - 1]];
+  if (b.dataset.act === "down" && i < sc.length - 1) [sc[i + 1], sc[i]] = [sc[i], sc[i + 1]];
+  renderScenesMk(); scheduleSave();
+});
+$("#pAdd").addEventListener("click", () => {
+  const sc = MK.proj.script.scenes;
+  sc.push({ id: Math.random().toString(16).slice(2, 8), narration: "", heading: "", visual: "", prompt: "", stock: "",
+            camera: STUDIO.cameras[sc.length % 4], transition: "fade" });
+  renderScenesMk(); scheduleSave();
+  $(`#pScenes .sc-row[data-i="${sc.length - 1}"] textarea`)?.focus();
+});
+$("#pSettings").addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.m === "mood") { MK.proj.script.mood = t.value; scheduleSave(); return; }
+  const k = t.dataset.s; if (!k) return;
+  MK.proj.settings[k] = t.type === "checkbox" ? t.checked : t.type === "range" ? +t.value : t.value;
+  if (k === "music_volume") $("#pSettings [data-k=vol]").textContent = Math.round(t.value * 100) + "%";
+  if (["character", "voice_engine", "audience"].includes(k)) { if (k !== "audience") MK.proj.settings.voice = ""; renderSettingsMk(); updateSum(); }
+  updateCost(); scheduleSave();
+});
+$("#pRewrite").addEventListener("click", async () => {
+  if (!confirm("Tulis ulang seluruh naskah dengan AI? Edit Anda pada adegan akan diganti.")) return;
+  await saveProject();
+  crJob($("#pRwJob"), { kind: "remake_script", project: MK.pid }, "naskah", () => { openProject(MK.pid); toast("Naskah baru siap"); });
+});
+$("#pAssets").addEventListener("click", async () => {
+  await saveProject();
+  crJob($("#pJob"), { kind: "remake_assets", project: MK.pid }, "suara & gambar", () => { openProject(MK.pid); toast("Suara dan gambar siap. Cek tiap adegan."); });
+});
+$("#pRender").addEventListener("click", async () => {
+  await saveProject();
+  crJob($("#pJob"), { kind: "remake_render", project: MK.pid }, "video", async () => { await openProject(MK.pid); loadProjects(); toast("Video selesai"); });
+});
+$("#pDelete").addEventListener("click", async () => {
+  if (!confirm("Hapus proyek ini beserta semua videonya?")) return;
+  try { await api(`/api/projects/${MK.pid}/delete`, { method: "POST" }); MK.pid = ""; await loadProjects(); showMk("new"); } catch (e) { toast(e.message, true); }
+});
+function renderRenders() {
+  const list = MK.proj.renders || [];
+  $("#pRenders").innerHTML = list.map(r => `<article class="clip">
+      <video class="${MK.proj.settings.aspect === "16:9" ? "wide" : ""}" src="${esc(r.video_url)}" controls preload="metadata" playsinline></video>
+      <h3>${esc(MK.proj.script.title || "Video")}</h3>
+      <div class="meta num"><span>${esc(r.created.slice(5, 16))}</span><span>${Math.round(r.duration)} dtk</span><span>${r.scenes} adegan</span></div>
+      <div class="actions"><a class="btn small" href="${esc(r.video_url)}&download=1">Unduh MP4</a><button class="btn small primary" type="button" data-post="${esc(r.path)}">Posting</button></div></article>`).join("");
+}
+
+/* ---- karakter */
+function charVoices(engine, cur) {
+  const v = STUDIO.voices[engine] || {};
+  $("#chVoice").innerHTML = optHtml(Object.fromEntries(Object.entries(v).map(([k, d]) => [k, engine === "gemini" ? `${k}, ${d}` : d])), cur || STUDIO.default_voice[engine]);
+}
+function openChar(cid) {
+  MK.cid = cid || "";
+  const c = MK.chars.find(x => x.id === cid) || { name: "", persona: "", look: "", art: "kartun3d", voice_engine: STUDIO.engines.gemini ? "gemini" : "edge", voice: "", style: "", candidates: [] };
+  $("#chHead").textContent = cid ? c.name : "Karakter baru";
+  $("#chName").value = c.name; $("#chPersona").value = c.persona || ""; $("#chLook").value = c.look || "";
+  $("#chArt").value = c.art || "kartun3d"; $("#chEngine").value = c.voice_engine || "gemini"; $("#chStyle").value = c.style || "";
+  charVoices($("#chEngine").value, c.voice);
+  $("#chImg").innerHTML = c.ref_url ? `<img src="${esc(c.ref_url)}" alt="Referensi ${esc(c.name)}">` : `<span class="small muted">Belum ada gambar</span>`;
+  $("#chDel").hidden = !cid;
+  $("#chCands").innerHTML = (c.candidates || []).map(x => `<figure><img src="${esc(x.url)}" alt=""><button class="btn small" type="button" data-cand="${esc(x.file)}">Pakai gambar ini</button></figure>`).join("");
+  $("#chJob").hidden = true;
+  showMk("char");
+}
+$("#chNewBtn").addEventListener("click", () => openChar(""));
+$("#chEngine").addEventListener("change", () => charVoices($("#chEngine").value, ""));
+async function saveChar() {
+  const body = { id: MK.cid || undefined, name: $("#chName").value.trim(), persona: $("#chPersona").value.trim(), look: $("#chLook").value.trim(),
+                 art: $("#chArt").value, voice_engine: $("#chEngine").value, voice: $("#chVoice").value, style: $("#chStyle").value.trim() };
+  const c = await api("/api/characters", { method: "POST", body });
+  MK.cid = c.id; await loadChars(); return c;
+}
+$("#chSave").addEventListener("click", async () => { try { const c = await saveChar(); openChar(c.id); toast("Karakter tersimpan"); } catch (e) { toast(e.message, true); } });
+$("#chDel").addEventListener("click", async () => {
+  if (!confirm("Hapus karakter ini?")) return;
+  try { await api(`/api/characters/${MK.cid}/delete`, { method: "POST" }); MK.cid = ""; await loadChars(); showMk("new"); } catch (e) { toast(e.message, true); }
+});
+$("#chFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 9e6) { toast("Gambar terlalu besar (maks. 9 MB).", true); return; }
+  try {
+    const c = MK.cid ? null : await saveChar();
+    const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+    await api(`/api/characters/${MK.cid}/ref`, { method: "POST", body: { image: data } });
+    await loadChars(); openChar(MK.cid); toast("Gambar referensi tersimpan");
+  } catch (err) { toast(err.message, true); }
+  e.target.value = "";
+});
+$("#chGen").addEventListener("click", async () => {
+  try {
+    await saveChar();
+    crJob($("#chJob"), { kind: "character_images", character: MK.cid }, "gambar karakter", async () => {
+      await loadChars(); openChar(MK.cid); toast("Pilih satu gambar sebagai referensi");
+    });
+  } catch (e) { toast(e.message, true); }
+});
+$("#chCands").addEventListener("click", async e => {
+  const b = e.target.closest("[data-cand]"); if (!b) return;
+  try { await api(`/api/characters/${MK.cid}/choose`, { method: "POST", body: { file: b.dataset.cand } }); await loadChars(); openChar(MK.cid); toast("Gambar referensi dipilih"); }
+  catch (err) { toast(err.message, true); }
+});
+
+/* ------------------------------------------------------------ edit otomatis (tab Edit & animasi) */
+async function initAutoEdit() {
+  const m = await studioMeta();
+  if (!m || $("#aeMusic").options.length) return;
+  $("#aeMusic").innerHTML = optHtml(m.music, "auto");
+  $("#aePreset").innerHTML = optHtml(Object.fromEntries(Object.entries(m.presets).filter(([k]) => k !== "kertas").map(([k, v]) => [k, v.name])), "faceless");
+  const studio = jobOptions({});
+  $("#aeHook").checked = studio.hook_overlay !== false; $("#aeBar").checked = !!studio.progress_bar;
+  const notes = [];
+  if (!m.keys.pexels) notes.push("Isi Pexels API key (gratis) di Pengaturan untuk b-roll video stok.");
+  $("#aeNote").textContent = notes.join(" ");
+}
+$("#aeVol").addEventListener("input", e => $("#aeVolV").textContent = Math.round(e.target.value * 100) + "%");
+$("#aeGo").addEventListener("click", () => {
+  if (!CR.state) return;
+  if (!CR.state.remotion.ready) { toast(CR.state.remotion.hint, true); return; }
+  const body = { kind: "autoedit", video_id: CR.state.video_id, rank: CR.state.rank, broll: $("#aeSrc").value,
+                 count: $("#aeCount").value ? +$("#aeCount").value : undefined, music: $("#aeMusic").value, music_volume: +$("#aeVol").value,
+                 preset: $("#aePreset").value, sub_lang: jobOptions({}).sub_lang || "auto",
+                 hook_overlay: $("#aeHook").checked, progress_bar: $("#aeBar").checked };
+  crJob($("#aeJob"), body, "edit otomatis", () => { loadCreative(CR.key, true); toast("Edit otomatis selesai"); });
+});
+
+/* ------------------------------------------------------------ posting */
+const PO = { videos: [], accounts: null, timer: null, want: "" };
+async function initPosting() {
+  try { PO.videos = (await api("/api/videos")).items; } catch (e) { toast(e.message, true); }
+  const groups = {};
+  PO.videos.forEach(v => (groups[v.group] = groups[v.group] || []).push(v));
+  const sel = $("#poVideo"), cur = PO.want || sel.value;
+  sel.innerHTML = PO.videos.length ? `<option value="">Pilih video…</option>` + Object.entries(groups).map(([g, vs]) => `<optgroup label="${esc(g)}">${vs.map(v => `<option value="${esc(v.path)}">${esc(v.label)}</option>`).join("")}</optgroup>`).join("")
+    : `<option value="">Belum ada video. Buat klip atau video dulu.</option>`;
+  if (cur && PO.videos.some(v => v.path === cur)) { sel.value = cur; pickVideo(PO.want === cur); }
+  PO.want = "";
+  await loadPosts();
+}
+function pickVideo(fill = true) {
+  const v = PO.videos.find(x => x.path === $("#poVideo").value);
+  $("#poPrev").hidden = !v;
+  if (!v) return;
+  if ($("#poPrev").getAttribute("src") !== v.url) $("#poPrev").src = v.url;
+  if (fill) {
+    $("#poTitle").value = v.title || ""; $("#poDesc").value = v.description || "";
+    $("#poTags").value = (v.hashtags || []).join(", "); $("#poAi").checked = !!v.ai;
+  }
+}
+$("#poVideo").addEventListener("change", () => pickVideo(true));
+async function loadPosts() {
+  clearTimeout(PO.timer);
+  let r; try { r = await api("/api/posts"); } catch { return; }
+  PO.accounts = r.accounts; renderAccounts();
+  const lab = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram" };
+  const stl = t => t.status === "done" ? (t.scheduled ? "Terjadwal" : "Terbit") : t.status === "running" ? `Mengunggah ${Math.round((t.progress || 0) * 100)}%` :
+    t.status === "queued" ? (t.due > r.now + 30 ? "Menunggu " + new Date(t.due * 1000).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : "Menunggu") :
+    t.status === "error" ? "Gagal" : "Dibatalkan";
+  $("#poList").innerHTML = r.items.length ? r.items.map(p => `<article class="post">
+      <header><b>${esc(p.title || p.name)}</b><span class="small muted">${new Date(p.created * 1000).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}${p.schedule ? ", jadwal " + new Date(p.schedule * 1000).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : ""}</span></header>
+      <div class="targets">${Object.entries(p.targets).map(([k, t]) => t.url && t.status === "done" ? `<a class="target done" href="${esc(t.url)}" target="_blank" rel="noopener">${lab[k]}: ${stl(t)}</a>` : `<span class="target ${t.status}">${lab[k]}: ${stl(t)}</span>`).join("")}</div>
+      ${Object.entries(p.targets).filter(([, t]) => t.error).map(([k, t]) => `<p class="err">${lab[k]}: ${esc(t.error)}</p>`).join("")}
+      <div class="row" style="gap:6px">
+        ${Object.values(p.targets).some(t => ["error", "canceled"].includes(t.status)) ? `<button class="btn small" type="button" data-pa="retry" data-id="${p.id}">Coba lagi</button>` : ""}
+        ${Object.values(p.targets).some(t => t.status === "queued") ? `<button class="btn small ghost" type="button" data-pa="cancel" data-id="${p.id}">Batalkan</button>` : ""}
+        ${!Object.values(p.targets).some(t => t.status === "running") ? `<button class="btn small ghost" type="button" data-pa="delete" data-id="${p.id}">Hapus dari daftar</button>` : ""}
+      </div></article>`).join("") : `<p class="small muted">Belum ada posting.</p>`;
+  const busy = r.items.some(p => Object.values(p.targets).some(t => ["running", "queued"].includes(t.status)));
+  if (!$("#tab-posting").hidden) PO.timer = setTimeout(loadPosts, busy ? 2000 : 15000);
+}
+$("#poList").addEventListener("click", async e => {
+  const b = e.target.closest("[data-pa]"); if (!b) return;
+  try { await api(`/api/posts/${b.dataset.id}/${b.dataset.pa}`, { method: "POST" }); loadPosts(); } catch (err) { toast(err.message, true); }
+});
+function renderAccounts() {
+  const a = PO.accounts; if (!a) return;
+  const yt = a.youtube, meta = a.meta;
+  const ys = $("#acYT [data-k=status]");
+  ys.className = "small " + (yt.connected ? "ok" : "no"); ys.textContent = yt.connected ? "Terhubung: " + (yt.channel || "channel") : "Belum terhubung";
+  $("#ytConnect").textContent = yt.connected ? "Hubungkan ulang" : "Hubungkan YouTube";
+  $("#ytDisc").hidden = !yt.connected;
+  $("#ytSec").placeholder = yt.ready_client ? "Tersimpan. Isi hanya bila ingin mengganti" : "Client secret";
+  $("#ytCid").placeholder = yt.ready_client ? "Tersimpan. Isi hanya bila ingin mengganti" : "xxxx.apps.googleusercontent.com";
+  const ms = $("#acMeta [data-k=status]");
+  ms.className = "small " + (meta.connected ? "ok" : "no");
+  ms.textContent = meta.connected ? `Page: ${meta.page}${meta.instagram ? ", Instagram @" + meta.instagram : ", tanpa Instagram"}` : "Belum terhubung";
+  $("#acMeta [data-k=pagesel]").hidden = meta.pages.length < 2;
+  $("#metaPage").innerHTML = meta.pages.map(p => `<option value="${p.id}" ${p.id === meta.page_id ? "selected" : ""}>${esc(p.name)}${p.instagram ? " (IG @" + esc(p.instagram) + ")" : ""}</option>`).join("");
+  $("#metaDisc").hidden = !meta.connected;
+  const lab = { youtube: yt.connected ? "" : "(hubungkan dulu)", facebook: meta.connected ? "" : "(hubungkan dulu)", instagram: meta.instagram ? "" : "(hubungkan dulu)" };
+  $$(".plats [data-st]").forEach(el => el.textContent = lab[el.dataset.st]);
+  $("#poYT").disabled = !yt.connected; $("#poFB").disabled = !meta.connected; $("#poIG").disabled = !meta.instagram;
+}
+$("#ytSaveClient").addEventListener("click", async () => {
+  try { PO.accounts = { ...PO.accounts, ...(await api("/api/publish/youtube/client", { method: "POST", body: { client_id: $("#ytCid").value.trim(), client_secret: $("#ytSec").value.trim() } })) };
+        $("#ytSec").value = ""; renderAccounts(); toast("Client YouTube tersimpan"); } catch (e) { toast(e.message, true); }
+});
+$("#ytConnect").addEventListener("click", async () => {
+  try {
+    if ($("#ytCid").value.trim() || $("#ytSec").value.trim()) await api("/api/publish/youtube/client", { method: "POST", body: { client_id: $("#ytCid").value.trim(), client_secret: $("#ytSec").value.trim() } });
+    const r = await api("/api/publish/youtube/connect", { method: "POST" });
+    window.open(r.url, "_blank", "noopener");
+    toast("Selesaikan login Google di tab baru, lalu kembali ke sini.");
+    let n = 0; const t = setInterval(async () => { n++; await loadPosts(); if (PO.accounts?.youtube.connected || n > 60) clearInterval(t); }, 3000);
+  } catch (e) { toast(e.message, true); }
+});
+$("#ytDisc").addEventListener("click", async () => { if (!confirm("Putuskan YouTube?")) return; await api("/api/publish/youtube/disconnect", { method: "POST" }); loadPosts(); });
+$("#metaConnect").addEventListener("click", async () => {
+  try { await api("/api/publish/meta/connect", { method: "POST", body: { token: $("#metaTok").value.trim(), app_id: $("#metaApp").value.trim(), app_secret: $("#metaSec").value.trim() } });
+        $("#metaTok").value = ""; $("#metaSec").value = ""; loadPosts(); toast("Facebook & Instagram terhubung"); } catch (e) { toast(e.message, true); }
+});
+$("#metaPage").addEventListener("change", async e => { try { await api("/api/publish/meta/select", { method: "POST", body: { page_id: e.target.value } }); loadPosts(); } catch (err) { toast(err.message, true); } });
+$("#metaDisc").addEventListener("click", async () => { if (!confirm("Putuskan Facebook & Instagram?")) return; await api("/api/publish/meta/disconnect", { method: "POST" }); loadPosts(); });
+$("#poGo").addEventListener("click", async () => {
+  $("#poMsg").textContent = "";
+  const platforms = ["#poYT", "#poFB", "#poIG"].filter(s => $(s).checked && !$(s).disabled).map(s => $(s).value);
+  const when = $("#poWhen").value ? Math.floor(new Date($("#poWhen").value).getTime() / 1000) : 0;
+  const body = { file: $("#poVideo").value, platforms, title: $("#poTitle").value.trim(), description: $("#poDesc").value.trim(),
+                 hashtags: $("#poTags").value.split(",").map(t => t.trim()).filter(Boolean), privacy: $("#poPrivacy").value, ai: $("#poAi").checked, schedule: when };
+  if (!body.file) { $("#poMsg").textContent = "Pilih video."; return; }
+  if (!platforms.length) { $("#poMsg").textContent = "Pilih minimal satu platform yang sudah terhubung."; return; }
+  try { await api("/api/posts", { method: "POST", body }); toast(when ? "Posting dijadwalkan" : "Posting dimulai"); $("#poWhen").value = ""; loadPosts(); }
+  catch (e) { $("#poMsg").textContent = e.message; }
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-post]"); if (!b) return;
+  PO.want = b.dataset.post; showTab("posting"); window.scrollTo({ top: 0 });
+});
+
+/* ------------------------------------------------------------ library */
+async function loadLibrary() {
+  const box = $("#libList"); box.innerHTML = `<p class="empty">Memuat…</p>`;
+  try {
+    const { items } = await api("/api/library");
+    if (!items.length) { box.innerHTML = `<p class="empty">Belum ada klip. Buat klip pertama di Studio.</p>`; return; }
+    box.innerHTML = items.map(v => `<section class="lib-item">
+      <header><div><h2>${esc(v.title)}</h2><p class="small muted">${v.is_url ? `<a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.channel || v.url)}</a>` : esc(v.url)}${v.license ? `, ${esc(v.license)}` : ""}, ${v.clips.length} klip</p></div>
+        <div class="row"><button class="btn small" type="button" data-rerender="${esc(v.url)}">Render ulang dengan gaya Studio</button>${CLIENT.local ? `<button class="btn small ghost" type="button" data-folder="${esc(v.video_id)}">Buka folder</button>` : ""}</div></header>
+      <div class="clips">${v.clips.map(c => clipCard(c, v.render?.aspect, v.video_id)).join("")}</div></section>`).join("");
+  } catch (e) { box.innerHTML = `<p class="empty err">${esc(e.message)}</p>`; }
+}
+$("#reloadLib").addEventListener("click", loadLibrary);
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-rerender]");
+  if (r) { showTab("studio"); startJob(jobOptions({ source: r.dataset.rerender, reuse_plan: true })); }
+  const f = e.target.closest("[data-folder]");
+  if (f) openFolder(f.dataset.folder);
+});
+
+/* ------------------------------------------------------------ settings */
+let SETTINGS = null;
+async function loadLan() {
+  const panel = $("#lanPanel");
+  if (!CLIENT.local) { panel.hidden = true; return; }
+  panel.hidden = false;
+  try { renderLan(await api("/api/lan")); } catch (e) { $("#lanMsg").hidden = false; $("#lanMsg").textContent = e.message; }
+}
+function renderLan(d) {
+  $("#lanToggle").checked = !!d.enabled;
+  $("#lanOn").hidden = !d.enabled;
+  $("#lanMsg").hidden = true;
+  if (d.enabled) {
+    $("#lanAddr").textContent = d.server; $("#lanCode").textContent = d.code;
+    $("#lanQr").innerHTML = d.qr_svg || `<p class="small" style="line-height:1.4;padding:10px;color:#1B1836">QR butuh paket segno: pip install segno</p>`;
+  }
+}
+$("#lanToggle").addEventListener("change", async e => {
+  const want = e.target.checked; e.target.disabled = true;
+  try { renderLan(await api("/api/lan", { method: "POST", body: { enabled: want } })); toast(want ? "Akses dari HP aktif" : "Akses dari HP dimatikan"); }
+  catch (err) { e.target.checked = !want; $("#lanMsg").hidden = false; $("#lanMsg").textContent = err.message; }
+  finally { e.target.disabled = false; }
+});
+$("#lanRegen").addEventListener("click", async () => {
+  try { renderLan(await api("/api/lan", { method: "POST", body: { regenerate: true } })); toast("Kode baru dibuat"); } catch (e) { toast(e.message, true); }
+});
+$("#changeServer").addEventListener("click", () => { try { window.ClipAgentApp.changeServer(); } catch {} });
+async function loadSettings() {
+  loadLan();
+  $("#appPanel").hidden = !CLIENT.app;
+  if (CLIENT.app) $("#appServer").textContent = "Terhubung ke " + location.host + ". Proses klip berjalan di laptop tersebut.";
+  try {
+    SETTINGS = await api("/api/settings");
+    const sel = $("#provider");
+    sel.innerHTML = Object.keys(SETTINGS.providers).map(p => `<option value="${p}">${{ gemini: "Google Gemini (ada kuota gratis)", openrouter: "OpenRouter (ada model gratis)", ollama: "Ollama (lokal, gratis)", groq: "Groq", openai: "OpenAI", anthropic: "Anthropic Claude", heuristic: "Tanpa AI (aturan sederhana)" }[p] || p}</option>`).join("");
+    sel.value = SETTINGS.provider; $("#model").value = SETTINGS.model; $("#fallbacks").value = SETTINGS.fallbacks;
+    $("#cookies").value = SETTINGS.cookies_from_browser || "";
+    $$("[data-key]").forEach(el => { const v = SETTINGS.keys[el.dataset.key]; el.textContent = v ? `(tersimpan ${v})` : "(belum diisi)"; });
+    $$("[data-plain]").forEach(el => el.value = SETTINGS[el.dataset.plain.toLowerCase()] || "");
+    providerChanged();
+  } catch (e) { $("#settingsMsg").textContent = e.message; }
+  try {
+    const { checks } = await api("/api/system");
+    $("#checks").innerHTML = checks.map(c => `<li><span class="ic ${c.ok === true ? "ok" : c.ok === false ? "no" : "opt"}">${c.ok === true ? "✓" : c.ok === false ? "✕" : "–"}</span>
+      <div><b>${esc(c.name)}</b><div class="small muted">${esc(c.detail)}</div></div></li>`).join("");
+  } catch {}
+}
+function providerChanged() {
+  const p = $("#provider").value, info = SETTINGS.providers[p] || {};
+  const keyEnv = info.key_env;
+  $("#apiKey").closest(".field").hidden = !keyEnv;
+  $("#keyLabel").textContent = keyEnv ? `API key (${keyEnv})` : "API key";
+  $("#apiKey").value = "";
+  const cur = keyEnv ? SETTINGS.keys[keyEnv] : "";
+  $("#keyHint").textContent = !keyEnv ? (p === "ollama" ? "Pastikan Ollama berjalan dan modelnya sudah di-pull." : "") :
+    (cur ? `Tersimpan: ${cur}. Isi hanya bila ingin mengganti.` : "Belum diisi.") + (p === "gemini" ? " Buat kunci gratis di aistudio.google.com/apikey." : p === "openrouter" ? " Buat kunci di openrouter.ai/keys, lalu isi model berakhiran :free." : "");
+  $("#model").placeholder = info.model ? `default: ${info.model}` : "wajib diisi";
+  $("#fallbacks").placeholder = p === SETTINGS.provider && SETTINGS.default_fallbacks ? SETTINGS.default_fallbacks : (p === "gemini" ? "gemini-3.6-flash,gemini-3.5-flash-lite" : "opsional");
+}
+$("#provider").addEventListener("change", providerChanged);
+$("#settingsForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const p = $("#provider").value, keyEnv = SETTINGS.providers[p]?.key_env;
+  const body = { LLM_PROVIDER: p, LLM_MODEL: $("#model").value.trim(), LLM_FALLBACK_MODELS: $("#fallbacks").value.trim(), COOKIES_FROM_BROWSER: $("#cookies").value };
+  if (keyEnv && $("#apiKey").value.trim()) body[keyEnv] = $("#apiKey").value.trim();
+  $$("[data-env]").forEach(el => { if (el.value.trim()) body[el.dataset.env] = el.value.trim(); el.value = ""; });
+  $$("[data-plain]").forEach(el => body[el.dataset.plain] = el.value.trim());
+  try { SETTINGS = await api("/api/settings", { method: "POST", body }); STUDIO = null; providerChanged();
+    $$("[data-key]").forEach(el => { const v = SETTINGS.keys[el.dataset.key]; el.textContent = v ? `(tersimpan ${v})` : "(belum diisi)"; }); $("#settingsMsg").textContent = "Tersimpan di file .env."; toast("Pengaturan tersimpan"); checkAi(); }
+  catch (err) { $("#settingsMsg").textContent = err.message; }
+});
+$("#testAi").addEventListener("click", async () => {
+  $("#settingsMsg").textContent = "Menguji…";
+  try { const r = await api("/api/llm-test", { method: "POST" }); $("#settingsMsg").textContent = r.message; setAi(true, r.model); }
+  catch (e) { $("#settingsMsg").textContent = e.message; setAi(false); }
+});
+function setAi(ok, label) {
+  $("#aiStatus").innerHTML = `<span class="dot ${ok ? "ok" : "bad"}"></span><span>${ok ? "AI: " + esc(label) : "AI belum siap"}</span>`;
+}
+async function checkAi() {
+  try {
+    const s = await api("/api/settings"); const p = s.providers[s.provider] || {};
+    const ready = s.provider === "heuristic" || s.provider === "ollama" || !!s.keys[p.key_env];
+    $("#aiStatus").innerHTML = `<span class="dot ${ready ? "ok" : "bad"}"></span><span>${ready ? (s.provider === "heuristic" ? "Tanpa AI" : "AI: " + esc(s.model || p.model || s.provider)) : "Isi API key di Pengaturan"}</span>`;
+  } catch {}
+}
+
+/* ------------------------------------------------------------ init */
+(async function init() {
+  try { META = await api("/api/meta"); CLIENT = META.client || CLIENT; } catch (e) { toast("Server tidak merespons: " + e.message, true); }
+  if (!CLIENT.local) $$(".local-only").forEach(el => el.remove());
+  buildAnimGrid(); fillForm(); restartPreview(); checkAi();
+  applyHashSource();
+  window.addEventListener("hashchange", applyHashSource);
+  window.addEventListener("resize", () => restartPreview());
+  try {
+    const { items } = await api("/api/library");
+    const v = items.find(x => x.source_file); if (v && CLIENT.local) setPreviewMedia(v.source_file);
+  } catch {}
+  try {
+    const { jobs } = await api("/api/jobs");
+    const live = jobs.find(j => ["queued", "running"].includes(j.status)) || jobs[0];
+    if (live) attachJob(live.id, false);
+  } catch {}
+  const tab = location.hash.slice(1).split("?")[0];
+  if (["radar", "make", "creative", "library", "posting", "settings"].includes(tab)) showTab(tab);
+})();
+function applyHashSource() {
+  const m = location.hash.match(/[?&]source=([^&]+)/);
+  if (!m) return;
+  const src = decodeURIComponent(m[1]);
+  showTab("studio");
+  F.elements.source.value = src;
+  history.replaceState(null, "", "#studio");
+  window.scrollTo({ top: 0 });
+  toast("Link diterima. Atur gaya lalu ketuk Buat klip.");
+}
+</script>
+</body>
+</html>

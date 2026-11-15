@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hubungkan ke laptop</title>
+<style>
+@font-face { font-family: "Anton"; src: url("fonts/Anton-Regular.ttf"); }
+:root { --paper:#EDEFF5; --panel:#fff; --ink:#1B1836; --ink2:#57547A; --line:#D6D8E6; --violet:#4A2FE6; --marker:#FFE24A; --bad:#C02A3F; }
+@media (prefers-color-scheme: dark) { :root { --paper:#121128; --panel:#1B1938; --ink:#EFEEFF; --ink2:#A9A6CF; --line:#312E5A; --violet:#8F7DFF; --bad:#FF6B7F; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, Roboto, sans-serif; }
+main { max-width: 460px; margin: 0 auto; padding: 28px 20px 40px; display: grid; gap: 18px; }
+.brand { font-family: Anton, Impact, sans-serif; font-size: 22px; display: flex; gap: 10px; align-items: center; }
+.mark { width: 14px; height: 22px; border-radius: 4px; background: var(--violet); position: relative; }
+.mark::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 5px; height: 3px; background: var(--marker); }
+h1 { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 40px; line-height: 1.04; margin: 0; }
+p { margin: 0; }
+.muted { color: var(--ink2); font-size: 14px; }
+.err { color: var(--bad); font-weight: 600; font-size: 14px; }
+.note { background: var(--marker); color: #1B1836; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink2); }
+input { width: 100%; font: inherit; font-size: 18px; padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); }
+input:focus { outline: none; border-color: var(--violet); }
+#code { letter-spacing: .12em; text-transform: uppercase; }
+button { min-height: 52px; border: 0; border-radius: 12px; background: var(--violet); color: #fff; font: inherit; font-weight: 700; font-size: 17px; }
+ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink2); font-size: 14px; }
+b { color: var(--ink); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><span class="mark"></span>Clip Agent</div>
+  <h1>Hubungkan ke laptop</h1>
+  <p class="note" id="pending" hidden>Link yang dibagikan akan dibuka di Studio setelah terhubung.</p>
+  <p class="err" id="error" hidden></p>
+  <ol>
+    <li>Di laptop, jalankan Clip Agent (<b>start.bat</b>).</li>
+    <li>Buka tab <b>Pengaturan</b>, lalu nyalakan <b>Akses dari HP</b>.</li>
+    <li>Masukkan alamat dan kode akses yang tampil di sana. Cara lain: pindai QR-nya dengan kamera HP, lalu pilih <b>Buka di aplikasi Clip Agent</b>.</li>
+  </ol>
+  <form id="f" style="display:grid;gap:14px" autocomplete="off">
+    <label>Alamat laptop<input id="server" inputmode="url" placeholder="192.168.1.10:8765" required></label>
+    <label>Kode akses<input id="code" placeholder="XXXX-XXXX" autocapitalize="characters" required></label>
+    <button type="submit">Hubungkan</button>
+    <button type="button" id="retry" hidden style="background:transparent;color:var(--ink);border:1px solid var(--line)">Coba lagi</button>
+  </form>
+  <p class="muted">HP dan laptop harus memakai Wi-Fi yang sama. Proses klip berjalan di laptop; aplikasi ini menjadi remote-nya.</p>
+</main>
+<script>
+const q = new URLSearchParams(location.search);
+document.getElementById("server").value = q.get("server") || "";
+document.getElementById("code").value = q.get("code") || "";
+if (q.get("error")) {
+  const e = document.getElementById("error"); e.hidden = false; e.textContent = q.get("error");
+  const r = document.getElementById("retry"); r.hidden = false;
+  r.addEventListener("click", () => { if (window.ClipAgentApp) window.ClipAgentApp.retry(); });
+}
+if (q.get("pending")) document.getElementById("pending").hidden = false;
+document.getElementById("f").addEventListener("submit", ev => {
+  ev.preventDefault();
+  const server = document.getElementById("server").value.trim();
+  const code = document.getElementById("code").value.trim();
+  if (window.ClipAgentApp) window.ClipAgentApp.connect(server, code);
+});
+</script>
+</body>
+</html>
