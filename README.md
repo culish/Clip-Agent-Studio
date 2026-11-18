@@ -51,6 +51,21 @@ Buat karakter sekali (nama, persona, penampilan, gaya gambar, suara), lalu ungga
 
 Sejak Juli 2025 YouTube tidak memonetisasi konten "inauthentic": video massal yang mirip satu sama lain, atau konten orang lain yang diulang tanpa nilai tambah. Karena itu Clip Agent menulis naskah baru dan mengukur kemiripannya. Tetap tambahkan sudut pandang Anda sendiri (kolom **Sudut pandang / arahan**), variasikan format, dan jangan mengunggah puluhan video yang hampir sama.
 
+## Video kolase editorial (tab Kolase)
+
+Dari satu voice-over menjadi video explainer bergaya kolase: foto arsip hitam-putih yang digunting dan ditempel, dokumen yang distabilo tepat saat kata itu diucapkan, peta, tipografi besar, angka yang berhitung naik, garis waktu, perbandingan, dan diagram alur. Efek suara (kertas, stempel, spidol, ketikan, transisi) disintesis sendiri dan jatuh tepat di animasinya; musik otomatis mengecil saat ada suara.
+
+1. **Proyek baru**: unggah file VO (MP3/WAV/M4A), atau tulis narasi untuk dibacakan suara AI (Edge gratis / Gemini). Pilih format (9:16, 16:9, 1:1, 4:5), tema warna, dan sumber foto: foto stok Pexels (gratis), gambar AI Gemini (berbayar; subjek otomatis digunting dari latar putih), atau tanpa foto.
+2. **Storyboard**: transkrip per kata dengan Whisper (`pip install -r requirements-whisper.txt`), lalu AI memilih tata letak tiap adegan. Angka, tahun, dan negara hanya tampil bila benar-benar diucapkan di VO; kalau tidak, adegan diganti tipografi. Tanpa penyedia AI, storyboard dibuat dengan aturan sederhana.
+3. **Ubah** tata letak, judul layar, kata yang distabilo, deskripsi foto, atau isi garis waktu/alur bila perlu.
+4. **Render**: hasilnya video final, versi tanpa musik, file suara terpisah, lembar tinjau per adegan, dan pemeriksaan durasi serta loudness (target -14 LUFS). Video langsung muncul di tab Posting.
+
+Agent tidak bisa mendengar: dengarkan sendiri hasilnya sebelum mengunggah, periksa fakta yang tampil di layar (daftarnya ada di bawah video), dan nyalakan label konten AI bila memakai gambar atau suara AI.
+
+### Paket Kolase Editorial (lokal)
+
+Bila Anda membeli paket "Kolase Editorial" dan memasangnya di komputer, isi lokasi foldernya di tab Kolase (bagian *Paket Kolase Editorial (lokal)*) atau `KOLASE_PAKET_DIR` di `.env`. Di setiap proyek muncul tombol **Siapkan proyek paket**: Clip Agent menjalankan skrip paket untuk membuat proyek dari VO yang sama, menjalankan transkripnya, lalu memberi perintah yang tinggal disalin ke AI agent Anda (Claude Code, Codex, Gemini CLI, dan sejenisnya). Video di folder `hasil/` proyek paket otomatis muncul di tab Kolase dan Posting. Isi paket tetap di komputer Anda dan tidak pernah disalin ke repo ini, sesuai lisensinya.
+
 ## Edit otomatis: b-roll, musik, caption
 
 Di tab **Edit & animasi**, bagian **Edit otomatis** merender ulang klip yang sudah jadi:
@@ -249,4 +264,4 @@ output/<id_video>/
 
 ## Lisensi komponen
 
-Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT).
+Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT).

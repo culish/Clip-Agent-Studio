@@ -669,6 +669,7 @@ class Handler(BaseHTTPRequestHandler):
                         save_env({"LAN_ENABLED": "0"})
                 return self._json(self._lan_status())
             if p == "/api/jobs":
+                from .studio_api import STUDIO_KINDS, validate_job
                 if body.get("kind", "clip") in CREATIVE_KINDS:
                     ctx = creative_ctx(body, self.out_dir)   # validasi dulu agar error langsung terlihat
                     body["label"] = ctx.clip.get("title", "")
@@ -682,8 +683,7 @@ class Handler(BaseHTTPRequestHandler):
                         if not st["ready"]:
                             raise ValueError(st["hint"])
                         normalize_scenes(body.get("scenes"), ctx.duration)
-                elif body.get("kind") in ("remake_script", "remake_assets", "remake_render", "character_images"):
-                    from .studio_api import validate_job
+                elif body.get("kind") in STUDIO_KINDS:
                     validate_job(body, self.out_dir)
                 else:
                     build_settings(body, self.out_dir)       # validasi dulu agar error langsung terlihat

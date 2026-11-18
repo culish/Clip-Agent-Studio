@@ -19,6 +19,7 @@ import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
 import android.webkit.URLUtil;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -43,6 +44,7 @@ public class MainActivity extends Activity {
     private static final String PREFS = "clipagent";
     private static final String CONNECT_PAGE = "file:///android_asset/connect.html";
     private static final int REQ_STORAGE = 7;
+    private static final int REQ_FILE = 8;
     private static final int DEFAULT_PORT = 8765;
     private static final Pattern URL_RE = Pattern.compile("https?://[^\\s\"'<>]+");
     private static final Pattern FILENAME_RE = Pattern.compile("filename\\*?=(?:UTF-8'')?\"?([^\";]+)\"?",
@@ -55,6 +57,7 @@ public class MainActivity extends Activity {
     private View customView;
     private WebChromeClient.CustomViewCallback customCallback;
     private String[] pendingDownload;
+    private ValueCallback<Uri[]> fileCallback;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -274,6 +277,16 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_FILE) {
+            if (fileCallback != null) fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            fileCallback = null;
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == REQ_STORAGE && pendingDownload != null) {
@@ -288,6 +301,28 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ video layar penuh
     class Chrome extends WebChromeClient {
+        // <input type="file"> di halaman (unggah VO kolase, gambar karakter)
+        @Override
+        public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+            if (fileCallback != null) fileCallback.onReceiveValue(null);
+            fileCallback = callback;
+            Intent intent;
+            try {
+                intent = params.createIntent();
+            } catch (Exception e) {
+                intent = new Intent(Intent.ACTION_GET_CONTENT).setType("*/*");
+            }
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            try {
+                startActivityForResult(Intent.createChooser(intent, "Pilih file"), REQ_FILE);
+            } catch (ActivityNotFoundException e) {
+                fileCallback = null;
+                toast("Tidak ada aplikasi untuk memilih file.");
+                return false;
+            }
+            return true;
+        }
+
         @Override
         public void onShowCustomView(View view, CustomViewCallback callback) {
             if (customView != null) {

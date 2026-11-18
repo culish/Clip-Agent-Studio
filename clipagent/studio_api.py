@@ -8,15 +8,33 @@ import time
 from html import escape as html_escape
 from pathlib import Path
 
-from . import characters, music, publish, remake, tts, videogen, viral
+from . import characters, kolase, music, publish, remake, tts, videogen, viral
 from .utils import ClipAgentError
 
-STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images")
+STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images", "kolase_storyboard", "kolase_render",
+                "kolase_paket")
 
 
 # ---------------------------------------------------------------- job
 def validate_job(body: dict, out_dir: Path) -> None:
     kind = body.get("kind")
+    if kind and kind.startswith("kolase_"):
+        proj = kolase.load(out_dir, str(body.get("project") or ""))
+        body["label"] = f"Kolase: {proj.get('title') or 'video'}"
+        if kind == "kolase_storyboard":
+            if proj["vo"].get("source") == "upload" and not proj.get("words") and not kolase._has_whisper():
+                raise ValueError("Transkrip VO butuh faster-whisper. Jalankan: pip install -r requirements-whisper.txt")
+            if proj["vo"].get("source") == "tts":
+                tts.pick_engine(proj["settings"].get("voice_engine", "edge"))
+        if kind == "kolase_render":
+            from .animation import remotion_status
+            if not remotion_status()["ready"]:
+                raise ValueError(remotion_status()["hint"])
+            if not proj.get("scenes"):
+                raise ValueError("Storyboard masih kosong. Klik Buat storyboard dulu.")
+        if kind == "kolase_paket" and not kolase.paket_status().get("found"):
+            raise ValueError("Folder paket Kolase Editorial belum diatur atau tidak dikenali.")
+        return
     if kind == "character_images":
         ch = characters.get(out_dir, str(body.get("character") or ""))
         body["label"] = f"Karakter {ch['name']}"
@@ -33,6 +51,14 @@ def validate_job(body: dict, out_dir: Path) -> None:
 
 
 def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
+    if kind.startswith("kolase_"):
+        pid = str(opts["project"])
+        if kind == "kolase_storyboard":
+            proj = kolase.storyboard(out_dir, pid)
+            return {"kind": kind, "project": pid, "scenes": len(proj["scenes"])}
+        if kind == "kolase_paket":
+            return {"kind": kind, "project": pid, **kolase.paket_prepare(out_dir, pid)}
+        return {"kind": kind, "project": pid, **kolase.render(out_dir, pid)}
     if kind == "character_images":
         ch = characters.generate_candidates(out_dir, str(opts["character"]))
         return {"kind": kind, "character": ch["id"], "count": len(ch["candidates"])}
@@ -108,6 +134,24 @@ def all_videos(out_dir: Path) -> list[dict]:
                         "description": desc.strip(), "hashtags": sc.get("hashtags", []),
                         "ai": bool(r.get("ai_media", True)), "mtime": p.stat().st_mtime,
                         "url": f"/files/{p.relative_to(out_dir).as_posix()}"})
+    for item in kolase.list_projects(out_dir):
+        proj = kolase.load(out_dir, item["id"])
+        d = kolase.pdir(out_dir, item["id"])
+        for r in proj.get("renders", []):
+            p = d / r["file"]
+            if not p.is_file():
+                continue
+            desc = proj.get("title", "")
+            if r.get("credits"):
+                desc += "\n\n" + ", ".join(r["credits"])
+            out.append({"path": p.relative_to(out_dir).as_posix(), "group": "Video kolase",
+                        "label": f"{proj.get('title') or 'Kolase'} ({r['created'][5:16]})", "title": proj.get("title", ""),
+                        "description": desc.strip(), "hashtags": [], "ai": bool(r.get("ai_media", True)),
+                        "mtime": p.stat().st_mtime, "url": f"/files/{p.relative_to(out_dir).as_posix()}"})
+    for v in kolase.paket_videos(out_dir):
+        out.append({"path": v["path"], "group": "Kolase Editorial (paket lokal)", "label": f"{v['project']}: {v['name']}",
+                    "title": "", "description": "", "hashtags": [], "ai": True, "mtime": v["mtime"],
+                    "url": f"/files/{v['path']}"})
     return sorted(out, key=lambda x: x["mtime"], reverse=True)
 
 
@@ -138,6 +182,13 @@ def handle_get(h, p: str, q) -> bool:
         return True
     if p == "/api/videos":
         h._json({"items": all_videos(out)})
+        return True
+    if p == "/api/kolase":
+        h._json({"items": kolase.list_projects(out), "meta": kolase.meta(out), "local": h.is_local})
+        return True
+    m = re.fullmatch(r"/api/kolase/([a-f0-9]{10})", p)
+    if m:
+        h._json(kolase.public(out, kolase.load(out, m.group(1))))
         return True
     if p == "/api/posts":
         h._json({"items": h.posts.list(), "accounts": publish.status(), "now": time.time()})
@@ -194,6 +245,28 @@ def handle_post(h, p: str, body: dict) -> bool:
             h._json({"ok": True})
         else:
             h._json(remake.public(out, remake.update(out, m.group(1), body)))
+        return True
+    # ---- video kolase
+    if p == "/api/kolase":
+        h._json(kolase.public(out, kolase.new_project(out, body)), 201)
+        return True
+    if p == "/api/kolase/paket":
+        if not h.is_local:
+            raise ValueError("Lokasi paket hanya bisa diatur dari laptop.")
+        from .webapp import save_env
+        path = str(body.get("path") or "").strip().strip('"')
+        save_env({kolase.PAKET_ENV: path})
+        os.environ[kolase.PAKET_ENV] = path
+        h._json(kolase.paket_status())
+        return True
+    m = re.fullmatch(r"/api/kolase/([a-f0-9]{10})(/delete)?", p)
+    if m:
+        if m.group(2):
+            kolase.delete(out, m.group(1))
+            h._json({"ok": True})
+        else:
+            upd = kolase.update(out, m.group(1), body)
+            h._json(dict(kolase.public(out, upd), notices=upd.get("notices", [])))
         return True
     # ---- posting
     if p in ("/api/publish/youtube/client", "/api/publish/tiktok/client"):

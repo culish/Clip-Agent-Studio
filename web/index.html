@@ -321,7 +321,7 @@ ol.flow > li { display: grid; gap: 12px; }
 .side-list button b { font-size: 13.5px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-list button span { font-size: 12px; color: var(--ink-2); grid-column: 2; }
 .side-list .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--sunk); grid-row: span 2; }
-.side-list .ic { width: 36px; height: 36px; border-radius: 8px; background: var(--sunk); grid-row: span 2; display: grid; place-items: center; font-family: var(--display); }
+.side-list .ic { grid-column: 1; width: 36px; height: 36px; border-radius: 8px; background: var(--sunk); grid-row: span 2; display: grid; place-items: center; font-family: var(--display); }
 .mk-panel { display: grid; gap: 16px; }
 .sim { font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--sunk); white-space: nowrap; }
 .sim.ok { color: var(--good); } .sim.warn { color: var(--warn); }
@@ -397,6 +397,23 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
   .phone { width: 230px; }
   .top { gap: 12px; }
 }
+.ko-pkg { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
+.ko-pkg summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.ko-pkg[open] { gap: 10px; }
+.ko-lay { width: 100%; aspect-ratio: 9 / 16; border-radius: 6px; background: var(--sunk); display: grid; place-items: center; text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-2); padding: 4px; }
+.sc-row > img.ko-thumb { aspect-ratio: 3 / 4; object-fit: contain; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 12px 12px; }
+.ko-renders { display: grid; gap: 22px; }
+.ko-render { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.ko-render video { width: 100%; background: #000; border-radius: var(--r-md); display: block; }
+.ko-render .sheet { width: 100%; border-radius: var(--r-sm); border: 1px solid var(--line); display: block; }
+.ko-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+.ko-checks li::before { content: "✓ "; color: var(--ok, #1a7f37); font-weight: 700; }
+.ko-checks li.bad::before { content: "! "; color: var(--bad, #b42318); }
+#tab-kolase .mk-main { min-width: 0; }
+#tab-kolase code { overflow-wrap: anywhere; word-break: break-all; }
+#kVo { width: 100%; max-width: 360px; }
+.ko-prompt { width: 100%; min-height: 96px; font-family: ui-monospace, monospace; font-size: 13px; }
+@media (max-width: 760px) { .ko-render { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -409,6 +426,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
     <button role="tab" data-tab="studio" aria-selected="true">Studio</button>
     <button role="tab" data-tab="radar" aria-selected="false">Riset viral</button>
     <button role="tab" data-tab="make" aria-selected="false">Buat video</button>
+    <button role="tab" data-tab="kolase" aria-selected="false">Kolase</button>
     <button role="tab" data-tab="creative" aria-selected="false">Edit &amp; animasi</button>
     <button role="tab" data-tab="library" aria-selected="false">Klip saya</button>
     <button role="tab" data-tab="posting" aria-selected="false">Posting</button>
@@ -697,6 +715,88 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
         </div>
         <div class="crjob" id="chJob" hidden></div>
         <div class="ch-cands" id="chCands"></div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ KOLASE -->
+<section role="tabpanel" id="tab-kolase" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:22ch">Video kolase editorial dari satu voice-over</h1>
+      <p class="muted" style="max-width:72ch">Unggah rekaman suara, atau tulis narasi untuk dibacakan suara AI. Clip Agent membuat transkrip per kata, menyusun storyboard kolase (foto guntingan, dokumen distabilo, peta, tipografi besar, angka, garis waktu), menambah efek suara dan musik yang jatuh tepat di animasinya, lalu merender videonya.</p>
+    </div>
+  </div>
+  <p class="note-box" id="koWarn" hidden></p>
+  <div class="make">
+    <aside class="mk-side">
+      <div class="row" style="justify-content:space-between"><h3>Proyek kolase</h3><button class="btn small primary" type="button" id="koNewBtn">Proyek baru</button></div>
+      <div class="side-list" id="koProjects"></div>
+      <details class="ko-pkg" id="koPkg">
+        <summary>Paket Kolase Editorial (lokal)</summary>
+        <p class="small muted">Punya paket Kolase Editorial di komputer ini? Isi lokasi foldernya. Clip Agent akan menyiapkan proyek paket dari VO yang sama untuk dikerjakan AI agent Anda, lalu hasilnya muncul di tab Posting. Isi paket tetap di komputer Anda.</p>
+        <label class="field"><span>Folder paket</span><input type="text" id="koPkgPath" placeholder="mis. C:\Users\Anda\Documents\kolase-editorial"></label>
+        <div class="row"><button class="btn small" type="button" id="koPkgSave">Simpan</button><span class="small" id="koPkgStatus"></span></div>
+      </details>
+    </aside>
+    <div class="mk-main">
+      <section class="mk-panel" id="koNew">
+        <h2>Proyek baru</h2>
+        <div class="seg" role="group" aria-label="Sumber suara" id="koSrc">
+          <button type="button" data-src="upload" aria-pressed="true">Unggah VO</button>
+          <button type="button" data-src="tts" aria-pressed="false">Tulis narasi (suara AI)</button>
+        </div>
+        <div id="koUpBox"><label class="field"><span>File voice-over (MP3, WAV, M4A; maks. 80 MB)</span><input type="file" id="koFile" accept="audio/*"></label>
+          <p class="small muted">Video dibangun mengikuti suara ini. Transkrip per kata dibuat dengan Whisper di komputer Anda.</p></div>
+        <div id="koTtsBox" hidden>
+          <label class="field"><span>Narasi</span><textarea id="koText" rows="6" maxlength="6000" placeholder="Tulis naskah lengkap yang akan dibacakan."></textarea></label>
+          <div class="grid3">
+            <label class="field"><span>Mesin suara</span><select id="koEngine"><option value="edge">Edge (gratis)</option><option value="gemini">Gemini (API key)</option></select></label>
+            <label class="field"><span>Suara</span><select id="koVoice"></select></label>
+            <label class="field"><span>Gaya bicara (opsional)</span><input type="text" id="koStyle" maxlength="120" placeholder="mis. calm documentary narrator"></label>
+          </div>
+        </div>
+        <label class="field"><span>Judul (opsional)</span><input type="text" id="koTitle" maxlength="100"></label>
+        <div class="grid3" id="koSetNew"></div>
+        <div class="row"><button class="btn primary" type="button" id="koGo">Buat storyboard</button></div>
+        <div class="crjob" id="koJob" hidden></div>
+      </section>
+
+      <section class="mk-panel" id="koEdit" hidden>
+        <div class="row" style="justify-content:space-between;align-items:flex-end">
+          <label class="field" style="flex:1 1 260px;min-width:0"><span>Judul video</span><input type="text" id="kTitle" maxlength="100"></label>
+          <audio id="kVo" controls preload="metadata" style="max-width:100%"></audio>
+        </div>
+        <ol class="flow">
+          <li>
+            <div class="flow-head"><span class="step">1</span><h3>Gaya dan suara</h3></div>
+            <div class="grid3" id="koSetEdit"></div>
+            <p class="small muted" id="kCost"></p>
+          </li>
+          <li>
+            <div class="flow-head"><span class="step">2</span><h3>Storyboard</h3><span class="small muted num" id="kSum"></span></div>
+            <p class="small muted" style="max-width:76ch">Angka, tahun, dan negara hanya tampil bila benar-benar diucapkan di VO. Ubah tata letak atau teks tiap adegan bila perlu; waktunya tetap mengikuti suara.</p>
+            <div class="sc-list" id="kScenes"></div>
+            <div class="row"><button class="btn small" type="button" id="kSave">Simpan perubahan</button><button class="btn small ghost" type="button" id="kRedo">Susun ulang dengan AI</button><span class="small muted" id="kSaved" aria-live="polite"></span></div>
+            <div class="crjob" id="kSbJob" hidden></div>
+          </li>
+          <li>
+            <div class="flow-head"><span class="step">3</span><h3>Render</h3></div>
+            <p class="small muted">Hasilnya dua video (dengan musik dan tanpa musik) plus file suara terpisah, lembar tinjau, dan pemeriksaan loudness. Dengarkan sendiri sebelum mengunggah, dan periksa fakta yang tampil di layar.</p>
+            <div class="row"><button class="btn primary" type="button" id="kRender">Render video</button></div>
+            <div class="crjob" id="kJob" hidden></div>
+            <div id="kRenders" class="ko-renders"></div>
+          </li>
+          <li id="kPkgStep" hidden>
+            <div class="flow-head"><span class="step">4</span><h3>Kerjakan dengan paket Kolase Editorial</h3></div>
+            <p class="small muted" style="max-width:76ch">Menyiapkan proyek paket dari VO ini di komputer Anda (skrip paket dan transkripnya dijalankan), lalu memberi perintah untuk AI agent Anda. Video di folder hasil/ proyek itu otomatis muncul di sini dan di tab Posting.</p>
+            <div class="row"><button class="btn" type="button" id="kPkgGo">Siapkan proyek paket</button></div>
+            <div class="crjob" id="kPkgJob" hidden></div>
+            <div id="kPkgOut"></div>
+          </li>
+        </ol>
+        <div class="row" style="margin-top:24px"><button class="btn small ghost" type="button" id="kDelete">Hapus proyek</button></div>
       </section>
     </div>
   </div>
@@ -1000,6 +1100,7 @@ function showTab(name) {
   if (name === "settings") loadSettings();
   if (name === "creative") { initCreative(); initAutoEdit(); }
   if (name === "make") initMake();
+  if (name === "kolase") initKolase();
   if (name === "posting") initPosting();
   if (name === "radar") initViral();
 }
@@ -2339,6 +2440,222 @@ async function checkAi() {
   } catch {}
 }
 
+/* ------------------------------------------------------------ video kolase */
+const KO = { meta: null, items: [], pid: "", proj: null, view: "new", src: "upload", local: false };
+const KO_ITEMS_HINT = { garis_waktu: "Satu baris per tahun: 1998 | keterangan singkat", banding: "Dua baris: hal pertama | keterangan", alur: "2–4 baris, satu langkah per baris: langkah | keterangan" };
+async function initKolase() {
+  try { const r = await api("/api/kolase"); KO.items = r.items; KO.meta = r.meta; KO.local = r.local; }
+  catch (e) { toast(e.message, true); return; }
+  const m = KO.meta;
+  const warn = [];
+  if (!m.whisper) warn.push("Transkrip VO butuh faster-whisper (pip install -r requirements-whisper.txt). Tanpa itu, pakai mode Tulis narasi.");
+  if (m.images && !m.keys.pexels && !m.keys.gemini) warn.push("Isi PEXELS_API_KEY (gratis) atau GEMINI_API_KEY di Pengaturan agar adegan foto punya gambar; tanpa itu video memakai grafis saja.");
+  $("#koWarn").hidden = !warn.length; $("#koWarn").textContent = warn.join(" ");
+  $("#koSetNew").innerHTML = koSettingsHtml("n", m.defaults);
+  koVoices($("#koEngine").value);
+  $("#koPkgPath").value = m.paket.path || "";
+  $("#koPkgPath").disabled = $("#koPkgSave").disabled = !KO.local;
+  koPkgStatus(m.paket);
+  koList();
+  if (KO.view === "edit" && KO.pid) koOpen(KO.pid); else koShow("new");
+}
+function koShow(view) {
+  KO.view = view;
+  $("#koNew").hidden = view !== "new"; $("#koEdit").hidden = view !== "edit";
+  $$("#koProjects button").forEach(b => b.setAttribute("aria-current", String(view === "edit" && b.dataset.kid === KO.pid)));
+}
+function koList() {
+  $("#koProjects").innerHTML = KO.items.length ? KO.items.map(p => `<button type="button" data-kid="${p.id}"><span class="ic">${p.renders || "·"}</span>
+      <b>${esc(p.title)}</b><span>${esc(p.updated.slice(5, 16))}${p.duration ? `, ${Math.round(p.duration)} dtk` : ""}</span></button>`).join("")
+    : `<p class="small muted">Belum ada proyek kolase.</p>`;
+  koShow(KO.view);
+}
+async function koRefreshList() { try { KO.items = (await api("/api/kolase")).items; } catch {} koList(); }
+function koSettingsHtml(pfx, st) {
+  const m = KO.meta;
+  const sel = (k, label, map) => `<label class="field"><span>${label}</span><select data-ks="${k}">${optHtml(map, st[k])}</select></label>`;
+  const ratios = Object.fromEntries(m.ratios.map(r => [r, { "9:16": "9:16 Shorts/Reels/TikTok", "16:9": "16:9 YouTube", "1:1": "1:1 persegi", "4:5": "4:5 feed" }[r] || r]));
+  const themes = Object.fromEntries(Object.entries(m.themes).map(([k, v]) => [k, v.name]));
+  const images = Object.fromEntries(Object.entries(m.images).map(([k, v]) => [k, v + (k === "ai" && !m.keys.gemini ? " (key belum diisi)" : k === "stok" && !m.keys.pexels ? " (key belum diisi)" : "")]));
+  return sel("ratio", "Format", ratios) + sel("theme", "Tema warna", themes) + sel("images", "Sumber foto", images)
+    + sel("language", "Bahasa VO", m.languages) + sel("music", "Musik", m.music)
+    + `<label class="field"><span>Volume musik <b class="num" data-kv>${Math.round(st.music_volume * 100)}%</b></span><input type="range" min="0" max="0.6" step="0.02" value="${st.music_volume}" data-ks="music_volume"></label>`
+    + `<label class="field"><span>Maks. gambar AI per video</span><input type="number" min="0" max="40" value="${st.max_images}" data-ks="max_images"></label>`
+    + `<label class="switch"><input type="checkbox" data-ks="sfx" ${st.sfx ? "checked" : ""}><span>Efek suara</span></label>`
+    + `<label class="switch"><input type="checkbox" data-ks="captions" ${st.captions ? "checked" : ""}><span>Caption</span></label>`;
+}
+function koReadSettings(box) {
+  const st = {};
+  box.querySelectorAll("[data-ks]").forEach(el => {
+    const k = el.dataset.ks;
+    st[k] = el.type === "checkbox" ? el.checked : el.type === "range" || el.type === "number" ? +el.value : el.value;
+  });
+  return st;
+}
+document.addEventListener("input", e => {
+  if (e.target.matches("[data-ks=music_volume]")) e.target.closest("label").querySelector("[data-kv]").textContent = Math.round(e.target.value * 100) + "%";
+});
+function koVoices(engine, cur) {
+  const v = (KO.meta.voices || {})[engine] || {};
+  $("#koVoice").innerHTML = optHtml(Object.fromEntries(Object.entries(v).map(([k, d]) => [k, engine === "gemini" ? `${k}, ${d}` : d])),
+    cur || (engine === "edge" ? "id-ID-ArdiNeural" : "Charon"));
+}
+$("#koEngine").addEventListener("change", e => koVoices(e.target.value));
+$("#koSrc").addEventListener("click", e => {
+  const b = e.target.closest("[data-src]"); if (!b) return;
+  KO.src = b.dataset.src;
+  $$("#koSrc button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  $("#koUpBox").hidden = KO.src !== "upload"; $("#koTtsBox").hidden = KO.src !== "tts";
+});
+$("#koNewBtn").addEventListener("click", () => koShow("new"));
+$("#koProjects").addEventListener("click", e => { const b = e.target.closest("[data-kid]"); if (b) koOpen(b.dataset.kid); });
+const readDataUrl = file => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => bad(new Error("File tidak bisa dibaca.")); r.readAsDataURL(file); });
+$("#koGo").addEventListener("click", async () => {
+  const btn = $("#koGo");
+  const body = { title: $("#koTitle").value.trim(), settings: koReadSettings($("#koSetNew")) };
+  try {
+    if (KO.src === "upload") {
+      const f = $("#koFile").files[0];
+      if (!f) throw new Error("Pilih file voice-over dulu.");
+      if (f.size > 80e6) throw new Error("File terlalu besar (maks. 80 MB). Pakai MP3 atau M4A.");
+      btn.disabled = true; btn.textContent = "Mengunggah…";
+      body.audio = await readDataUrl(f); body.audio_name = f.name;
+    } else {
+      body.text = $("#koText").value.trim();
+      if (body.text.length < 20) throw new Error("Tulis narasinya dulu (minimal satu kalimat).");
+      Object.assign(body.settings, { voice_engine: $("#koEngine").value, voice: $("#koVoice").value, voice_style: $("#koStyle").value.trim() });
+    }
+    btn.disabled = true; btn.textContent = "Menyiapkan…";
+    const proj = await api("/api/kolase", { method: "POST", body });
+    KO.pid = proj.id; KO.proj = proj;
+    await koRefreshList();
+    crJob($("#koJob"), { kind: "kolase_storyboard", project: proj.id }, "storyboard", async () => { await koRefreshList(); koOpen(proj.id); });
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = "Buat storyboard"; }
+});
+async function koOpen(pid) {
+  try { KO.proj = await api(`/api/kolase/${pid}`); } catch (e) { toast(e.message, true); return; }
+  KO.pid = pid; koShow("edit");
+  const p = KO.proj;
+  $("#kTitle").value = p.title || "";
+  $("#kVo").src = p.vo_url || ""; $("#kVo").hidden = !p.vo_url;
+  $("#koSetEdit").innerHTML = koSettingsHtml("e", p.settings);
+  $("#kSbJob").hidden = $("#kJob").hidden = $("#kPkgJob").hidden = true; $("#kSaved").textContent = "";
+  koScenes(); koRenders(); koPkg();
+}
+function koItemsText(items) { return (items || []).map(x => x.label ? `${x.t} | ${x.label}` : x.t).join("\n"); }
+function koParseItems(txt) { return txt.split("\n").map(l => l.trim()).filter(Boolean).map(l => { const [t, ...rest] = l.split("|"); return { t: t.trim(), label: rest.join("|").trim() }; }); }
+function koScenes() {
+  const p = KO.proj, L = KO.meta.layouts;
+  const sc = p.scenes || [];
+  $("#kSum").textContent = sc.length ? `${sc.length} adegan, ${Math.round(p.vo.duration || 0)} dtk` : "";
+  if (!sc.length) { $("#kScenes").innerHTML = `<p class="small muted">Storyboard belum dibuat. Klik Susun ulang dengan AI.</p>`; $("#kCost").textContent = ""; return; }
+  const photos = sc.filter(s => ["potong", "foto"].includes(s.layout)).length;
+  $("#kCost").textContent = p.settings.images === "ai" ? `${photos} adegan foto. Gambar AI Gemini berbayar (kira-kira Rp600–Rp1.000 per gambar); bila kuota habis otomatis memakai foto stok.` : p.settings.images === "stok" ? `${photos} adegan foto dari Pexels (gratis).` : "Tanpa foto: adegan foto diganti tipografi.";
+  $("#kScenes").innerHTML = sc.map((s, i) => {
+    const f = (k, label, val, cls = "", extra = "") => `<label class="field ${cls}"><span>${label}</span><input type="text" data-f="${k}" value="${esc(val ?? "")}" ${extra}></label>`;
+    let more = "";
+    if (["potong", "foto"].includes(s.layout)) more = `<label class="field wide"><span>Foto (deskripsi untuk AI, bahasa Inggris)</span><textarea data-f="image" rows="2">${esc(s.image)}</textarea></label>` + f("search", "Kata kunci foto stok", s.search);
+    if (s.layout === "peta") more = f("places", "Negara (bahasa Inggris, pisahkan koma)", (s.places || []).join(", "), "wide");
+    if (s.layout === "angka") more = f("number", "Angka (persis seperti diucapkan)", s.number) + f("label", "Keterangan", s.label);
+    if (["garis_waktu", "banding", "alur"].includes(s.layout)) more = `<label class="field wide"><span>${KO_ITEMS_HINT[s.layout]}</span><textarea data-f="items" rows="3">${esc(koItemsText(s.items))}</textarea></label>`;
+    if (s.layout === "kutipan") more = `<label class="field wide"><span>Kutipan (kata-kata dari VO)</span><textarea data-f="quote" rows="2">${esc(s.quote)}</textarea></label>`;
+    const thumb = s.asset_url ? `<img class="ko-thumb" src="${esc(s.asset_url)}" alt="">` : `<div class="ko-lay">${esc(L[s.layout])}</div>`;
+    return `<article class="sc-row" data-kid="${esc(s.id)}">${thumb}
+      <div class="sc-body">
+        <div class="sc-top"><b>Adegan ${i + 1} <span class="small muted num">${s.start.toFixed(1)}–${s.end.toFixed(1)} dtk</span></b>
+          <label>Tata letak <select data-f="layout">${optHtml(L, s.layout)}</select></label></div>
+        <p class="quote">“${esc(s.text)}”</p>
+        <div class="sc-grid">${f("heading", "Judul di layar", s.heading, "f-heading", 'maxlength="60"')}${f("keyword", "Kata yang distabilo (diucapkan)", s.keyword)}${more}</div>
+      </div></article>`;
+  }).join("");
+}
+function koCollect() {
+  return [...$$("#kScenes .sc-row")].map(row => {
+    const o = { id: row.dataset.kid };
+    row.querySelectorAll("[data-f]").forEach(el => {
+      const k = el.dataset.f;
+      o[k] = k === "items" ? koParseItems(el.value) : k === "places" ? el.value.split(",").map(x => x.trim()).filter(Boolean) : el.value;
+    });
+    return o;
+  });
+}
+$("#kScenes").addEventListener("change", e => {
+  if (!e.target.matches("[data-f=layout]")) return;
+  const cur = koCollect();
+  KO.proj.scenes = KO.proj.scenes.map(s => ({ ...s, ...(cur.find(c => c.id === s.id) || {}) }));
+  koScenes();
+});
+async function koSave(quiet) {
+  const body = { title: $("#kTitle").value.trim(), settings: koReadSettings($("#koSetEdit")), scenes: koCollect() };
+  KO.proj = await api(`/api/kolase/${KO.pid}`, { method: "POST", body });
+  if (KO.proj.notices?.length) toast(KO.proj.notices.join(" "), true);
+  if (!quiet) { koScenes(); $("#kSaved").textContent = "Tersimpan " + new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }); }
+  return KO.proj;
+}
+$("#kSave").addEventListener("click", async () => { try { await koSave(); await koRefreshList(); } catch (e) { toast(e.message, true); } });
+$("#kRedo").addEventListener("click", async () => {
+  if ((KO.proj.scenes || []).length && !confirm("Susun ulang storyboard? Perubahan adegan yang sudah Anda buat akan diganti.")) return;
+  try { await koSave(true); } catch (e) { toast(e.message, true); return; }
+  crJob($("#kSbJob"), { kind: "kolase_storyboard", project: KO.pid }, "storyboard", () => koOpen(KO.pid));
+});
+$("#kRender").addEventListener("click", async () => {
+  try { await koSave(true); } catch (e) { toast(e.message, true); return; }
+  crJob($("#kJob"), { kind: "kolase_render", project: KO.pid }, "video kolase", async () => { await koOpen(KO.pid); koRefreshList(); });
+});
+$("#kDelete").addEventListener("click", async () => {
+  if (!confirm("Hapus proyek kolase ini beserta videonya?")) return;
+  try { await api(`/api/kolase/${KO.pid}/delete`, { method: "POST" }); KO.pid = ""; await koRefreshList(); koShow("new"); } catch (e) { toast(e.message, true); }
+});
+function koRenders() {
+  const p = KO.proj;
+  const cls = { "16:9": "wide", "1:1": "square", "4:5": "r45" }[p.settings.ratio] || "";
+  $("#kRenders").innerHTML = (p.renders || []).map(r => `<article class="ko-render">
+      <div class="clip"><video class="${cls}" src="${esc(r.video_url)}" controls preload="metadata" playsinline></video></div>
+      <div style="display:grid;gap:10px">
+        <div class="meta num small muted">${esc(r.created.slice(5, 16))} · ${Math.round(r.duration)} dtk · ${r.scenes} adegan${r.loudness?.lufs != null ? ` · ${r.loudness.lufs} LUFS` : ""}</div>
+        <div class="row">
+          <button class="btn small primary" type="button" data-post="${esc(r.path)}">Posting</button>
+          <a class="btn small" href="${esc(r.video_url)}&download=1">Unduh MP4</a>
+          ${r.nomusic_url ? `<a class="btn small ghost" href="${esc(r.nomusic_url)}&download=1">Tanpa musik</a>` : ""}
+        </div>
+        <ul class="ko-checks">${(r.checks || []).map(c => `<li class="${c.ok ? "" : "bad"}">${esc(c.text)}</li>`).join("")}</ul>
+        ${(r.facts || []).length ? `<div class="note-box small"><b>Periksa fakta di layar:</b><br>${r.facts.map(esc).join("<br>")}</div>` : ""}
+        ${r.ai_media ? `<p class="small muted">Video memakai gambar/suara buatan AI: nyalakan label konten AI saat mengunggah.</p>` : ""}
+        ${r.credits?.length ? `<p class="small muted">Kredit foto: ${r.credits.map(esc).join(", ")}</p>` : ""}
+        ${r.sheet_url ? `<details><summary class="small" style="cursor:pointer">Lembar tinjau</summary><a href="${esc(r.sheet_url)}" target="_blank" rel="noopener"><img class="sheet" src="${esc(r.sheet_url)}" alt="Lembar tinjau per adegan" loading="lazy"></a></details>` : ""}
+      </div></article>`).join("");
+}
+function koPkgStatus(st) {
+  const el = $("#koPkgStatus");
+  el.className = "small " + (st.found ? "" : st.configured ? "err" : "muted");
+  el.textContent = st.found ? "Paket ditemukan." : st.configured ? "Folder tidak berisi paket Kolase Editorial (skills/kolase-editorial/scripts/mulai.py)." : "Belum diatur.";
+}
+$("#koPkgSave").addEventListener("click", async () => {
+  try { const st = await api("/api/kolase/paket", { method: "POST", body: { path: $("#koPkgPath").value } }); KO.meta.paket = st; koPkgStatus(st); if (KO.view === "edit") koPkg(); }
+  catch (e) { toast(e.message, true); }
+});
+function koPkg() {
+  const found = KO.meta.paket?.found;
+  $("#kPkgStep").hidden = !found;
+  if (!found) return;
+  const ps = KO.proj.paket_status || {};
+  if (!ps.dir) { $("#kPkgOut").innerHTML = ""; return; }
+  $("#kPkgOut").innerHTML = `<div style="display:grid;gap:10px">
+      <p class="small">Proyek paket: <code>${esc(ps.dir)}</code></p>
+      <label class="field"><span>Buka AI agent Anda di folder paket <code>${esc(ps.root)}</code>, lalu kirim perintah ini:</span><textarea class="ko-prompt" readonly>${esc(ps.prompt)}</textarea></label>
+      <div class="row"><button class="btn small" type="button" id="kPkgCopy">Salin perintah</button><button class="btn small ghost" type="button" id="kPkgCheck">Periksa hasil</button></div>
+      ${(ps.results || []).length ? `<div class="clips">${ps.results.map(v => `<article class="clip"><video src="${esc(v.url)}" controls preload="metadata" playsinline></video><h3 class="small">${esc(v.name)}</h3>
+        <div class="actions"><button class="btn small primary" type="button" data-post="${esc(v.path)}">Posting</button></div></article>`).join("")}</div>` : `<p class="small muted">Belum ada video di folder hasil/ proyek paket.</p>`}
+    </div>`;
+  $("#kPkgCopy").onclick = () => { navigator.clipboard?.writeText(ps.prompt).then(() => toast("Perintah disalin."), () => toast("Salin manual dari kotak di atas.", true)); };
+  $("#kPkgCheck").onclick = () => koOpen(KO.pid);
+}
+$("#kPkgGo").addEventListener("click", async () => {
+  try { await koSave(true); } catch (e) { toast(e.message, true); return; }
+  crJob($("#kPkgJob"), { kind: "kolase_paket", project: KO.pid }, "proyek paket", () => koOpen(KO.pid));
+});
+
 /* ------------------------------------------------------------ init */
 (async function init() {
   try { META = await api("/api/meta"); CLIENT = META.client || CLIENT; } catch (e) { toast("Server tidak merespons: " + e.message, true); }
@@ -2357,7 +2674,7 @@ async function checkAi() {
     if (live) attachJob(live.id, false);
   } catch {}
   const tab = location.hash.slice(1).split("?")[0];
-  if (["radar", "make", "creative", "library", "posting", "settings"].includes(tab)) showTab(tab);
+  if (["radar", "make", "kolase", "creative", "library", "posting", "settings"].includes(tab)) showTab(tab);
 })();
 function applyHashSource() {
   const m = location.hash.match(/[?&]source=([^&]+)/);

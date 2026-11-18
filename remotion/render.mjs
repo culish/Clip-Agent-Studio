@@ -1,5 +1,5 @@
 // Dipanggil oleh Clip Agent (Python): node render.mjs <job.json>
-// job.json: { mode: "video" | "stills", props, output, stills: [{frame, output, props?}], concurrency }
+// job.json: { mode: "video" | "stills", composition?, props, output, stills: [{frame, output, props?}], concurrency }
 // Setiap still boleh membawa props sendiri (dipakai untuk galeri contoh gaya).
 // Mencetak baris "PROGRESS <0..1>" dan "STAGE <teks>" ke stdout agar bisa dibaca aplikasi.
 import { bundle } from "@remotion/bundler";
@@ -49,13 +49,14 @@ const puppeteerInstance = await openBrowser("chrome", { browserExecutable, chrom
 const common = { serveUrl, inputProps: job.props, browserExecutable, chromeMode, logLevel: "error", puppeteerInstance };
 
 say("STAGE", "Membuka komposisi");
-const composition = await selectComposition({ ...common, id: "CartoonStory" });
+const compId = job.composition || "CartoonStory";
+const composition = await selectComposition({ ...common, id: compId });
 
 if (job.mode === "stills") {
   let i = 0;
   for (const s of job.stills) {
     const own = s.props ? { ...common, inputProps: s.props } : common;
-    const comp = s.props ? await selectComposition({ ...own, id: "CartoonStory" }) : composition;
+    const comp = s.props ? await selectComposition({ ...own, id: compId }) : composition;
     await renderStill({ ...own, composition: comp, frame: Math.max(0, Math.min(s.frame, comp.durationInFrames - 1)),
       output: s.output, imageFormat: "jpeg", jpegQuality: 85, scale: job.scale ?? 0.5 });
     i += 1;
