@@ -21,15 +21,14 @@ export type KScene = {
   number?: KNumber; countEnd?: number; items?: KItem[]; vsAt?: number; pinAt?: number;
 };
 export type KTheme = { name: string; paper: string; paper2: string; ink: string; accent: string; marker: string; dark: string };
-export type KolaseProps = { fps: number; width: number; height: number; duration: number; theme: KTheme; scenes: KScene[]; words: KWord[]; lang: string };
+// gaya huruf: wk = lebar rata-rata huruf tebal dibanding Anton (untuk menghitung ukuran agar muat), ts = skala label judul,
+// hs = skala tulisan tangan
+export type KFonts = { sans: string; serif: string; italic: string; type: string; hand: string; caption: string; wk: number; ts: number; hs: number };
+export type KolaseProps = { fps: number; width: number; height: number; duration: number; theme: KTheme; scenes: KScene[]; words: KWord[]; lang: string; fonts?: KFonts };
 
 const ENTER = 0.3;
-const SANS = "Anton";
-const SERIF = "Playfair Display Black";
-const ITALIC = "Playfair Italic";
-const TYPE = "Special Elite";
-const HAND = "Permanent Marker";
-const CAPTION = "Montserrat Black";
+const DEFAULT_FONTS: KFonts = { sans: "Anton", serif: "Playfair Display Black", italic: "Playfair Italic", type: "Special Elite",
+  hand: "Permanent Marker", caption: "Montserrat Black", wk: 1, ts: 1, hs: 1 };
 
 // ------------------------------------------------------------------ utilitas
 const clamp = (x: number, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -113,16 +112,16 @@ const fmtNum = (v: number, n: KNumber) => {
   return fp ? `${grouped}${n.dec}${fp}` : grouped;
 };
 
-type Ctx = { sc: KScene; t: number; W: number; H: number; u: number; wide: boolean; th: KTheme; ink: string; paper: string };
+type Ctx = { sc: KScene; t: number; W: number; H: number; u: number; wide: boolean; th: KTheme; ink: string; paper: string; f: KFonts };
 
 // ------------------------------------------------------------------ elemen kolase
 const Tag: React.FC<{ c: Ctx; text: string; at: number; style?: React.CSSProperties; size?: number; rot?: number }> = ({ c, text, at, style, size, rot = -2 }) => {
   const p = ease(c.t, at, 0.35);
   if (!text) return null;
-  const fs = size ?? c.u * (c.wide ? (text.length > 22 ? 5 : 6) : text.length > 22 ? 6 : 7.4);
+  const fs = (size ?? c.u * (c.wide ? (text.length > 22 ? 5 : 6) : text.length > 22 ? 6 : 7.4)) * c.f.ts;
   return (
     <div style={{ position: "absolute", transform: `rotate(${rot}deg)`, clipPath: `inset(0 ${(1 - p) * 100}% 0 0)`, ...style }}>
-      <span style={{ background: c.ink, color: c.paper, fontFamily: SANS, fontSize: fs, lineHeight: 1.18, textTransform: "uppercase",
+      <span style={{ background: c.ink, color: c.paper, fontFamily: c.f.sans, fontSize: fs, lineHeight: 1.18, textTransform: "uppercase",
         padding: `${c.u * 0.5}px ${c.u * 1.6}px`, boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone", letterSpacing: c.u * 0.06 }}>{text}</span>
     </div>
   );
@@ -180,7 +179,7 @@ const LPotong: React.FC<{ c: Ctx }> = ({ c }) => {
         size={u * (sc.heading.length > 24 ? 6.4 : 8)} />
       {sc.mark && sc.keyword ? (
         <>
-          <div style={{ position: "absolute", fontFamily: HAND, color: th.accent, fontSize: u * 6.2, lineHeight: 1,
+          <div style={{ position: "absolute", fontFamily: c.f.hand, color: th.accent, fontSize: u * 6.2 * c.f.hs, lineHeight: 1,
             left: wide ? W * 0.58 : W * 0.56, top: wide ? H * 0.62 : H * 0.255, transform: `rotate(-6deg) scale(${0.6 + 0.4 * back(t, sc.markAt, 0.35)})`,
             opacity: clamp((t - sc.markAt) * 6), transformOrigin: "0 50%", whiteSpace: "nowrap" }}>{sc.keyword}</div>
           <Draw W={W} H={H} p={markP} color={th.accent} width={u * 0.7}
@@ -210,7 +209,7 @@ const LFoto: React.FC<{ c: Ctx }> = ({ c }) => {
         <Tape c={c} x={box.w * 0.12} y={0} w={u * 14} rot={-32} seed={sc.seed + 1} />
         <Tape c={c} x={box.w * 0.88} y={0} w={u * 14} rot={28} seed={sc.seed + 2} />
       </div>
-      <div style={{ position: "absolute", fontFamily: SERIF, color: c.ink, fontSize: u * (sc.heading.length > 26 ? 6.2 : 7.6), lineHeight: 1.05,
+      <div style={{ position: "absolute", fontFamily: c.f.serif, color: c.ink, fontSize: u * (sc.heading.length > 26 ? 6.2 : 7.6), lineHeight: 1.05,
         left: wide ? W * 0.62 : W * 0.08, top: wide ? H * 0.32 : H * 0.72, width: wide ? W * 0.33 : W * 0.84,
         opacity: ease(t, sc.start + 0.25, 0.3), transform: `translateY(${(1 - ease(t, sc.start + 0.25, 0.35)) * u * 3}px)` }}>
         {sc.heading.split(/\s+/).map((w, i) => {
@@ -237,10 +236,10 @@ const LDokumen: React.FC<{ c: Ctx }> = ({ c }) => {
         backgroundImage: `${noise(sc.seed, 0.9, 0.12)}, repeating-linear-gradient(transparent 0, transparent ${fs * 1.62 - 1}px, rgba(70,110,170,0.16) ${fs * 1.62 - 1}px, rgba(70,110,170,0.16) ${fs * 1.62}px)`,
         backgroundPosition: `0 0, 0 ${u * 15}px`, padding: `${u * 5}px ${u * 6}px ${u * 4}px ${u * 9}px`, boxSizing: "border-box", overflow: "hidden" }}>
         <div style={{ position: "absolute", left: u * 6.4, top: 0, bottom: 0, width: Math.max(2, u * 0.25), background: rgba("#D33", 0.45) }} />
-        <div style={{ fontFamily: TYPE, fontSize: u * 2.8, color: rgba("#222", 0.7), letterSpacing: u * 0.2 }}>NO. {String(sc.idx + 1).padStart(3, "0")}</div>
-        <div style={{ fontFamily: SERIF, fontSize: u * (sc.heading.length > 26 ? 5.2 : 6.4), lineHeight: 1.05, color: "#141414", margin: `${u * 1.2}px 0 ${u * 2.4}px`,
+        <div style={{ fontFamily: c.f.type, fontSize: u * 2.8, color: rgba("#222", 0.7), letterSpacing: u * 0.2 }}>NO. {String(sc.idx + 1).padStart(3, "0")}</div>
+        <div style={{ fontFamily: c.f.serif, fontSize: u * (sc.heading.length > 26 ? 5.2 : 6.4), lineHeight: 1.05, color: "#141414", margin: `${u * 1.2}px 0 ${u * 2.4}px`,
           borderBottom: `${u * 0.45}px solid ${th.accent}`, paddingBottom: u * 1.2 }}>{sc.heading}</div>
-        <div style={{ fontFamily: TYPE, fontSize: fs, lineHeight: 1.62, color: "#1a1a1a" }}>
+        <div style={{ fontFamily: c.f.type, fontSize: fs, lineHeight: 1.62, color: "#1a1a1a" }}>
           {sc.words.map((w, i) => {
             const vis = t >= w.s - 0.05;
             const inMark = mk && i >= mk[0] && i <= mk[1];
@@ -331,7 +330,7 @@ const LPeta: React.FC<{ c: Ctx }> = ({ c }) => {
       </svg>
       <Tag c={c} text={sc.heading} at={sc.start + 0.15}
         style={wide ? { left: W * 0.05, top: H * 0.38, width: W * 0.3 } : { left: W * 0.07, top: H * 0.1, width: W * 0.86 }} size={u * 6.8} />
-      <div style={{ position: "absolute", left: wide ? W * 0.05 : W * 0.08, top: wide ? H * 0.66 : H * 0.79, fontFamily: TYPE, color: c.ink,
+      <div style={{ position: "absolute", left: wide ? W * 0.05 : W * 0.08, top: wide ? H * 0.66 : H * 0.79, fontFamily: c.f.type, color: c.ink,
         fontSize: u * 4, opacity: ease(t, (sc.pinAt ?? sc.start + 1) + 0.15, 0.3), letterSpacing: u * 0.1 }}>
         {sc.places.join(" · ").toUpperCase()}
       </div>
@@ -351,7 +350,7 @@ const LJudul: React.FC<{ c: Ctx }> = ({ c }) => {
     else cur.push({ w, i });
   });
   const longest = Math.max(4, ...lines.map((l) => l.reduce((a, x) => a + x.w.length + 1, -1)));
-  const base = Math.min(u * (wide ? 15 : 17), (W * 0.84) / (longest * 0.56));
+  const base = Math.min(u * (wide ? 15 : 17), (W * 0.84) / (longest * 0.56 * c.f.wk));
   const variant = (i: number) => (i === sc.hot ? "hot" : ["sans", "italic", "outline", "sans"][i % 4]);
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
@@ -367,11 +366,11 @@ const LJudul: React.FC<{ c: Ctx }> = ({ c }) => {
               const v = variant(i);
               const st: React.CSSProperties = { display: "inline-block", margin: `0 ${base * 0.12}px`, opacity: clamp((t - at) * 8),
                 transform: `scale(${1.5 - 0.5 * p}) rotate(${(1 - p) * -6}deg)`, color: c.ink };
-              if (v === "sans") Object.assign(st, { fontFamily: SANS, fontSize: base, textTransform: "uppercase" });
-              if (v === "italic") Object.assign(st, { fontFamily: ITALIC, fontSize: base * 0.92 });
-              if (v === "outline") Object.assign(st, { fontFamily: SANS, fontSize: base, textTransform: "uppercase", color: "transparent",
+              if (v === "sans") Object.assign(st, { fontFamily: c.f.sans, fontSize: base, textTransform: "uppercase" });
+              if (v === "italic") Object.assign(st, { fontFamily: c.f.italic, fontSize: base * 0.92 });
+              if (v === "outline") Object.assign(st, { fontFamily: c.f.sans, fontSize: base, textTransform: "uppercase", color: "transparent",
                 WebkitTextStroke: `${Math.max(2, u * 0.45)}px ${c.ink}` });
-              if (v === "hot") Object.assign(st, { fontFamily: SANS, fontSize: base * 1.08, textTransform: "uppercase", color: c.paper,
+              if (v === "hot") Object.assign(st, { fontFamily: c.f.sans, fontSize: base * 1.08, textTransform: "uppercase", color: c.paper,
                 background: c.ink, padding: `0 ${base * 0.14}px` });
               return <span key={i} style={st}>{w}</span>;
             })}
@@ -390,7 +389,7 @@ const LAngka: React.FC<{ c: Ctx }> = ({ c }) => {
   const p = n.year ? (t >= n.at ? 1 : 0) : ease(t, n.at, Math.max(0.05, end - n.at), Easing.out(Easing.quad));
   const txt = fmtNum(n.value * p, n);
   const full = fmtNum(n.value, n);
-  const size = Math.min(u * (wide ? 26 : 30), (W * 0.82) / (full.length * 0.5));
+  const size = Math.min(u * (wide ? 26 : 30), (W * 0.82) / (full.length * 0.5 * c.f.wk));
   const circ = ease(t, end, 0.45, Easing.inOut(Easing.quad));
   const cy = H * (wide ? 0.5 : 0.47);
   return (
@@ -398,15 +397,15 @@ const LAngka: React.FC<{ c: Ctx }> = ({ c }) => {
       <Tag c={c} text={sc.heading} at={sc.start + 0.1} style={wide ? { left: W * 0.06, top: H * 0.1 } : { left: W * 0.07, top: H * 0.12, width: W * 0.86 }} />
       <Halftone c={c} x="10%" y={wide ? "40%" : "30%"} size={u * 50} color={th.accent} seed={sc.seed} alpha={0.25} />
       <div style={{ position: "absolute", left: 0, right: 0, top: cy - size * 0.62, textAlign: "center" }}>
-        {n.prefix ? <div style={{ fontFamily: SANS, fontSize: size * 0.28, color: th.accent, textTransform: "uppercase", lineHeight: 1 }}>{n.prefix}</div> : null}
-        <div style={{ fontFamily: SANS, fontSize: size, color: c.ink, lineHeight: 1.05, opacity: t >= n.at - 0.05 ? 1 : 0.18,
+        {n.prefix ? <div style={{ fontFamily: c.f.sans, fontSize: size * 0.28, color: th.accent, textTransform: "uppercase", lineHeight: 1 }}>{n.prefix}</div> : null}
+        <div style={{ fontFamily: c.f.sans, fontSize: size, color: c.ink, lineHeight: 1.05, opacity: t >= n.at - 0.05 ? 1 : 0.18,
           transform: `scale(${1 + 0.06 * (1 - ease(t, end, 0.25))})` }}>{t >= n.at - 0.05 ? txt : fmtNum(0, n)}</div>
-        {n.suffix ? <div style={{ fontFamily: ITALIC, fontSize: size * 0.3, color: c.ink, lineHeight: 1.1 }}>{n.suffix}</div> : null}
-        {sc.label ? <div style={{ fontFamily: TYPE, fontSize: u * 4.4, color: c.ink, marginTop: u * 2, padding: `0 ${W * 0.1}px`,
+        {n.suffix ? <div style={{ fontFamily: c.f.italic, fontSize: size * 0.3, color: c.ink, lineHeight: 1.1 }}>{n.suffix}</div> : null}
+        {sc.label ? <div style={{ fontFamily: c.f.type, fontSize: u * 4.4, color: c.ink, marginTop: u * 2, padding: `0 ${W * 0.1}px`,
           opacity: ease(t, n.at + 0.2, 0.3) }}>{sc.label}</div> : null}
       </div>
       <Draw W={W} H={H} p={circ} color={th.accent} width={u * 0.75}
-        d={handEllipse(W / 2, cy + size * 0.02, Math.min(W * 0.46, full.length * size * 0.32 + u * 6), size * 0.62, sc.seed)} />
+        d={handEllipse(W / 2, cy + size * 0.02, Math.min(W * 0.46, full.length * size * 0.32 * c.f.wk + u * 6), size * 0.62, sc.seed)} />
     </AbsoluteFill>
   );
 };
@@ -428,9 +427,9 @@ const LGarisWaktu: React.FC<{ c: Ctx }> = ({ c }) => {
           const p = back(t, it.at, 0.4);
           return (
             <div key={i} style={{ position: "absolute", left: x - W * 0.12, width: W * 0.24, top: y - u * 16, textAlign: "center", opacity: clamp((t - it.at) * 6) }}>
-              <div style={{ fontFamily: SANS, fontSize: u * 11, color: th.accent, lineHeight: 1, transform: `scale(${0.6 + 0.4 * p})` }}>{it.t}</div>
+              <div style={{ fontFamily: c.f.sans, fontSize: u * 11, color: th.accent, lineHeight: 1, transform: `scale(${0.6 + 0.4 * p})` }}>{it.t}</div>
               <div style={{ width: u * 3.4, height: u * 3.4, borderRadius: "50%", background: c.paper, border: `${u * 0.8}px solid ${c.ink}`, margin: `${u * 1.2}px auto` }} />
-              <div style={{ fontFamily: TYPE, fontSize: u * 4.6, color: c.ink, lineHeight: 1.25 }}>{it.label}</div>
+              <div style={{ fontFamily: c.f.type, fontSize: u * 4.6, color: c.ink, lineHeight: 1.25 }}>{it.label}</div>
             </div>
           );
         })}
@@ -450,8 +449,8 @@ const LGarisWaktu: React.FC<{ c: Ctx }> = ({ c }) => {
             opacity: clamp((t - it.at) * 6), transform: `translateX(${(1 - p) * u * 6}px)` }}>
             <div style={{ width: u * 4.2, height: u * 4.2, borderRadius: "50%", background: c.paper, border: `${u * 0.9}px solid ${c.ink}`, flex: "none", marginTop: u * 4 }} />
             <div style={{ width: W * 0.62 }}>
-              <div style={{ fontFamily: SANS, fontSize: u * 13, color: th.accent, lineHeight: 1 }}>{it.t}</div>
-              <div style={{ fontFamily: TYPE, fontSize: u * 4.4, color: c.ink, lineHeight: 1.25 }}>{it.label}</div>
+              <div style={{ fontFamily: c.f.sans, fontSize: u * 13, color: th.accent, lineHeight: 1 }}>{it.t}</div>
+              <div style={{ fontFamily: c.f.type, fontSize: u * 4.4, color: c.ink, lineHeight: 1.25 }}>{it.label}</div>
             </div>
           </div>
         );
@@ -473,19 +472,19 @@ const LBanding: React.FC<{ c: Ctx }> = ({ c }) => {
       {items.map((it, i) => {
         const b = cards[i];
         const p = back(t, it.at, 0.45);
-        const fs = Math.min(u * 11, (b.w * 0.86) / (Math.max(4, it.t.length) * 0.55));
+        const fs = Math.min(u * 11, (b.w * 0.86) / (Math.max(4, it.t.length) * 0.55 * c.f.wk));
         return (
           <div key={i} style={{ position: "absolute", left: b.left, top: b.top, width: b.w, height: b.h, background: i ? c.th.paper2 : "#F7F3EA",
             clipPath: torn(sc.seed + i, 2.2, 16), display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center",
             transform: `translate${wide ? "X" : "Y"}(${(1 - p) * (i ? 1 : -1) * u * 12}px) rotate(${(i ? 1.5 : -1.5) + sc.tilt * 0.4}deg)`,
             opacity: clamp((t - it.at) * 6), padding: u * 3, boxSizing: "border-box", color: "#141414" }}>
-            <div style={{ fontFamily: SANS, fontSize: fs, textTransform: "uppercase", lineHeight: 1.02 }}>{it.t}</div>
-            {it.label ? <div style={{ fontFamily: TYPE, fontSize: u * 4.2, marginTop: u * 1.5 }}>{it.label}</div> : null}
+            <div style={{ fontFamily: c.f.sans, fontSize: fs, textTransform: "uppercase", lineHeight: 1.02 }}>{it.t}</div>
+            {it.label ? <div style={{ fontFamily: c.f.type, fontSize: u * 4.2, marginTop: u * 1.5 }}>{it.label}</div> : null}
           </div>
         );
       })}
       <div style={{ position: "absolute", left: W / 2 - u * 9, top: (wide ? H * 0.54 : H * 0.515) - u * 9, width: u * 18, height: u * 18, borderRadius: "50%",
-        background: th.accent, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: ITALIC, fontSize: u * 8.5,
+        background: th.accent, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: c.f.italic, fontSize: u * 8.5,
         transform: `scale(${1.6 - 0.6 * vs}) rotate(${-12 + 12 * vs}deg)`, opacity: clamp((t - (sc.vsAt ?? 0)) * 8), boxShadow: `0 ${u}px ${u * 2}px rgba(0,0,0,0.3)` }}>vs</div>
     </AbsoluteFill>
   );
@@ -513,15 +512,15 @@ const LAlur: React.FC<{ c: Ctx }> = ({ c }) => {
       })}
       {items.map((it, i) => {
         const p = back(t, it.at, 0.4);
-        const fs = Math.min(u * (wide ? 6.5 : 7.4), (bw * 0.9) / (Math.max(5, it.t.length) * 0.55));
+        const fs = Math.min(u * (wide ? 6.5 : 7.4), (bw * 0.9) / (Math.max(5, it.t.length) * 0.55 * c.f.wk));
         return (
           <div key={i} style={{ position: "absolute", left: pos[i].x - bw / 2, top: pos[i].y - bh / 2, width: bw, height: bh,
             background: i % 2 ? "#F7F3EA" : c.th.marker, border: `${u * 0.4}px solid #141414`, boxSizing: "border-box", display: "flex",
             flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: u * 1.5, color: "#141414",
             transform: `rotate(${(i % 2 ? 1.6 : -1.4) + sc.tilt * 0.3}deg) scale(${0.7 + 0.3 * p})`, opacity: clamp((t - it.at) * 6),
             boxShadow: `${u * 0.6}px ${u * 0.7}px 0 #141414` }}>
-            <div style={{ fontFamily: SANS, fontSize: fs, textTransform: "uppercase", lineHeight: 1.02 }}>{it.t}</div>
-            {it.label ? <div style={{ fontFamily: TYPE, fontSize: u * 3.4, marginTop: u * 0.8 }}>{it.label}</div> : null}
+            <div style={{ fontFamily: c.f.sans, fontSize: fs, textTransform: "uppercase", lineHeight: 1.02 }}>{it.t}</div>
+            {it.label ? <div style={{ fontFamily: c.f.type, fontSize: u * 3.4, marginTop: u * 0.8 }}>{it.label}</div> : null}
           </div>
         );
       })}
@@ -538,10 +537,10 @@ const LKutipan: React.FC<{ c: Ctx }> = ({ c }) => {
     <AbsoluteFill style={{ justifyContent: "center", padding: `0 ${W * 0.1}px`, boxSizing: "border-box" }}>
       <Halftone c={c} x="62%" y="62%" size={u * 44} color={th.accent} seed={sc.seed} alpha={0.22} />
       <div style={{ position: "relative", marginTop: -H * 0.04 }}>
-        <div style={{ fontFamily: SERIF, fontSize: u * 40, lineHeight: 0.8, height: u * 18, color: th.accent, marginLeft: -u * 2,
+        <div style={{ fontFamily: c.f.serif, fontSize: u * 40, lineHeight: 0.8, height: u * 18, color: th.accent, marginLeft: -u * 2,
           opacity: ease(t, sc.start, 0.3), transform: `scale(${0.8 + 0.2 * back(t, sc.start, 0.4)})`, transformOrigin: "0 100%" }}>“</div>
         <div style={{ width: W * 0.24 * ease(t, sc.start + 0.3, 0.5), height: u * 0.6, background: c.ink, margin: `${u * 2}px 0 ${u * 3}px` }} />
-        <div style={{ fontFamily: ITALIC, fontSize: fs, lineHeight: 1.22, color: c.ink }}>
+        <div style={{ fontFamily: c.f.italic, fontSize: fs, lineHeight: 1.22, color: c.ink }}>
           {words.map((w, i) => {
             const at = sc.reveal?.[i] ?? sc.start + 0.2 + i * 0.2;
             const inMark = mk && i >= mk[0] && i <= mk[1];
@@ -563,7 +562,7 @@ const LAYOUTS: Record<string, React.FC<{ c: Ctx }>> = {
 };
 
 // ------------------------------------------------------------------ lembar adegan (masuk + dorongan kamera)
-const SceneSheet: React.FC<{ sc: KScene; th: KTheme; t0: number }> = ({ sc, th, t0 }) => {
+const SceneSheet: React.FC<{ sc: KScene; th: KTheme; t0: number; f: KFonts }> = ({ sc, th, t0, f }) => {
   const { fps, width: W, height: H } = useVideoConfig();
   const frame = useCurrentFrame();
   const t = t0 + frame / fps;
@@ -577,7 +576,7 @@ const SceneSheet: React.FC<{ sc: KScene; th: KTheme; t0: number }> = ({ sc, th, 
   const dx = sc.enter === "kiri" ? -1 : sc.enter === "kanan" ? 1 : 0;
   const dy = sc.enter === "atas" ? -1 : sc.enter === "bawah" ? 1 : 0;
   const push = 1 + 0.04 * clamp((t - sc.start) / Math.max(1, sc.end - sc.start + 0.5));
-  const c: Ctx = { sc, t, W, H, u, wide, th: { ...th, paper }, ink, paper };
+  const c: Ctx = { sc, t, W, H, u, wide, th: { ...th, paper }, ink, paper, f };
   const Comp = LAYOUTS[sc.layout] ?? LJudul;
   const rnd = mulberry(sc.seed);
   const decoX = rnd() > 0.5;
@@ -588,7 +587,7 @@ const SceneSheet: React.FC<{ sc: KScene; th: KTheme; t0: number }> = ({ sc, th, 
         clipPath: torn(sc.seed, 0.9, 40), boxShadow: "0 0 80px rgba(0,0,0,0.45)" }} />
       <AbsoluteFill style={{ transform: `scale(${push})` }}>
         {!darkSheet ? (
-          <div style={{ position: "absolute", [decoX ? "right" : "left"]: u * 3, top: u * 3, fontFamily: TYPE, fontSize: u * 2.4, color: rgba(ink, 0.45), letterSpacing: u * 0.25 }}>
+          <div style={{ position: "absolute", [decoX ? "right" : "left"]: u * 3, top: u * 3, fontFamily: c.f.type, fontSize: u * 2.4, color: rgba(ink, 0.45), letterSpacing: u * 0.25 }}>
             {`· ${String(sc.idx + 1).padStart(2, "0")} ·`}
           </div>
         ) : null}
@@ -599,7 +598,7 @@ const SceneSheet: React.FC<{ sc: KScene; th: KTheme; t0: number }> = ({ sc, th, 
 };
 
 // ------------------------------------------------------------------ caption per frasa
-const Captions: React.FC<{ words: KWord[]; scenes: KScene[]; th: KTheme }> = ({ words, scenes, th }) => {
+const Captions: React.FC<{ words: KWord[]; scenes: KScene[]; th: KTheme; f: KFonts }> = ({ words, scenes, th, f }) => {
   const { fps, width: W, height: H } = useVideoConfig();
   const frame = useCurrentFrame();
   const t = frame / fps;
@@ -630,7 +629,7 @@ const Captions: React.FC<{ words: KWord[]; scenes: KScene[]; th: KTheme }> = ({ 
     <div style={{ position: "absolute", left: 0, right: 0, bottom: H * (wide ? 0.07 : 0.115), display: "flex", justifyContent: "center",
       transform: `translateY(${(1 - appear) * u * 1.5}px)`, opacity: appear }}>
       <div style={{ background: "#FBF8F0", padding: `${u * 0.9}px ${u * 2}px`, transform: "rotate(-1.2deg)", maxWidth: W * 0.88,
-        boxShadow: `${u * 0.5}px ${u * 0.6}px 0 ${th.ink === "#F2EDE3" ? "#000" : th.ink}`, fontFamily: CAPTION, fontSize: fs, color: "#141414",
+        boxShadow: `${u * 0.5}px ${u * 0.6}px 0 ${th.ink === "#F2EDE3" ? "#000" : th.ink}`, fontFamily: f.caption, fontSize: fs, color: "#141414",
         lineHeight: 1.2, textAlign: "center" }}>
         {g.map((w, i) => {
           const on = t >= w.s - 0.03 && t < w.e + 0.08;
@@ -651,6 +650,7 @@ export const Kolase: React.FC<KolaseProps> = (props) => {
   const frame = useCurrentFrame();
   const th = props.theme;
   const darkTheme = th.name === "Malam";
+  const f = { ...DEFAULT_FONTS, ...(props.fonts ?? {}) };
   return (
     <AbsoluteFill style={{ background: th.paper2 }}>
       {props.scenes.map((sc, i) => {
@@ -658,13 +658,13 @@ export const Kolase: React.FC<KolaseProps> = (props) => {
         const to = i === props.scenes.length - 1 ? durationInFrames : Math.min(durationInFrames, Math.round((sc.end + 0.05) * fps));
         return (
           <Sequence key={sc.id + i} from={from} durationInFrames={Math.max(1, to - from)}>
-            <SceneSheet sc={sc} th={th} t0={from / fps} />
+            <SceneSheet sc={sc} th={th} t0={from / fps} f={f} />
           </Sequence>
         );
       })}
       <AbsoluteFill style={{ backgroundImage: noise(1 + (Math.floor(frame / 2) % 7), 0.95, 0.5), opacity: darkTheme ? 0.07 : 0.09,
         mixBlendMode: darkTheme ? "screen" : "multiply", pointerEvents: "none" }} />
-      <Captions words={props.words} scenes={props.scenes} th={th} />
+      <Captions words={props.words} scenes={props.scenes} th={th} f={f} />
     </AbsoluteFill>
   );
 };

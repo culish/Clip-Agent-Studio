@@ -12,6 +12,11 @@ export const FONT_FILES: Record<string, string> = {
   "Playfair Italic": "PlayfairDisplay-BoldItalic.woff2",
   "Special Elite": "SpecialElite-Regular.woff2",
   "Permanent Marker": "PermanentMarker-Regular.woff2",
+  "Fraunces Black": "Fraunces-Black.woff2",
+  "Fraunces Italic": "Fraunces-BoldItalic.woff2",
+  "Caveat Bold": "Caveat-Bold.woff2",
+  "Archivo Black": "ArchivoBlack-Regular.woff2",
+  "Plus Jakarta Sans": "PlusJakartaSans-ExtraBold.woff2",
 };
 
 let loading: Promise<void> | null = null;

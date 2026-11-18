@@ -58,7 +58,11 @@ Dari satu voice-over menjadi video explainer bergaya kolase: foto arsip hitam-pu
 1. **Proyek baru**: unggah file VO (MP3/WAV/M4A), atau tulis narasi untuk dibacakan suara AI (Edge gratis / Gemini). Pilih format (9:16, 16:9, 1:1, 4:5), tema warna, dan sumber foto: foto stok Pexels (gratis), gambar AI Gemini (berbayar; subjek otomatis digunting dari latar putih), atau tanpa foto.
 2. **Storyboard**: transkrip per kata dengan Whisper (`pip install -r requirements-whisper.txt`), lalu AI memilih tata letak tiap adegan. Angka, tahun, dan negara hanya tampil bila benar-benar diucapkan di VO; kalau tidak, adegan diganti tipografi. Tanpa penyedia AI, storyboard dibuat dengan aturan sederhana.
 3. **Ubah** tata letak, judul layar, kata yang distabilo, deskripsi foto, atau isi garis waktu/alur bila perlu.
-4. **Render**: hasilnya video final, versi tanpa musik, file suara terpisah, lembar tinjau per adegan, dan pemeriksaan durasi serta loudness (target -14 LUFS). Video langsung muncul di tab Posting.
+   - **Foto sendiri**: di adegan foto, klik *Salin prompt AI*, buat gambarnya di generator apa saja (Google Flow, ChatGPT, Midjourney), lalu *Unggah foto sendiri*. Gambar berlatar putih polos otomatis digunting; foto biasa dipakai sebagai foto tempel. Foto unggahan tidak pernah diganti saat render.
+   - **Pratinjau gambar adegan**: satu gambar diam per adegan dalam hitungan detik, untuk dicek sebelum render penuh.
+4. **Render cuplikan** 12 detik dari adegan mana pun untuk cek gerak dan suara, lalu **Render video**. Setiap render penuh menjadi versi baru (v1, v2, ...), berisi video final, versi tanpa musik, file WAV terpisah (narasi, efek suara, musik), lembar tinjau per adegan, catatan kreatif (daftar adegan dan fakta yang perlu dicek), serta pemeriksaan durasi dan loudness (target -14 LUFS). Video langsung muncul di tab Posting.
+
+Tema warna: Kertas koran, Sepia, Cetak biru, Hijau lumut, Arsip, Laut, Hutan, Jingga, Ungu, Malam. Gaya huruf: *Editorial* (Playfair Display, Anton, Special Elite, Permanent Marker) atau *Klasik* (Fraunces, Archivo Black, Caveat, Plus Jakarta Sans). Efek suara bawaan bisa diganti sampel Anda sendiri lewat folder `sfx/` (lihat `sfx/BACA-SAYA.txt`).
 
 Agent tidak bisa mendengar: dengarkan sendiri hasilnya sebelum mengunggah, periksa fakta yang tampil di layar (daftarnya ada di bawah video), dan nyalakan label konten AI bila memakai gambar atau suara AI.
 
@@ -264,4 +268,4 @@ output/<id_video>/
 
 ## Lisensi komponen
 
-Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT).
+Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), termasuk Fraunces, Caveat, Archivo Black, dan Plus Jakarta Sans, kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT).

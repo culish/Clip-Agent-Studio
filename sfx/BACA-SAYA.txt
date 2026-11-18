@@ -1,0 +1,15 @@
+Efek suara sendiri untuk video Kolase (opsional).
+
+Taruh file WAV, MP3, OGG, FLAC, atau M4A di folder ini dengan nama berikut untuk
+menggantikan bunyi sintetis bawaan. Panjang maksimal yang dipakai 2,5 detik; volumenya
+disamakan otomatis dengan bunyi bawaan.
+
+  kertas.wav   foto/kertas ditempel
+  stempel.wav  hentakan judul dan angka
+  spidol.wav   stabilo pada kata penting
+  wus.wav      transisi antar-adegan
+  ketik.wav    ketikan dokumen (dibunyikan per kata, sebaiknya sangat pendek)
+  pop.wav      penanda muncul (garis waktu, alur, peta)
+  tik.wav      hitungan angka (sangat pendek)
+
+Pakai sampel yang memang boleh dipakai ulang (mis. lisensi CC0) dan simpan sumbernya.

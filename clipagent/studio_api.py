@@ -12,7 +12,7 @@ from . import characters, kolase, music, publish, remake, tts, videogen, viral
 from .utils import ClipAgentError
 
 STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images", "kolase_storyboard", "kolase_render",
-                "kolase_paket")
+                "kolase_paket", "kolase_preview", "kolase_clip")
 
 
 # ---------------------------------------------------------------- job
@@ -26,7 +26,7 @@ def validate_job(body: dict, out_dir: Path) -> None:
                 raise ValueError("Transkrip VO butuh faster-whisper. Jalankan: pip install -r requirements-whisper.txt")
             if proj["vo"].get("source") == "tts":
                 tts.pick_engine(proj["settings"].get("voice_engine", "edge"))
-        if kind == "kolase_render":
+        if kind in ("kolase_render", "kolase_preview", "kolase_clip"):
             from .animation import remotion_status
             if not remotion_status()["ready"]:
                 raise ValueError(remotion_status()["hint"])
@@ -58,6 +58,10 @@ def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
             return {"kind": kind, "project": pid, "scenes": len(proj["scenes"])}
         if kind == "kolase_paket":
             return {"kind": kind, "project": pid, **kolase.paket_prepare(out_dir, pid)}
+        if kind == "kolase_preview":
+            return {"kind": kind, "project": pid, **kolase.preview(out_dir, pid)}
+        if kind == "kolase_clip":
+            return {"kind": kind, "project": pid, **kolase.render(out_dir, pid, clip_from=str(opts.get("scene") or "x"))}
         return {"kind": kind, "project": pid, **kolase.render(out_dir, pid)}
     if kind == "character_images":
         ch = characters.generate_candidates(out_dir, str(opts["character"]))
@@ -258,6 +262,11 @@ def handle_post(h, p: str, body: dict) -> bool:
         save_env({kolase.PAKET_ENV: path})
         os.environ[kolase.PAKET_ENV] = path
         h._json(kolase.paket_status())
+        return True
+    m = re.fullmatch(r"/api/kolase/([a-f0-9]{10})/foto", p)
+    if m:
+        h._json(kolase.set_scene_photo(out, m.group(1), str(body.get("scene") or ""), str(body.get("image") or ""),
+                                       bool(body.get("remove"))))
         return True
     m = re.fullmatch(r"/api/kolase/([a-f0-9]{10})(/delete)?", p)
     if m:

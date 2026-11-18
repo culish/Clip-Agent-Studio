@@ -1,5 +1,5 @@
 // Dipanggil oleh Clip Agent (Python): node render.mjs <job.json>
-// job.json: { mode: "video" | "stills", composition?, props, output, stills: [{frame, output, props?}], concurrency }
+// job.json: { mode: "video" | "stills", composition?, props, output, frameRange?, stills: [{frame, output, props?}], concurrency }
 // Setiap still boleh membawa props sendiri (dipakai untuk galeri contoh gaya).
 // Mencetak baris "PROGRESS <0..1>" dan "STAGE <teks>" ke stdout agar bisa dibaca aplikasi.
 import { bundle } from "@remotion/bundler";
@@ -71,6 +71,7 @@ if (job.mode === "stills") {
     crf: job.crf ?? 20,
     outputLocation: job.output,
     concurrency: job.concurrency ?? null,
+    frameRange: job.frameRange ?? null,
     onProgress: ({ progress }) => say("PROGRESS", progress.toFixed(3)),
   });
 }

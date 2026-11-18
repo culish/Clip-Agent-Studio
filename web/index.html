@@ -402,6 +402,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
 .ko-pkg[open] { gap: 10px; }
 .ko-lay { width: 100%; aspect-ratio: 9 / 16; border-radius: 6px; background: var(--sunk); display: grid; place-items: center; text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-2); padding: 4px; }
 .sc-row > img.ko-thumb { aspect-ratio: 3 / 4; object-fit: contain; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 12px 12px; }
+.sc-row > img.ko-prev { object-fit: contain; background: #111; }
 .ko-renders { display: grid; gap: 22px; }
 .ko-render { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
 .ko-render video { width: 100%; background: #000; border-radius: var(--r-md); display: block; }
@@ -778,13 +779,17 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
             <div class="flow-head"><span class="step">2</span><h3>Storyboard</h3><span class="small muted num" id="kSum"></span></div>
             <p class="small muted" style="max-width:76ch">Angka, tahun, dan negara hanya tampil bila benar-benar diucapkan di VO. Ubah tata letak atau teks tiap adegan bila perlu; waktunya tetap mengikuti suara.</p>
             <div class="sc-list" id="kScenes"></div>
-            <div class="row"><button class="btn small" type="button" id="kSave">Simpan perubahan</button><button class="btn small ghost" type="button" id="kRedo">Susun ulang dengan AI</button><span class="small muted" id="kSaved" aria-live="polite"></span></div>
+            <div class="row"><button class="btn small" type="button" id="kSave">Simpan perubahan</button><button class="btn small" type="button" id="kPrev">Pratinjau gambar adegan</button><button class="btn small ghost" type="button" id="kRedo">Susun ulang dengan AI</button><span class="small muted" id="kSaved" aria-live="polite"></span></div>
             <div class="crjob" id="kSbJob" hidden></div>
+            <div class="crjob" id="kPrevJob" hidden></div>
           </li>
           <li>
             <div class="flow-head"><span class="step">3</span><h3>Render</h3></div>
             <p class="small muted">Hasilnya dua video (dengan musik dan tanpa musik) plus file suara terpisah, lembar tinjau, dan pemeriksaan loudness. Dengarkan sendiri sebelum mengunggah, dan periksa fakta yang tampil di layar.</p>
-            <div class="row"><button class="btn primary" type="button" id="kRender">Render video</button></div>
+            <div class="row"><button class="btn primary" type="button" id="kRender">Render video</button>
+              <span class="row" style="gap:8px"><label class="small" for="kClipFrom">Cuplikan 12 dtk mulai</label><select id="kClipFrom" style="max-width:220px"></select><button class="btn small" type="button" id="kClip">Render cuplikan</button></span></div>
+            <div class="crjob" id="kClipJob" hidden></div>
+            <div class="clips" id="kClips"></div>
             <div class="crjob" id="kJob" hidden></div>
             <div id="kRenders" class="ko-renders"></div>
           </li>
@@ -2477,7 +2482,7 @@ function koSettingsHtml(pfx, st) {
   const ratios = Object.fromEntries(m.ratios.map(r => [r, { "9:16": "9:16 Shorts/Reels/TikTok", "16:9": "16:9 YouTube", "1:1": "1:1 persegi", "4:5": "4:5 feed" }[r] || r]));
   const themes = Object.fromEntries(Object.entries(m.themes).map(([k, v]) => [k, v.name]));
   const images = Object.fromEntries(Object.entries(m.images).map(([k, v]) => [k, v + (k === "ai" && !m.keys.gemini ? " (key belum diisi)" : k === "stok" && !m.keys.pexels ? " (key belum diisi)" : "")]));
-  return sel("ratio", "Format", ratios) + sel("theme", "Tema warna", themes) + sel("images", "Sumber foto", images)
+  return sel("ratio", "Format", ratios) + sel("theme", "Tema warna", themes) + sel("fonts", "Gaya huruf", m.fonts) + sel("images", "Sumber foto", images)
     + sel("language", "Bahasa VO", m.languages) + sel("music", "Musik", m.music)
     + `<label class="field"><span>Volume musik <b class="num" data-kv>${Math.round(st.music_volume * 100)}%</b></span><input type="range" min="0" max="0.6" step="0.02" value="${st.music_volume}" data-ks="music_volume"></label>`
     + `<label class="field"><span>Maks. gambar AI per video</span><input type="number" min="0" max="40" value="${st.max_images}" data-ks="max_images"></label>`
@@ -2541,7 +2546,14 @@ async function koOpen(pid) {
   $("#kVo").src = p.vo_url || ""; $("#kVo").hidden = !p.vo_url;
   $("#koSetEdit").innerHTML = koSettingsHtml("e", p.settings);
   $("#kSbJob").hidden = $("#kJob").hidden = $("#kPkgJob").hidden = true; $("#kSaved").textContent = "";
-  koScenes(); koRenders(); koPkg();
+  $("#kPrevJob").hidden = $("#kClipJob").hidden = true;
+  koScenes(); koRenders(); koPkg(); koClipOptions();
+}
+function koClipOptions() {
+  const sc = KO.proj.scenes || [];
+  $("#kClipFrom").innerHTML = sc.map((s, i) => `<option value="${esc(s.id)}">Adegan ${i + 1} (${s.start.toFixed(1)} dtk)</option>`).join("");
+  $("#kClips").innerHTML = (KO.proj.clips || []).map(c => `<article class="clip"><video class="${{ "16:9": "wide", "1:1": "square", "4:5": "r45" }[KO.proj.settings.ratio] || ""}" src="${esc(c.video_url)}" controls preload="metadata" playsinline></video>
+      <p class="small muted num">Cuplikan ${c.start.toFixed(1)}–${c.end.toFixed(1)} dtk</p></article>`).join("");
 }
 function koItemsText(items) { return (items || []).map(x => x.label ? `${x.t} | ${x.label}` : x.t).join("\n"); }
 function koParseItems(txt) { return txt.split("\n").map(l => l.trim()).filter(Boolean).map(l => { const [t, ...rest] = l.split("|"); return { t: t.trim(), label: rest.join("|").trim() }; }); }
@@ -2560,13 +2572,18 @@ function koScenes() {
     if (s.layout === "angka") more = f("number", "Angka (persis seperti diucapkan)", s.number) + f("label", "Keterangan", s.label);
     if (["garis_waktu", "banding", "alur"].includes(s.layout)) more = `<label class="field wide"><span>${KO_ITEMS_HINT[s.layout]}</span><textarea data-f="items" rows="3">${esc(koItemsText(s.items))}</textarea></label>`;
     if (s.layout === "kutipan") more = `<label class="field wide"><span>Kutipan (kata-kata dari VO)</span><textarea data-f="quote" rows="2">${esc(s.quote)}</textarea></label>`;
-    const thumb = s.asset_url ? `<img class="ko-thumb" src="${esc(s.asset_url)}" alt="">` : `<div class="ko-lay">${esc(L[s.layout])}</div>`;
+    const thumb = s.preview_url ? `<img class="ko-prev" src="${esc(s.preview_url)}" alt="Pratinjau adegan ${i + 1}">` : s.asset_url ? `<img class="ko-thumb" src="${esc(s.asset_url)}" alt="">` : `<div class="ko-lay">${esc(L[s.layout])}</div>`;
+    const photoTools = ["potong", "foto"].includes(s.layout) ? `<div class="row wide" style="gap:8px">
+        <label class="btn small" style="cursor:pointer">Unggah foto sendiri<input type="file" accept="image/*" hidden data-up="${esc(s.id)}"></label>
+        <button class="btn small ghost" type="button" data-cprompt="${esc(s.id)}">Salin prompt AI</button>
+        ${s.asset_source === "unggah" ? `<button class="btn small ghost" type="button" data-unup="${esc(s.id)}">Hapus foto saya</button>` : ""}
+        <span class="small muted">${s.asset_source ? "Foto: " + ({ ai: "gambar AI", stok: "stok Pexels", unggah: "unggahan Anda" }[s.asset_source] || s.asset_source) : "Foto dibuat saat render"}</span></div>` : "";
     return `<article class="sc-row" data-kid="${esc(s.id)}">${thumb}
       <div class="sc-body">
         <div class="sc-top"><b>Adegan ${i + 1} <span class="small muted num">${s.start.toFixed(1)}–${s.end.toFixed(1)} dtk</span></b>
           <label>Tata letak <select data-f="layout">${optHtml(L, s.layout)}</select></label></div>
         <p class="quote">“${esc(s.text)}”</p>
-        <div class="sc-grid">${f("heading", "Judul di layar", s.heading, "f-heading", 'maxlength="60"')}${f("keyword", "Kata yang distabilo (diucapkan)", s.keyword)}${more}</div>
+        <div class="sc-grid">${f("heading", "Judul di layar", s.heading, "f-heading", 'maxlength="60"')}${f("keyword", "Kata yang distabilo (diucapkan)", s.keyword)}${more}${photoTools}</div>
       </div></article>`;
   }).join("");
 }
@@ -2585,6 +2602,43 @@ $("#kScenes").addEventListener("change", e => {
   const cur = koCollect();
   KO.proj.scenes = KO.proj.scenes.map(s => ({ ...s, ...(cur.find(c => c.id === s.id) || {}) }));
   koScenes();
+});
+$("#kScenes").addEventListener("click", async e => {
+  const cp = e.target.closest("[data-cprompt]");
+  if (cp) {
+    const sc = KO.proj.scenes.find(x => x.id === cp.dataset.cprompt);
+    const txt = sc?.prompt_ai || "";
+    try { await navigator.clipboard.writeText(txt); toast("Prompt disalin. Tempel di Google Flow, ChatGPT, atau Midjourney, lalu unggah hasilnya di sini."); }
+    catch { prompt("Salin prompt ini:", txt); }
+    return;
+  }
+  const rm = e.target.closest("[data-unup]");
+  if (rm) {
+    try { KO.proj = await api(`/api/kolase/${KO.pid}/foto`, { method: "POST", body: { scene: rm.dataset.unup, remove: true } }); koScenes(); }
+    catch (err) { toast(err.message, true); }
+  }
+});
+$("#kScenes").addEventListener("change", async e => {
+  const inp = e.target.closest("[data-up]");
+  if (!inp || !inp.files[0]) return;
+  const f = inp.files[0];
+  if (f.size > 20e6) { toast("Gambar terlalu besar (maks. 20 MB).", true); return; }
+  try {
+    await koSave(true);
+    toast("Mengunggah foto…");
+    const image = await readDataUrl(f);
+    KO.proj = await api(`/api/kolase/${KO.pid}/foto`, { method: "POST", body: { scene: inp.dataset.up, image } });
+    if (KO.proj.notices?.length) toast(KO.proj.notices.join(" "), true); else toast("Foto dipakai di adegan ini.");
+    koScenes();
+  } catch (err) { toast(err.message, true); }
+});
+$("#kPrev").addEventListener("click", async () => {
+  try { await koSave(true); } catch (e) { toast(e.message, true); return; }
+  crJob($("#kPrevJob"), { kind: "kolase_preview", project: KO.pid }, "pratinjau adegan", () => koOpen(KO.pid));
+});
+$("#kClip").addEventListener("click", async () => {
+  try { await koSave(true); } catch (e) { toast(e.message, true); return; }
+  crJob($("#kClipJob"), { kind: "kolase_clip", project: KO.pid, scene: $("#kClipFrom").value }, "cuplikan", () => koOpen(KO.pid));
 });
 async function koSave(quiet) {
   const body = { title: $("#kTitle").value.trim(), settings: koReadSettings($("#koSetEdit")), scenes: koCollect() };
@@ -2613,12 +2667,14 @@ function koRenders() {
   $("#kRenders").innerHTML = (p.renders || []).map(r => `<article class="ko-render">
       <div class="clip"><video class="${cls}" src="${esc(r.video_url)}" controls preload="metadata" playsinline></video></div>
       <div style="display:grid;gap:10px">
-        <div class="meta num small muted">${esc(r.created.slice(5, 16))} · ${Math.round(r.duration)} dtk · ${r.scenes} adegan${r.loudness?.lufs != null ? ` · ${r.loudness.lufs} LUFS` : ""}</div>
+        <div class="meta num small muted">${r.version ? `<b>v${r.version}</b> · ` : ""}${esc(r.created.slice(5, 16))} · ${Math.round(r.duration)} dtk · ${r.scenes} adegan${r.loudness?.lufs != null ? ` · ${r.loudness.lufs} LUFS` : ""}</div>
         <div class="row">
           <button class="btn small primary" type="button" data-post="${esc(r.path)}">Posting</button>
           <a class="btn small" href="${esc(r.video_url)}&download=1">Unduh MP4</a>
           ${r.nomusic_url ? `<a class="btn small ghost" href="${esc(r.nomusic_url)}&download=1">Tanpa musik</a>` : ""}
         </div>
+        ${Object.keys(r.files || {}).length ? `<div class="row small" style="gap:6px 14px">${[["narasi", "Narasi (WAV)"], ["efek", "Efek suara (WAV)"], ["musik", "Musik (WAV)"], ["catatan", "Catatan kreatif"]]
+          .filter(([k]) => r.files[k]).map(([k, l]) => `<a href="${esc(r.files[k])}&download=1">${l}</a>`).join("")}</div>` : ""}
         <ul class="ko-checks">${(r.checks || []).map(c => `<li class="${c.ok ? "" : "bad"}">${esc(c.text)}</li>`).join("")}</ul>
         ${(r.facts || []).length ? `<div class="note-box small"><b>Periksa fakta di layar:</b><br>${r.facts.map(esc).join("<br>")}</div>` : ""}
         ${r.ai_media ? `<p class="small muted">Video memakai gambar/suara buatan AI: nyalakan label konten AI saat mengunggah.</p>` : ""}

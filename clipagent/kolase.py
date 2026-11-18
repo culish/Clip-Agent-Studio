@@ -46,14 +46,32 @@ RATIOS = {"9:16": (1080, 1920), "16:9": (1920, 1080), "1:1": (1080, 1080), "4:5"
 THEMES = {
     "koran": {"name": "Kertas koran", "paper": "#ECE5D3", "paper2": "#DCD2BC", "ink": "#161514", "accent": "#D12A1F",
               "marker": "#FFE14A", "dark": "#1C1B19"},
-    "sepia": {"name": "Arsip sepia", "paper": "#E9D6B4", "paper2": "#D8C097", "ink": "#2B1D12", "accent": "#A3361F",
+    "sepia": {"name": "Sepia", "paper": "#E9D6B4", "paper2": "#D8C097", "ink": "#2B1D12", "accent": "#A3361F",
               "marker": "#F6CB4C", "dark": "#2B1D12"},
     "biru": {"name": "Cetak biru", "paper": "#E4EBF0", "paper2": "#CBD8E2", "ink": "#0F1D2E", "accent": "#1E5BD8",
              "marker": "#9DE6FF", "dark": "#0F1D2E"},
     "hijau": {"name": "Hijau lumut", "paper": "#E5EADB", "paper2": "#CFD8BF", "ink": "#18261B", "accent": "#2E7A47",
               "marker": "#D4F26A", "dark": "#18261B"},
+    "arsip": {"name": "Arsip", "paper": "#E6DDC8", "paper2": "#D3C7AB", "ink": "#22201C", "accent": "#9E2A2B",
+              "marker": "#F2C94C", "dark": "#22201C"},
+    "laut": {"name": "Laut", "paper": "#E1EBEC", "paper2": "#C6D8DC", "ink": "#0E2A33", "accent": "#0F7C8C",
+             "marker": "#FFD166", "dark": "#0E2A33"},
+    "hutan": {"name": "Hutan", "paper": "#E3E5D3", "paper2": "#CBD1B4", "ink": "#1C2A1E", "accent": "#4A6B2F",
+              "marker": "#EBC95E", "dark": "#1C2A1E"},
+    "jingga": {"name": "Jingga", "paper": "#F2E5D3", "paper2": "#E4CEB1", "ink": "#2A1A10", "accent": "#E0601A",
+               "marker": "#FFE066", "dark": "#2A1A10"},
+    "ungu": {"name": "Ungu", "paper": "#ECE5EF", "paper2": "#D8CDE1", "ink": "#24162E", "accent": "#6B3FA0",
+             "marker": "#F9D65C", "dark": "#24162E"},
     "malam": {"name": "Malam", "paper": "#1D1D22", "paper2": "#2A2A31", "ink": "#F2EDE3", "accent": "#FF5B36",
               "marker": "#FFD43D", "dark": "#0E0E11"},
+}
+FONT_SETS = {
+    "editorial": {"name": "Editorial (Playfair, Anton, Special Elite)", "sans": "Anton", "serif": "Playfair Display Black",
+                  "italic": "Playfair Italic", "type": "Special Elite", "hand": "Permanent Marker", "caption": "Montserrat Black",
+                  "wk": 1.0, "ts": 1.0, "hs": 1.0},
+    "klasik": {"name": "Klasik (Fraunces, Archivo Black, Caveat)", "sans": "Archivo Black", "serif": "Fraunces Black",
+               "italic": "Fraunces Italic", "type": "Special Elite", "hand": "Caveat Bold", "caption": "Plus Jakarta Sans",
+               "wk": 1.42, "ts": 0.8, "hs": 1.3},
 }
 LAYOUTS = {"potong": "Foto guntingan", "foto": "Foto tempel", "dokumen": "Dokumen distabilo", "peta": "Peta",
            "judul": "Tipografi besar", "angka": "Angka besar", "garis_waktu": "Garis waktu", "banding": "Perbandingan",
@@ -62,7 +80,7 @@ PHOTO_LAYOUTS = ("potong", "foto")
 IMAGE_SOURCES = {"ai": "Gambar AI (Gemini, berbayar)", "stok": "Foto stok (Pexels, gratis)",
                  "grafis": "Tanpa foto (grafis saja)"}
 LANGS = {"id": "Indonesia", "en": "Inggris", "auto": "Deteksi otomatis"}
-DEFAULTS = {"ratio": "9:16", "theme": "koran", "images": "stok", "language": "id", "captions": True,
+DEFAULTS = {"ratio": "9:16", "theme": "koran", "fonts": "editorial", "images": "stok", "language": "id", "captions": True,
             "music": "auto", "music_volume": 0.22, "sfx": True, "max_images": 12,
             "voice_engine": "edge", "voice": "id-ID-ArdiNeural", "voice_style": ""}
 AUDIO_EXT = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".opus", ".webm")
@@ -117,6 +135,11 @@ def public(out_dir: Path, proj: dict) -> dict:
         a = sc.get("asset") or {}
         f = d / "assets" / a.get("file", "-")
         sc["asset_url"] = _url(out_dir, f) if a.get("file") and f.is_file() else ""
+        sc["asset_source"] = a.get("source", "") if sc["asset_url"] else ""
+        if sc.get("layout") in PHOTO_LAYOUTS:
+            sc["prompt_ai"] = _prompt(sc)
+        pv = d / "assets" / f"prev_{sc['id']}.jpg"
+        sc["preview_url"] = _url(out_dir, pv) if sc.get("preview") == _scene_key(sc, proj["settings"]) and pv.is_file() else ""
     rends = []
     for r in out.get("renders", []):
         f = d / r["file"]
@@ -124,12 +147,14 @@ def public(out_dir: Path, proj: dict) -> dict:
             continue
         r["video_url"] = _url(out_dir, f)
         r["path"] = f.resolve().relative_to(out_dir.resolve()).as_posix()
+        r["files"] = {k: _url(out_dir, d / v) for k, v in (r.get("extra") or {}).items() if (d / v).is_file()}
         nm = d / r.get("nomusic", "-")
         r["nomusic_url"] = _url(out_dir, nm) if r.get("nomusic") and nm.is_file() else ""
         qa = d / r.get("sheet", "-")
         r["sheet_url"] = _url(out_dir, qa) if r.get("sheet") and qa.is_file() else ""
         rends.append(r)
     out["renders"] = rends[::-1]
+    out["clips"] = [dict(c, video_url=_url(out_dir, d / c["file"])) for c in out.get("clips", []) if (d / c["file"]).is_file()][::-1]
     out["paket_status"] = paket_project_status(out_dir, proj)
     return out
 
@@ -154,7 +179,7 @@ def delete(out_dir: Path, pid: str) -> None:
 def clean_settings(raw: dict, base: dict | None = None) -> dict:
     st = dict(base or DEFAULTS)
     raw = raw or {}
-    for k, choices in (("ratio", RATIOS), ("theme", THEMES), ("images", IMAGE_SOURCES), ("language", LANGS),
+    for k, choices in (("ratio", RATIOS), ("theme", THEMES), ("fonts", FONT_SETS), ("images", IMAGE_SOURCES), ("language", LANGS),
                        ("voice_engine", ("gemini", "edge"))):
         if raw.get(k) in choices:
             st[k] = raw[k]
@@ -174,6 +199,7 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
 
 def meta(out_dir: Path) -> dict:
     return {"ratios": list(RATIOS), "themes": {k: dict(v) for k, v in THEMES.items()}, "layouts": LAYOUTS,
+            "fonts": {k: v["name"] for k, v in FONT_SETS.items()},
             "images": IMAGE_SOURCES, "languages": LANGS, "defaults": DEFAULTS, "music": music.choices(),
             "voices": {"gemini": tts.GEMINI_VOICES, "edge": tts.EDGE_VOICES}, "engines": tts.engines(),
             "keys": {"gemini": ImageGen.from_env() is not None, "pexels": broll.available()},
@@ -476,7 +502,7 @@ def validate_scenes(raw: list, beats: list[dict], total: float, photos: bool, ta
         text = " ".join(beats[i]["text"] for i in range(a, b + 1))
         cw = _content_words(text)
         layout = sc.get("layout") if sc.get("layout") in LAYOUTS else "judul"
-        if layout in PHOTO_LAYOUTS and not photos:
+        if layout in PHOTO_LAYOUTS and not photos and (sc.get("asset") or {}).get("source") != "unggah":
             layout = "judul"
         heading = re.sub(r"\s+", " ", str(sc.get("heading") or "")).strip()[:60] or " ".join(cw[:4])[:60]
         kw = str(sc.get("keyword") or "").strip()[:40]
@@ -612,7 +638,10 @@ def update(out_dir: Path, pid: str, body: dict) -> dict:
                 for k in ("layout", "heading", "keyword", "image", "search", "places", "number", "label", "items", "quote"):
                     if k in s:
                         base[k] = s[k]
-                if base.get("layout") != old[s["id"]].get("layout") or base.get("image") != old[s["id"]].get("image") \
+                upl = (base.get("asset") or {}).get("source") == "unggah"
+                if upl and base.get("layout") in PHOTO_LAYOUTS:
+                    pass                                  # foto unggahan tetap dipakai
+                elif base.get("layout") != old[s["id"]].get("layout") or base.get("image") != old[s["id"]].get("image") \
                         or base.get("search") != old[s["id"]].get("search"):
                     base.pop("asset", None)
                 raw.append(base)
@@ -745,6 +774,10 @@ def _scene_images(proj: dict, d: Path, p0: float, p1: float) -> None:
         check_cancel()
         progress(p0 + (p1 - p0) * k / max(1, len(need)), f"Foto adegan {k + 1}/{len(need)}")
         a = sc.get("asset") or {}
+        if a.get("source") == "unggah" and (adir / a.get("orig", "-")).is_file():
+            if a.get("layout") != sc["layout"] or not (adir / a.get("file", "-")).is_file():
+                _store_photo(sc, adir, cv2.imread(str(adir / a["orig"])), "unggah", "", a["orig"])
+            continue                                      # foto unggahan pengguna tidak pernah diganti
         if a.get("file") and (adir / a["file"]).is_file() and a.get("layout") == sc["layout"]:
             continue
         sc.pop("asset", None)
@@ -768,24 +801,72 @@ def _scene_images(proj: dict, d: Path, p0: float, p1: float) -> None:
             if got:
                 img, credit, src = cv2.imread(str(got["path"])), got["credit"], "stok"
         if img is None:
-            log(f"  Adegan '{sc['heading']}': foto tidak tersedia; diganti tipografi besar.")
+            log(f"  Adegan '{sc['heading']}': foto tidak tersedia; diganti tipografi besar. "
+                "Bisa juga unggah foto sendiri di adegan itu.")
             sc["layout"] = "judul"
             continue
-        cut = _cutout(img) if sc["layout"] == "potong" and src == "ai" else None
-        if sc["layout"] == "potong" and cut is None:
-            sc["layout"] = "foto"                         # foto stok/latar ramai: jadi foto tempel
+        _store_photo(sc, adir, img, src, credit)
+
+
+def _store_photo(sc: dict, adir: Path, img: np.ndarray, src: str, credit: str, orig: str = "") -> None:
+    """Simpan foto adegan. Untuk 'potong', subjek digunting dari latar putih; bila gagal, jadi foto tempel."""
+    cut = _cutout(img) if sc["layout"] == "potong" and src in ("ai", "unggah") else None
+    if sc["layout"] == "potong" and cut is None:
+        sc["layout"] = "foto"                             # latar ramai: jadi foto tempel
+    h, w = img.shape[:2]
+    scale = min(1.0, 1600 / max(h, w))
+    if cut is not None:
+        cut = cv2.resize(cut, (int(cut.shape[1] * scale), int(cut.shape[0] * scale)), interpolation=cv2.INTER_AREA) \
+            if scale < 1 else cut
+        name = f"cut_{sc['id']}_{hashlib.sha1(cut.tobytes()[:4096]).hexdigest()[:6]}.png"
+        cv2.imwrite(str(adir / name), cut)
+    else:
+        im = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA) if scale < 1 else img
+        name = f"foto_{sc['id']}_{hashlib.sha1(im.tobytes()[:4096]).hexdigest()[:6]}.jpg"
+        cv2.imwrite(str(adir / name), im, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    sc["asset"] = {"file": name, "cutout": cut is not None, "credit": credit, "source": src, "layout": sc["layout"]}
+    if orig:
+        sc["asset"]["orig"] = orig
+
+
+def set_scene_photo(out_dir: Path, pid: str, scene_id: str, data_url: str = "", remove: bool = False) -> dict:
+    """Foto adegan dari generator apa pun (Google Flow, ChatGPT, Midjourney) atau kamera pengguna."""
+    proj = load(out_dir, pid)
+    sc = next((x for x in proj.get("scenes", []) if x["id"] == scene_id), None)
+    if not sc:
+        raise ClipAgentError("Adegan tidak ditemukan.")
+    adir = pdir(out_dir, pid) / "assets"
+    adir.mkdir(parents=True, exist_ok=True)
+    notice = ""
+    if remove:
+        if (sc.get("asset") or {}).get("source") == "unggah":
+            sc.pop("asset", None)
+    else:
+        if sc["layout"] not in PHOTO_LAYOUTS:
+            raise ClipAgentError("Ubah tata letak adegan ini ke Foto guntingan atau Foto tempel dulu.")
+        m = re.match(r"data:image/[\w.+-]+;base64,(.+)", data_url or "", re.S)
+        if not m:
+            raise ClipAgentError("File gambar tidak valid. Pakai JPG, PNG, atau WEBP.")
+        raw = base64.b64decode(m.group(1))
+        if len(raw) > 20_000_000:
+            raise ClipAgentError("Gambar terlalu besar (maks. 20 MB).")
+        img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
+        if img is None:
+            raise ClipAgentError("Gambar tidak bisa dibaca. Pakai JPG atau PNG.")
         h, w = img.shape[:2]
-        scale = min(1.0, 1600 / max(h, w))
-        if cut is not None:
-            cut = cv2.resize(cut, (int(cut.shape[1] * scale), int(cut.shape[0] * scale)), interpolation=cv2.INTER_AREA) \
-                if scale < 1 else cut
-            name = f"cut_{sc['id']}_{hashlib.sha1(cut.tobytes()[:4096]).hexdigest()[:6]}.png"
-            cv2.imwrite(str(adir / name), cut)
-        else:
-            im = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA) if scale < 1 else img
-            name = f"foto_{sc['id']}_{hashlib.sha1(im.tobytes()[:4096]).hexdigest()[:6]}.jpg"
-            cv2.imwrite(str(adir / name), im, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        sc["asset"] = {"file": name, "cutout": cut is not None, "credit": credit, "source": src, "layout": sc["layout"]}
+        sc_ = min(1.0, 2400 / max(h, w))
+        if sc_ < 1:
+            img = cv2.resize(img, (int(w * sc_), int(h * sc_)), interpolation=cv2.INTER_AREA)
+        orig = f"unggah_{sc['id']}_{hashlib.sha1(raw[:65536]).hexdigest()[:8]}.png"
+        cv2.imwrite(str(adir / orig), img)
+        wanted = sc["layout"]
+        _store_photo(sc, adir, img, "unggah", "", orig)
+        if wanted == "potong" and sc["layout"] == "foto":
+            notice = ("Latar foto tidak putih polos, jadi subjek tidak bisa digunting; adegan dipakai sebagai foto tempel. "
+                      "Untuk foto guntingan, buat gambar dengan latar putih polos.")
+    sc.pop("preview", None)
+    save(out_dir, proj)
+    return dict(public(out_dir, proj), notices=[notice] if notice else [])
 
 
 # ---------------------------------------------------------------- isyarat waktu (dipakai animasi DAN efek suara)
@@ -967,6 +1048,34 @@ def sfx_bank(seed: int = 3) -> dict[str, np.ndarray]:
     return out
 
 
+SFX_DIR = Path(__file__).resolve().parent.parent / "sfx"
+SFX_NAMES = {"kertas": "kertas/foto ditempel", "stempel": "hentakan judul & angka", "spidol": "stabilo",
+             "wus": "transisi antar-adegan", "ketik": "ketikan dokumen (per kata)", "pop": "penanda muncul", "tik": "hitungan angka"}
+
+
+def sfx_with_overrides() -> dict[str, np.ndarray]:
+    """Bunyi sintetis, diganti file milik pengguna di folder sfx/ bila ada (mis. sfx/kertas.wav)."""
+    bank = sfx_bank()
+    used = []
+    for name in list(bank):
+        for ext in (".wav", ".mp3", ".ogg", ".flac", ".m4a"):
+            f = SFX_DIR / f"{name}{ext}"
+            if f.is_file():
+                try:
+                    x = _decode(f)[: int(2.5 * SR)]
+                    fade = min(len(x), int(0.02 * SR))
+                    if fade:
+                        x[-fade:] *= np.linspace(1, 0, fade)
+                    bank[name] = _norm_amp(x, float(np.abs(bank[name]).max()))
+                    used.append(f.name)
+                except ClipAgentError as exc:
+                    log(f"  Efek suara {f.name} dilewati: {exc}")
+                break
+    if used:
+        log(f"Efek suara sendiri dipakai: {', '.join(used)}")
+    return bank
+
+
 def sfx_events(scenes: list[dict], cue_list: list[dict]) -> list[tuple[float, str, float]]:
     ev: list[tuple[float, str, float]] = []
     for i, (sc, c) in enumerate(zip(scenes, cue_list)):
@@ -1020,7 +1129,7 @@ def mix_audio(proj: dict, d: Path, scenes: list[dict], cue_list: list[dict]) -> 
     vo = vo * min(4.0, 0.89 / peak)
     fx = np.zeros(total + SR, np.float32)
     if st.get("sfx", True):
-        bank = sfx_bank()
+        bank = sfx_with_overrides()
         for at, name, gain in sfx_events(scenes, cue_list):
             x = bank[name] * gain
             a = int(max(0.0, at) * SR)
@@ -1044,8 +1153,12 @@ def mix_audio(proj: dict, d: Path, scenes: list[dict], cue_list: list[dict]) -> 
     except ClipAgentError as exc:
         log(f"Musik dilewati: {exc}")
     full = nomusic + (mus if mus is not None else 0)
-    for arr, name in ((full, "mix.wav"), (nomusic, "mix_tanpa_musik.wav")):
+    for arr, name in ((full, "mix.wav"), (nomusic, "mix_tanpa_musik.wav"), (vo, "stem_narasi.wav"), (fx, "stem_efek.wav")):
         tts.write_wav(adir / name, np.clip(arr, -1, 1), SR)
+    if mus is not None:
+        tts.write_wav(adir / "stem_musik.wav", np.clip(mus, -1, 1), SR)
+    else:
+        (adir / "stem_musik.wav").unlink(missing_ok=True)
     return adir / "mix.wav", adir / "mix_tanpa_musik.wav", mus is not None
 
 
@@ -1123,48 +1236,116 @@ def build_props(proj: dict, d: Path, srv: _AssetServer) -> tuple[dict, list[dict
                        "captions": bool(st.get("captions", True)) and sc["layout"] not in ("dokumen", "kutipan"), **c})
     theme = dict(THEMES[st["theme"]])
     props = {"fps": 30, "width": W, "height": H, "duration": proj["vo"]["duration"], "theme": theme,
-             "scenes": scenes, "words": proj["words"], "lang": lang}
+             "scenes": scenes, "words": proj["words"], "lang": lang,
+             "fonts": {k: v for k, v in FONT_SETS[st.get("fonts", "editorial")].items() if k != "name"}}
     return props, cue_list
 
 
-def render(out_dir: Path, pid: str) -> dict:
+def _scene_key(sc: dict, st: dict) -> str:
+    """Sidik isi adegan + gaya; pratinjau lama tidak ditampilkan bila adegan sudah diubah."""
+    keep = {k: sc.get(k) for k in ("layout", "heading", "keyword", "label", "number", "items", "quote", "places", "start", "end")}
+    keep["asset"] = (sc.get("asset") or {}).get("file")
+    keep["st"] = [st.get(k) for k in ("ratio", "theme", "fonts", "captions")]
+    return hashlib.sha1(json.dumps(keep, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
+
+
+def _notes(proj: dict, entry: dict) -> str:
+    st = proj["settings"]
+    lines = [f"# {proj.get('title') or 'Video kolase'} (v{entry['version']})", "",
+             f"- Dibuat: {entry['created']}",
+             f"- Format {st['ratio']}, tema {THEMES[st['theme']]['name']}, gaya huruf {FONT_SETS[st.get('fonts', 'editorial')]['name']}",
+             f"- Durasi {entry['duration']} dtk, {entry['scenes']} adegan, loudness {entry['loudness'].get('lufs')} LUFS",
+             f"- Suara: {'suara AI' if proj['vo'].get('source') == 'tts' else 'VO unggahan'}; musik: {'ya' if entry['music'] else 'tidak'}",
+             "", "## Periksa fakta di layar", ""]
+    lines += [f"- [ ] {f}" for f in entry["facts"]] or ["- (tidak ada angka, tahun, atau peta di layar)"]
+    lines += ["", "## Adegan", "", "| No | Waktu | Tata letak | Teks di layar | Foto |", "|---|---|---|---|---|"]
+    for i, sc in enumerate(proj["scenes"]):
+        extra = sc.get("number") or ", ".join(sc.get("places") or []) or " / ".join(x["t"] for x in sc.get("items") or []) \
+            or sc.get("quote", "")[:60]
+        txt = (sc["heading"] + (f" — {extra}" if extra else "")).replace("|", "/")
+        a = sc.get("asset") or {}
+        foto = {"ai": "AI", "stok": a.get("credit", "stok"), "unggah": "unggahan sendiri"}.get(a.get("source"), "-")
+        lines.append(f"| {i + 1} | {sc['start']:.1f}–{sc['end']:.1f} | {LAYOUTS[sc['layout']]} | {txt} | {foto} |")
+    lines += ["", "## Pemeriksaan otomatis", ""] + [f"- {'LULUS' if c['ok'] else 'PERIKSA'}: {c['text']}" for c in entry["checks"]]
+    if entry["credits"]:
+        lines += ["", "## Kredit", ""] + [f"- {c}" for c in entry["credits"]]
+    if entry["ai_media"]:
+        lines += ["", "Video memakai gambar atau suara buatan AI: nyalakan label konten AI saat mengunggah."]
+    lines += ["", "Agent tidak bisa mendengar. Level suara sudah diukur, tapi dengarkan sendiri sebelum mengunggah.", ""]
+    return "\n".join(lines)
+
+
+def _mux(silent: Path, wav: Path, outp: Path, start: float = 0.0, dur: float = 0.0) -> None:
+    cut = (["-ss", f"{start:.3f}", "-t", f"{dur:.3f}"] if dur else [])
+    _ffmpeg(["-i", str(silent), *cut, "-i", str(wav), "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+             "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k",
+             "-shortest", "-movflags", "+faststart", str(outp)], "Menggabung audio")
+
+
+def render(out_dir: Path, pid: str, clip_from: str = "") -> dict:
+    """Render penuh, atau cuplikan 12 detik mulai dari adegan `clip_from` (untuk cek cepat)."""
     proj = load(out_dir, pid)
     if not proj.get("scenes"):
         raise ClipAgentError("Storyboard masih kosong. Klik Buat storyboard dulu.")
     d = pdir(out_dir, pid)
     st = proj["settings"]
-    log(f"Membuat video kolase '{proj.get('title') or pid}' ({st['ratio']}, {len(proj['scenes'])} adegan).")
+    total = proj["vo"]["duration"]
+    rng = None
+    if clip_from:
+        sc0 = next((x for x in proj["scenes"] if x["id"] == clip_from), proj["scenes"][0])
+        s0 = max(0.0, sc0["start"])
+        rng = (s0, min(total, s0 + 12.0))
+        log(f"Cuplikan {rng[0]:.1f}–{rng[1]:.1f} dtk dari '{proj.get('title') or pid}'.")
+    else:
+        log(f"Membuat video kolase '{proj.get('title') or pid}' ({st['ratio']}, {len(proj['scenes'])} adegan).")
     _scene_images(proj, d, 0.02, 0.3)
     save(out_dir, proj)
-    W, H = RATIOS[st["ratio"]]
-    name = f"kolase_{time.strftime('%Y%m%d_%H%M%S')}_{slugify(proj.get('title') or 'video', 30)}"
-    silent = d / f"{name}.silent.mp4"
+    slug = slugify(proj.get("title") or "video", 30)
+    version = 1 + max([r.get("version", 0) for r in proj.get("renders", [])] + [len(proj.get("renders", []))])
+    base = f"cuplikan_{time.strftime('%H%M%S')}" if rng else f"{slug}_v{version}"
+    silent = d / f"{base}.silent.mp4"
     with _AssetServer(out_dir) as srv:
         props, cue_list = build_props(proj, d, srv)
         progress(0.32, "Efek suara dan musik")
         mix, mix_nm, has_music = mix_audio(proj, d, proj["scenes"], cue_list)
+        job = {"mode": "video", "composition": "Kolase", "props": props, "output": str(silent.resolve()), "crf": 19}
+        if rng:
+            job["frameRange"] = [int(rng[0] * 30), max(int(rng[0] * 30), int(rng[1] * 30) - 1)]
         try:
-            _run_remotion({"mode": "video", "composition": "Kolase", "props": props, "output": str(silent.resolve()),
-                           "crf": 19}, 0.35, 0.93, "Merender kolase dengan Remotion")
+            _run_remotion(job, 0.35, 0.93, "Merender cuplikan" if rng else "Merender kolase dengan Remotion")
         except BaseException:
             silent.unlink(missing_ok=True)
             raise
     progress(0.94, "Menggabung audio")
-    final, nomusic = d / f"{name}.mp4", d / f"{name}_tanpa-musik.mp4"
-    ln = "loudnorm=I=-14:TP=-1.5:LRA=11"
-    for wav, outp in ((mix, final), (mix_nm, nomusic)):
-        _ffmpeg(["-i", str(silent), "-i", str(wav), "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-af", ln,
-                 "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
-                 str(outp)], "Menggabung audio")
+    if rng:
+        outp = d / f"{base}.mp4"
+        _mux(silent, mix, outp, rng[0], rng[1] - rng[0])
+        silent.unlink(missing_ok=True)
+        proj = load(out_dir, pid)
+        clips = [c for c in proj.get("clips", []) if (d / c["file"]).is_file()]
+        for old in clips[:-2]:                            # simpan 3 cuplikan terakhir saja
+            (d / old["file"]).unlink(missing_ok=True)
+        proj["clips"] = clips[-2:] + [{"file": outp.name, "start": round(rng[0], 2), "end": round(rng[1], 2),
+                                        "created": time.strftime("%Y-%m-%d %H:%M:%S")}]
+        save(out_dir, proj)
+        progress(1.0, "Cuplikan selesai")
+        return {"file": outp.name, "clip": True, "video_url": _url(out_dir, outp)}
+    final, nomusic = d / f"{base}.mp4", d / f"{base}_tanpa-musik.mp4"
+    _mux(silent, mix, final)
+    _mux(silent, mix_nm, nomusic)
     silent.unlink(missing_ok=True)
-    shutil.copyfile(d / "assets" / "mix_tanpa_musik.wav", d / f"{name}_suara.wav")
+    extra = {}
+    for key, stem in (("narasi", "stem_narasi.wav"), ("efek", "stem_efek.wav"), ("musik", "stem_musik.wav")):
+        if (d / "assets" / stem).is_file():
+            shutil.copyfile(d / "assets" / stem, d / f"{base}_{key}.wav")
+            extra[key] = f"{base}_{key}.wav"
     progress(0.97, "Pemeriksaan akhir")
-    sheet = d / f"{name}_tinjau.jpg"
+    sheet = d / f"{base}_tinjau.jpg"
     _contact_sheet(final, proj["scenes"], sheet)
     loud = _loudness(final)
     from .utils import probe
     vdur = probe(final)["duration"]
-    checks = [{"ok": abs(vdur - proj["vo"]["duration"]) < 0.25, "text": f"Durasi video {vdur:.2f} dtk, VO {proj['vo']['duration']:.2f} dtk"},
+    checks = [{"ok": abs(vdur - total) < 0.25, "text": f"Durasi video {vdur:.2f} dtk, VO {total:.2f} dtk"},
               {"ok": loud["lufs"] is not None and -16.5 <= loud["lufs"] <= -11.5,
                "text": f"Loudness {loud['lufs']} LUFS (target -14)"},
               {"ok": loud["peak"] is not None and loud["peak"] <= -0.5, "text": f"Puncak {loud['peak']} dBFS (maks. -1)"},
@@ -1174,16 +1355,46 @@ def render(out_dir: Path, pid: str) -> dict:
         log(("  LULUS  " if c["ok"] else "  PERIKSA ") + c["text"])
     ai_media = any((s.get("asset") or {}).get("source") == "ai" for s in proj["scenes"])
     credits = sorted({(s.get("asset") or {}).get("credit") for s in proj["scenes"] if (s.get("asset") or {}).get("credit")})
-    proj = load(out_dir, pid)
-    entry ={"file": final.name, "nomusic": nomusic.name, "audio": f"{name}_suara.wav", "sheet": sheet.name if sheet.is_file() else "",
+    entry = {"file": final.name, "nomusic": nomusic.name, "sheet": sheet.name if sheet.is_file() else "", "version": version,
              "created": time.strftime("%Y-%m-%d %H:%M:%S"), "duration": round(vdur, 2), "scenes": len(props["scenes"]),
              "music": has_music, "loudness": loud, "checks": checks, "facts": _on_screen_facts(proj["scenes"]),
              "credits": credits, "ai_media": ai_media or proj["vo"].get("source") == "tts"}
+    (d / f"{base}_catatan.md").write_text(_notes(proj, entry), encoding="utf-8")
+    extra["catatan"] = f"{base}_catatan.md"
+    entry["extra"] = extra
+    proj = load(out_dir, pid)
     proj.setdefault("renders", []).append(entry)
     save(out_dir, proj)
     progress(1.0, "Video kolase selesai")
     log(f"Selesai: {final.name}")
     return {**entry, "video_url": _url(out_dir, final)}
+
+
+def preview(out_dir: Path, pid: str) -> dict:
+    """Gambar diam satu per adegan (cepat) untuk dicek sebelum render penuh."""
+    proj = load(out_dir, pid)
+    if not proj.get("scenes"):
+        raise ClipAgentError("Storyboard masih kosong.")
+    d = pdir(out_dir, pid)
+    _scene_images(proj, d, 0.02, 0.45)
+    save(out_dir, proj)
+    adir = d / "assets"
+    with _AssetServer(out_dir) as srv:
+        props, _ = build_props(proj, d, srv)
+        stills = []
+        for sc in proj["scenes"]:
+            dur = sc["end"] - sc["start"]
+            t = sc["start"] + min(max(0.8, dur * 0.75), dur - 0.05)
+            stills.append({"frame": int(t * 30), "output": str((adir / f"prev_{sc['id']}.jpg").resolve())})
+        _run_remotion({"mode": "stills", "composition": "Kolase", "props": props, "stills": stills, "scale": 0.4},
+                      0.5, 0.98, "Pratinjau tiap adegan")
+    proj = load(out_dir, pid)
+    for sc in proj["scenes"]:
+        if (adir / f"prev_{sc['id']}.jpg").is_file():
+            sc["preview"] = _scene_key(sc, proj["settings"])
+    save(out_dir, proj)
+    progress(1.0, "Pratinjau siap")
+    return {"scenes": len(proj["scenes"])}
 
 
 # ---------------------------------------------------------------- paket "Kolase Editorial" milik pengguna (lokal)
