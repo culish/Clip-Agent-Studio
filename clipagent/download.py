@@ -44,6 +44,15 @@ def _cached(out_root: Path, url: str) -> tuple[Path, dict, dict | None, str] | N
     if not (video and meta_path.is_file() and has_text):
         return None
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    # unduhan lama beresolusi rendah karena dulu belum ada Deno: unduh ulang videonya sekarang
+    try:
+        short = meta.get("source_height") or min(probe(video)["width"], probe(video)["height"])
+    except ClipAgentError:
+        short = 9999
+    if short < 720 and not meta.get("js_runtime") and shutil.which("deno"):
+        log(f"Video di cache hanya {short}p dan diunduh sebelum Deno terpasang; mengunduh ulang dengan kualitas penuh.")
+        video.unlink(missing_ok=True)
+        return None
     captions, cap_source = None, ""
     if (workdir / "captions.json3").is_file():
         captions = json.loads((workdir / "captions.json3").read_text(encoding="utf-8"))
@@ -129,6 +138,9 @@ def fetch_youtube(url: str, out_root: Path, lang: str, max_height: int = 1080,
         if video:
             log(f"Video sudah ada di cache: {video}")
         else:
+            if not shutil.which("deno"):
+                log("PERINGATAN: Deno belum terpasang. Tanpa Deno, YouTube hanya memberi format terbatas "
+                    "(sering 360p/480p). Pasang: winget install DenoLand.Deno, lalu jalankan ulang app.")
             log(f"Mengunduh: {meta['title']} ({meta['duration']} detik)")
             try:
                 ydl.process_ie_result(info, download=True)
@@ -137,6 +149,7 @@ def fetch_youtube(url: str, out_root: Path, lang: str, max_height: int = 1080,
             video = _find_video(workdir)
             if not video:
                 raise ClipAgentError("Unduhan selesai tetapi file video tidak ditemukan.")
+            _check_quality(video, meta, workdir, max_height, info)
 
         captions, cap_source = None, ""
         cache = workdir / "captions.json3"
@@ -155,6 +168,30 @@ def fetch_youtube(url: str, out_root: Path, lang: str, max_height: int = 1080,
                 log(f"Gagal mengambil subtitle YouTube ({exc}); akan memakai Whisper.")
                 captions, cap_source = None, ""
     return video, meta, captions, cap_source
+
+
+def _check_quality(video: Path, meta: dict, workdir: Path, max_height: int, info: dict) -> None:
+    """Catat resolusi hasil unduhan dan jelaskan bila lebih rendah dari yang diminta."""
+    try:
+        v = probe(video)
+    except ClipAgentError:
+        return
+    short = min(v["width"], v["height"])
+    best = max([f.get("height") or 0 for f in info.get("formats") or [] if f.get("vcodec") not in (None, "none")] or [0])
+    meta.update(source_height=short, js_runtime=bool(shutil.which("deno")))
+    (workdir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    log(f"Resolusi video sumber: {v['width']}x{v['height']}")
+    if short >= min(720, max_height):
+        return
+    if not meta["js_runtime"]:
+        log(f"PERINGATAN: video terunduh hanya {short}p karena Deno belum terpasang (YouTube membatasi format). "
+            "Klip akan buram. Pasang Deno (winget install DenoLand.Deno), jalankan ulang app, lalu buat ulang klipnya; "
+            "video akan diunduh ulang otomatis.")
+    elif best and best <= short:
+        log(f"Catatan: video aslinya memang hanya {short}p, jadi klipnya tidak bisa lebih tajam.")
+    else:
+        log(f"PERINGATAN: video terunduh {short}p padahal tersedia sampai {best}p. Perbarui yt-dlp: "
+            'pip install -U "yt-dlp[default]", lalu buat ulang klipnya.')
 
 
 def fetch_source_text(url: str, workdir: Path, lang: str = "en", cookies_from_browser: str = "") -> dict:

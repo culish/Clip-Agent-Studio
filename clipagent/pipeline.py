@@ -36,6 +36,10 @@ def run_pipeline(cfg: Settings) -> dict:
     info = probe(video)
     total = info["duration"] or float(meta.get("duration") or 0)
     log(f"Video: {meta.get('title', '')} — {info['width']}x{info['height']}, {fmt_ts(total)}")
+    src_short = min(info["width"], info["height"])
+    if src_short < 720:
+        log(f"Catatan: video sumber hanya {src_short}p, jadi klip 9:16 keluar 720x1280 dan akan terlihat buram. "
+            "Pakai sumber 1080p agar klip 1080x1920 tajam.")
     result = {"video_id": meta["id"], "title": meta.get("title", ""), "url": meta.get("url", ""),
               "clips": [], "plan_only": cfg.plan_only}
 
@@ -122,6 +126,7 @@ def run_pipeline(cfg: Settings) -> dict:
             continue
         c["file"] = out.name
         c["sub_lang"] = target if i in sub_words else (tlang or "")
+        c["src_height"] = src_short
         done += 1
 
     attribution = _attribution(meta)

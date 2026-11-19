@@ -1401,7 +1401,7 @@ function clipCard(c, aspect, vid) {
   return `<article class="clip">
     <video class="${cls}" src="${esc(c.video_url)}" controls preload="metadata" playsinline></video>
     <h3>${esc(c.title || "Klip " + c.rank)}</h3>
-    <div class="meta num"><span>${fmtTime(c.start)}–${fmtTime(c.end)}</span><span>${Math.round(c.duration)} dtk</span>${c.score != null ? `<span>Skor ${Math.round(c.score)}</span>` : ""}${c.sub_lang ? `<span>Subtitle ${esc(c.sub_lang.toUpperCase())}</span>` : ""}</div>
+    <div class="meta num"><span>${fmtTime(c.start)}–${fmtTime(c.end)}</span><span>${Math.round(c.duration)} dtk</span>${c.score != null ? `<span>Skor ${Math.round(c.score)}</span>` : ""}${c.sub_lang ? `<span>Subtitle ${esc(c.sub_lang.toUpperCase())}</span>` : ""}${c.src_height && c.src_height < 720 ? `<span class="err" title="Video sumbernya beresolusi rendah, klip akan terlihat buram">Sumber ${esc(c.src_height)}p</span>` : ""}</div>
     ${caption ? `<p class="caption">${esc(caption).replace(/\n/g, "<br>")}</p>` : ""}
     <div class="actions">
       ${caption ? `<button class="btn small" type="button" data-copy="${esc(caption)}">Salin caption</button>` : ""}

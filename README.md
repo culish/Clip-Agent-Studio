@@ -279,6 +279,7 @@ output/<id_video>/
 ## Pemecahan masalah
 
 - **"Sign in to confirm you're not a bot"**: di Pengaturan, pilih cookies browser (Firefox paling andal), atau di terminal tambahkan `--cookies-from-browser firefox`.
+- **Klip buram / hanya 480p**: penyebab paling umum adalah Deno belum terpasang. Sejak yt-dlp 2025.11.12, tanpa Deno YouTube hanya memberi format terbatas (sering 360p/480p), apalagi bila memakai cookies browser. Pasang dengan `winget install DenoLand.Deno`, buka ulang terminal, jalankan ulang app, lalu buat ulang klipnya; video yang dulu terunduh beresolusi rendah akan diunduh ulang otomatis. Log job menulis resolusi sumber, dan kartu klip diberi tanda *Sumber 480p* bila sumbernya rendah. Kalau file klipnya sudah 1080x1920 tapi YouTube masih menampilkan 480p, tunggu: YouTube memproses versi HD beberapa menit sampai beberapa jam setelah upload.
 - **Gagal unduh / format tidak tersedia**: perbarui yt-dlp dengan `pip install -U "yt-dlp[default]"` dan pastikan Deno terpasang. YouTube sering berubah.
 - **HTTP 503 / 429 dari AI**: agen otomatis mencoba ulang lalu pindah ke model cadangan. Jika semua gagal, klip tetap dibuat dengan mode heuristic. Jalankan ulang nanti; video dan transkrip tidak diunduh ulang.
 - **Google Trends tidak bisa dimuat**: periksa koneksi. Ide topik dan niche CPM tinggi tetap bisa dipakai.
