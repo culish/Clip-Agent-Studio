@@ -32,7 +32,7 @@ from .utils import Cancelled, ClipAgentError, clear_context, set_context, slugif
 WEB_DIR = PROJECT_DIR / "web"
 ENV_PATH = PROJECT_DIR / ".env"
 KEY_VARS = ["GEMINI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "OPENAI_API_KEY",
-            "YOUTUBE_API_KEY", "PEXELS_API_KEY"]
+            "YOUTUBE_API_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY"]
 PLAIN_VARS = ["LLM_PROVIDER", "LLM_MODEL", "LLM_FALLBACK_MODELS", "LLM_BASE_URL", "COOKIES_FROM_BROWSER",
               "IMAGE_MODEL", "TTS_MODEL", "VIDEO_MODEL"]
 CREATIVE_KINDS = ("covers", "storyboard", "preview", "styles_preview", "animate", "autoedit")

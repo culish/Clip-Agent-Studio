@@ -38,7 +38,7 @@ Tab **Buat video** membuat video baru dari video viral atau dari topik yang Anda
 1. **Naskah orisinal.** AI membaca teks ucapan video sumber hanya sebagai riset (videonya tidak diunduh), lalu menulis naskah baru dengan sudut pandang dan kata-kata sendiri. Kemiripan dengan sumber diukur otomatis (5-kata berurutan yang sama). Bila lebih dari 8%, AI diminta menulis ulang. Angkanya tampil di editor.
 2. **Edit per adegan**: narasi, judul di layar, jenis visual, deskripsi gambar, kata kunci stok, gerak kamera, transisi. Urutan adegan bisa diubah.
 3. **Suara narasi**: Gemini TTS (30 suara, butuh Gemini API key) atau Edge (gratis, tanpa key).
-4. **Visual per adegan**: gambar AI (dengan karakter Anda), video stok Pexels, kartu teks, atau video AI. Video AI memakai Gemini Omni Flash, berbayar sekitar US$0,10 per detik 720p, dan baru dipakai bila **Izinkan video AI berbayar** dicentang. Perkiraan biayanya tampil sebelum dibuat.
+4. **Visual per adegan**: gambar AI (dengan karakter Anda), video stok (Pixabay/Pexels), kartu teks, atau video AI. Video AI memakai Gemini Omni Flash, berbayar sekitar US$0,10 per detik 720p, dan baru dipakai bila **Izinkan video AI berbayar** dicentang. Perkiraan biayanya tampil sebelum dibuat.
 5. **Musik, caption, render**: musik bawaan atau file Anda, caption karaoke, dirender dengan Remotion.
 
 **Siapkan suara & gambar** membuat aset per adegan agar bisa dicek (ada pemutar suara dan gambar kecil per adegan). Aset disimpan, jadi **Buat video** hanya membuat ulang adegan yang berubah. Hasil ada di `output/_projects/<id>/`.
@@ -55,7 +55,7 @@ Sejak Juli 2025 YouTube tidak memonetisasi konten "inauthentic": video massal ya
 
 Dari satu voice-over menjadi video explainer bergaya kolase: foto arsip hitam-putih yang digunting dan ditempel, dokumen yang distabilo tepat saat kata itu diucapkan, peta, tipografi besar, angka yang berhitung naik, garis waktu, perbandingan, dan diagram alur. Efek suara (kertas, stempel, spidol, ketikan, transisi) disintesis sendiri dan jatuh tepat di animasinya; musik otomatis mengecil saat ada suara.
 
-1. **Proyek baru**: unggah file VO (MP3/WAV/M4A), atau tulis narasi untuk dibacakan suara AI (Edge gratis / Gemini). Pilih format (9:16, 16:9, 1:1, 4:5), tema warna, dan sumber foto: foto stok Pexels (gratis), gambar AI Gemini (berbayar; subjek otomatis digunting dari latar putih), atau tanpa foto.
+1. **Proyek baru**: unggah file VO (MP3/WAV/M4A), atau tulis narasi untuk dibacakan suara AI (Edge gratis / Gemini). Pilih format (9:16, 16:9, 1:1, 4:5), tema warna, dan sumber foto: foto stok gratis (Pixabay/Pexels bila key diisi, Openverse tanpa key), gambar AI Gemini (berbayar; subjek otomatis digunting dari latar putih), atau tanpa foto.
 2. **Storyboard**: transkrip per kata dengan Whisper (`pip install -r requirements-whisper.txt`), lalu AI memilih tata letak tiap adegan. Angka, tahun, dan negara hanya tampil bila benar-benar diucapkan di VO; kalau tidak, adegan diganti tipografi. Tanpa penyedia AI, storyboard dibuat dengan aturan sederhana.
 3. **Ubah** tata letak, judul layar, kata yang distabilo, deskripsi foto, atau isi garis waktu/alur bila perlu.
    - **Foto sendiri**: di adegan foto, klik *Salin prompt AI*, buat gambarnya di generator apa saja (Google Flow, ChatGPT, Midjourney), lalu *Unggah foto sendiri*. Gambar berlatar putih polos otomatis digunting; foto biasa dipakai sebagai foto tempel. Foto unggahan tidak pernah diganti saat render.
@@ -70,11 +70,23 @@ Agent tidak bisa mendengar: dengarkan sendiri hasilnya sebelum mengunggah, perik
 
 Bila Anda membeli paket "Kolase Editorial" dan memasangnya di komputer, isi lokasi foldernya di tab Kolase (bagian *Paket Kolase Editorial (lokal)*) atau `KOLASE_PAKET_DIR` di `.env`. Di setiap proyek muncul tombol **Siapkan proyek paket**: Clip Agent menjalankan skrip paket untuk membuat proyek dari VO yang sama, menjalankan transkripnya, lalu memberi perintah yang tinggal disalin ke AI agent Anda (Claude Code, Codex, Gemini CLI, dan sejenisnya). Video di folder `hasil/` proyek paket otomatis muncul di tab Kolase dan Posting. Isi paket tetap di komputer Anda dan tidak pernah disalin ke repo ini, sesuai lisensinya.
 
+## Media stok gratis (Pixabay, Pexels, Openverse)
+
+Pexels sedang menghentikan sementara pembuatan API key baru. Clip Agent memakai beberapa penyedia secara berurutan; yang tidak punya key dilewati:
+
+| Penyedia | Untuk | Key | Catatan |
+|---|---|---|---|
+| Pexels | video + foto | `PEXELS_API_KEY` | Hanya bila Anda sudah punya key lama |
+| Pixabay | video + foto | `PIXABAY_API_KEY` | Daftar gratis di pixabay.com, key ada di pixabay.com/api/docs. Batas 100 permintaan per menit |
+| Openverse | foto saja | tidak perlu | Hanya lisensi CC0, Domain publik, dan CC BY. Kredit (judul, pembuat, lisensi, tautan) otomatis masuk ke deskripsi video; untuk CC BY ini wajib |
+
+Video stok untuk b-roll (Buat video, Edit otomatis) butuh Pixabay atau Pexels. Foto stok untuk tab Kolase sudah jalan tanpa key lewat Openverse; isi Pixabay key agar pilihan fotonya lebih banyak. Matikan Openverse dengan `OPENVERSE_ENABLED=0`.
+
 ## Edit otomatis: b-roll, musik, caption
 
 Di tab **Edit & animasi**, bagian **Edit otomatis** merender ulang klip yang sudah jadi:
 
-- **B-roll**: AI memilih 2–5 momen (tidak di 2,5 detik pertama), lalu menyisipkan video stok Pexels yang cocok atau gambar AI.
+- **B-roll**: AI memilih 2–5 momen (tidak di 2,5 detik pertama), lalu menyisipkan video stok (Pixabay/Pexels) yang cocok atau gambar AI.
 - **Musik latar** yang otomatis mengecil saat ada orang bicara (ducking).
 - **Caption karaoke** dengan gaya pilihan, ditambah judul di awal dan progress bar.
 
@@ -194,7 +206,7 @@ APK ada di `android/ClipAgent.apk` (Android 7.0 ke atas). Aplikasi ini adalah **
 
 **Buat video**, **Edit & animasi**, dan **Posting**: lihat bagian-bagian di atas.
 
-**Klip saya** menampilkan semua klip yang pernah dibuat. **Pengaturan** berisi penyedia AI, model, model cadangan, cookies browser untuk YouTube, kunci API tambahan (Gemini untuk suara/gambar/video, Pexels, YouTube Data API), dan pemeriksaan sistem.
+**Klip saya** menampilkan semua klip yang pernah dibuat. **Pengaturan** berisi penyedia AI, model, model cadangan, cookies browser untuk YouTube, kunci API tambahan (Gemini untuk suara/gambar/video, Pixabay/Pexels, YouTube Data API), dan pemeriksaan sistem.
 
 ### Catatan monetisasi
 
@@ -257,7 +269,7 @@ output/<id_video>/
 - **Video tanpa subtitle**: perlu Whisper (`pip install -r requirements-whisper.txt`). Pemakaian pertama mengunduh model (±500 MB untuk `small`).
 - **Dua orang berjauhan di layar**: pakai pembingkaian "Video utuh dengan latar blur".
 - **"Remotion belum siap" di tab Edit & animasi atau Buat video**: pasang Node.js (`winget install OpenJS.NodeJS.LTS`), tutup lalu jalankan ulang `start.bat`. Bisa juga manual: `cd remotion` lalu `npm install`.
-- **"Kuota Gemini untuk gambar = 0" atau HTTP 429 saat membuat visual**: paket gratis Gemini API tidak memberi kuota untuk model pembuat gambar (dan video AI). Aktifkan billing (Tier 1) di aistudio.google.com pada project yang sama dengan API key; biayanya dihitung per gambar. Tanpa billing, pilih visual **Video stok (Pexels)** atau **Kartu teks**. Clip Agent otomatis berhenti memanggil model gambar setelah kuota habis dan memakai video stok (bila Pexels API key diisi) atau kartu teks untuk sisa adegan. Batas per menit ditunggu otomatis; kuota harian direset tengah malam waktu Pasifik (sekitar pukul 14.00–15.00 WIB).
+- **"Kuota Gemini untuk gambar = 0" atau HTTP 429 saat membuat visual**: paket gratis Gemini API tidak memberi kuota untuk model pembuat gambar (dan video AI). Aktifkan billing (Tier 1) di aistudio.google.com pada project yang sama dengan API key; biayanya dihitung per gambar. Tanpa billing, pilih visual **Video stok (Pexels/Pixabay)** atau **Kartu teks**. Clip Agent otomatis berhenti memanggil model gambar setelah kuota habis dan memakai video stok (bila Pixabay atau Pexels API key diisi) atau kartu teks untuk sisa adegan. Batas per menit ditunggu otomatis; kuota harian direset tengah malam waktu Pasifik (sekitar pukul 14.00–15.00 WIB).
 - **Suara narasi gagal**: dengan Gemini, cek API key dan kuota. Model TTS bisa diganti di Pengaturan > Model lanjutan. Tanpa key, pasang suara gratis: `pip install edge-tts`, lalu pilih mesin suara Edge.
 - **YouTube: "Izin kedaluwarsa"**: tambahkan ulang channel itu di tab Posting. Ini terjadi tiap 7 hari selama aplikasi OAuth masih berstatus Testing.
 - **YouTube: "Error 403: access_denied"**: email akun Google yang dipakai login belum ada di Test users (Google Auth Platform → Audience). Tambahkan email itu, atau klik Publish app.

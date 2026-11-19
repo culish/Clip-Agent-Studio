@@ -1018,7 +1018,8 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
         <small class="muted">Login YouTube dulu di browser yang dipilih. Di Windows pakai Firefox: Chrome, Edge, dan Brave versi baru mengenkripsi cookies sehingga tidak bisa dibaca.</small></label>
       <fieldset class="keys"><legend class="label">Kunci API tambahan (opsional)</legend>
         <label class="field"><span>Gemini API key untuk suara, gambar, dan video AI <span class="muted" data-key="GEMINI_API_KEY"></span></span><input type="password" data-env="GEMINI_API_KEY" placeholder="Biarkan kosong bila tidak diubah"></label>
-        <label class="field"><span>Pexels API key untuk b-roll stok gratis <span class="muted" data-key="PEXELS_API_KEY"></span></span><input type="password" data-env="PEXELS_API_KEY" placeholder="pexels.com/api"></label>
+        <label class="field"><span>Pixabay API key untuk video dan foto stok gratis <span class="muted" data-key="PIXABAY_API_KEY"></span></span><input type="password" data-env="PIXABAY_API_KEY" placeholder="pixabay.com/api/docs (daftar gratis)"></label>
+        <label class="field"><span>Pexels API key (opsional, bila sudah punya) <span class="muted" data-key="PEXELS_API_KEY"></span></span><input type="password" data-env="PEXELS_API_KEY" placeholder="pexels.com/api"></label>
         <label class="field"><span>YouTube Data API key untuk riset viral yang lebih lengkap <span class="muted" data-key="YOUTUBE_API_KEY"></span></span><input type="password" data-env="YOUTUBE_API_KEY" placeholder="console.cloud.google.com"></label>
         <details class="adv"><summary>Model lanjutan</summary>
           <div class="grid3">
@@ -1229,7 +1230,7 @@ function renderPreview(first) {
     return `<span class="w">${esc(t)}</span>`;
   }).join("");
   const key = gi + ":" + (form.anim === "bounce" ? idx : "");
-  if (cap.dataset.key !== key || first) {
+  if (cap.dataset.key !== key || first || !cap.firstElementChild) {
     cap.innerHTML = `<span class="grp">${html}</span>`;
     cap.dataset.key = key;
   } else {
@@ -1971,7 +1972,7 @@ function updateCost() {
   const stock = scenes.filter(s => (s.visual || st.visual) === "stock").length;
   const parts = [];
   if (imgs) parts.push(`${imgs} gambar AI` + (m.keys.gemini ? "" : " (butuh Gemini API key, sementara memakai kartu teks)"));
-  if (stock) parts.push(`${stock} video stok` + (m.keys.pexels ? "" : " (butuh Pexels API key)"));
+  if (stock) parts.push(`${stock} video stok` + (m.keys.pexels ? "" : " (butuh Pixabay atau Pexels API key)"));
   if (vids) parts.push(st.allow_paid_video ? `${vids} video AI, perkiraan biaya US$${(vids * m.video_price.seconds * m.video_price.per_second).toFixed(2)}` : `${vids} adegan video AI akan memakai gambar AI karena izin biaya belum dicentang`);
   $("#pCost").textContent = parts.length ? "Visual: " + parts.join(", ") + "." : "";
 }
@@ -2115,7 +2116,7 @@ async function initAutoEdit() {
   const studio = jobOptions({});
   $("#aeHook").checked = studio.hook_overlay !== false; $("#aeBar").checked = !!studio.progress_bar;
   const notes = [];
-  if (!m.keys.pexels) notes.push("Isi Pexels API key (gratis) di Pengaturan untuk b-roll video stok.");
+  if (!m.keys.pexels) notes.push("Isi Pixabay API key (gratis) di Pengaturan untuk b-roll video stok.");
   $("#aeNote").textContent = notes.join(" ");
 }
 $("#aeVol").addEventListener("input", e => $("#aeVolV").textContent = Math.round(e.target.value * 100) + "%");
@@ -2454,7 +2455,7 @@ async function initKolase() {
   const m = KO.meta;
   const warn = [];
   if (!m.whisper) warn.push("Transkrip VO butuh faster-whisper (pip install -r requirements-whisper.txt). Tanpa itu, pakai mode Tulis narasi.");
-  if (m.images && !m.keys.pexels && !m.keys.gemini) warn.push("Isi PEXELS_API_KEY (gratis) atau GEMINI_API_KEY di Pengaturan agar adegan foto punya gambar; tanpa itu video memakai grafis saja.");
+  if (!m.keys.pexels && !m.keys.gemini) warn.push("Foto stok dimatikan dan GEMINI_API_KEY belum diisi: adegan foto hanya bisa memakai foto unggahan Anda.");
   $("#koWarn").hidden = !warn.length; $("#koWarn").textContent = warn.join(" ");
   $("#koSetNew").innerHTML = koSettingsHtml("n", m.defaults);
   koVoices($("#koEngine").value);
@@ -2481,7 +2482,7 @@ function koSettingsHtml(pfx, st) {
   const sel = (k, label, map) => `<label class="field"><span>${label}</span><select data-ks="${k}">${optHtml(map, st[k])}</select></label>`;
   const ratios = Object.fromEntries(m.ratios.map(r => [r, { "9:16": "9:16 Shorts/Reels/TikTok", "16:9": "16:9 YouTube", "1:1": "1:1 persegi", "4:5": "4:5 feed" }[r] || r]));
   const themes = Object.fromEntries(Object.entries(m.themes).map(([k, v]) => [k, v.name]));
-  const images = Object.fromEntries(Object.entries(m.images).map(([k, v]) => [k, v + (k === "ai" && !m.keys.gemini ? " (key belum diisi)" : k === "stok" && !m.keys.pexels ? " (key belum diisi)" : "")]));
+  const images = Object.fromEntries(Object.entries(m.images).map(([k, v]) => [k, v + (k === "ai" && !m.keys.gemini ? " (key belum diisi)" : k === "stok" ? (m.keys.stock?.length ? ` (${m.keys.stock.join(", ")})` : " (tidak aktif)") : "")]));
   return sel("ratio", "Format", ratios) + sel("theme", "Tema warna", themes) + sel("fonts", "Gaya huruf", m.fonts) + sel("images", "Sumber foto", images)
     + sel("language", "Bahasa VO", m.languages) + sel("music", "Musik", m.music)
     + `<label class="field"><span>Volume musik <b class="num" data-kv>${Math.round(st.music_volume * 100)}%</b></span><input type="range" min="0" max="0.6" step="0.02" value="${st.music_volume}" data-ks="music_volume"></label>`

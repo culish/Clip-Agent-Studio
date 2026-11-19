@@ -7,7 +7,7 @@ Alur:
    foto guntingan, foto tempel, dokumen distabilo, peta, tipografi besar, angka, garis waktu,
    perbandingan, alur, kutipan. Angka, tahun, dan negara yang tampil di layar wajib benar-benar diucapkan.
 3. Pengguna boleh mengubah tata letak dan teks tiap adegan.
-4. render(): foto (gambar AI hitam-putih lalu digunting otomatis, atau foto stok Pexels), efek suara
+4. render(): foto (gambar AI hitam-putih lalu digunting otomatis, atau foto stok Pexels/Pixabay/Openverse), efek suara
    sintetis yang jatuh tepat pada animasinya, musik dengan ducking, render Remotion (komposisi "Kolase"),
    lalu dua file: versi final dan versi tanpa musik. Ada lembar tinjau dan ukuran loudness untuk QA.
 Disimpan di <output>/_kolase/<id>/. Implementasi ini ditulis sendiri untuk Clip Agent.
@@ -77,7 +77,7 @@ LAYOUTS = {"potong": "Foto guntingan", "foto": "Foto tempel", "dokumen": "Dokume
            "judul": "Tipografi besar", "angka": "Angka besar", "garis_waktu": "Garis waktu", "banding": "Perbandingan",
            "alur": "Diagram alur", "kutipan": "Kutipan"}
 PHOTO_LAYOUTS = ("potong", "foto")
-IMAGE_SOURCES = {"ai": "Gambar AI (Gemini, berbayar)", "stok": "Foto stok (Pexels, gratis)",
+IMAGE_SOURCES = {"ai": "Gambar AI (Gemini, berbayar)", "stok": "Foto stok gratis (Pexels/Pixabay/Openverse)",
                  "grafis": "Tanpa foto (grafis saja)"}
 LANGS = {"id": "Indonesia", "en": "Inggris", "auto": "Deteksi otomatis"}
 DEFAULTS = {"ratio": "9:16", "theme": "koran", "fonts": "editorial", "images": "stok", "language": "id", "captions": True,
@@ -202,7 +202,8 @@ def meta(out_dir: Path) -> dict:
             "fonts": {k: v["name"] for k, v in FONT_SETS.items()},
             "images": IMAGE_SOURCES, "languages": LANGS, "defaults": DEFAULTS, "music": music.choices(),
             "voices": {"gemini": tts.GEMINI_VOICES, "edge": tts.EDGE_VOICES}, "engines": tts.engines(),
-            "keys": {"gemini": ImageGen.from_env() is not None, "pexels": broll.available()},
+            "keys": {"gemini": ImageGen.from_env() is not None, "pexels": broll.photos_available(),
+                     "stock": broll.photo_providers()},
             "whisper": _has_whisper(), "paket": paket_status()}
 
 
@@ -712,42 +713,6 @@ def _cutout(img: np.ndarray) -> np.ndarray | None:
     return out[max(0, ys.min() - 2):ys.max() + 3, max(0, xs.min() - 2):xs.max() + 3]
 
 
-def _pexels_photo(query: str, portrait: bool, adir: Path, used: set) -> dict | None:
-    import requests
-    if not broll.available() or not query.strip():
-        return None
-    tag = hashlib.sha1(f"photo|{query}|{portrait}".encode()).hexdigest()[:10]
-    listing = adir / f"pexels_photo_{tag}.json"
-    try:
-        if listing.is_file():
-            photos = json.loads(listing.read_text(encoding="utf-8"))
-        else:
-            r = requests.get(f"{broll._base()}/v1/search", headers={"Authorization": broll.api_key()},
-                             params={"query": query, "orientation": "portrait" if portrait else "landscape",
-                                     "per_page": 8}, timeout=30)
-            if not r.ok:
-                raise ClipAgentError(f"Pexels foto HTTP {r.status_code}")
-            photos = r.json().get("photos") or []
-            listing.write_text(json.dumps(photos), encoding="utf-8")
-        for ph in photos:
-            if ph.get("id") in used:
-                continue
-            src = (ph.get("src") or {}).get("large2x") or (ph.get("src") or {}).get("large")
-            if not src:
-                continue
-            p = adir / f"pexels_{ph['id']}.jpg"
-            if not p.is_file():
-                rr = requests.get(src, timeout=60)
-                if not rr.ok:
-                    continue
-                p.write_bytes(rr.content)
-            used.add(ph.get("id"))
-            return {"path": p, "credit": f"Photo: {ph.get('photographer', 'Pexels')} / Pexels"}
-    except (requests.RequestException, ClipAgentError, ValueError) as exc:
-        log(f"  Pexels foto: {str(exc)[:120]}")
-    return None
-
-
 def _prompt(sc: dict) -> str:
     subject = sc["image"] or sc["heading"]
     if sc["layout"] == "potong":
@@ -764,8 +729,8 @@ def _scene_images(proj: dict, d: Path, p0: float, p1: float) -> None:
     adir.mkdir(parents=True, exist_ok=True)
     gen = ImageGen.from_env() if st["images"] == "ai" else None
     if st["images"] == "ai" and gen is None:
-        log("GEMINI_API_KEY belum diisi; foto memakai stok Pexels." if broll.available() else
-            "GEMINI_API_KEY dan PEXELS_API_KEY belum diisi; adegan foto diganti tipografi.")
+        log(f"GEMINI_API_KEY belum diisi; foto memakai stok ({'/'.join(broll.photo_providers())})." if broll.photos_available()
+            else "GEMINI_API_KEY belum diisi dan foto stok dimatikan; adegan foto diganti tipografi.")
     portrait = st["ratio"] in ("9:16", "4:5")
     need = [sc for sc in proj["scenes"] if sc["layout"] in PHOTO_LAYOUTS]
     used: set = set()
@@ -792,12 +757,12 @@ def _scene_images(proj: dict, d: Path, p0: float, p1: float) -> None:
                     made += 1
                 img, src = cv2.imread(str(raw)), "ai"
             except QuotaError as exc:
-                log(f"  {exc} Foto berikutnya memakai stok Pexels." if broll.available() else f"  {exc}")
+                log(f"  {exc} Foto berikutnya memakai foto stok." if broll.photos_available() else f"  {exc}")
                 gen = None
             except ClipAgentError as exc:
                 log(f"  Adegan {sc['id']}: gambar AI gagal ({str(exc)[:140]}).")
         if img is None:
-            got = _pexels_photo(sc["search"] or sc["heading"], portrait, adir, used)
+            got = broll.fetch_photo(sc["search"] or sc["heading"], portrait, adir, used)
             if got:
                 img, credit, src = cv2.imread(str(got["path"])), got["credit"], "stok"
         if img is None:
@@ -1264,7 +1229,7 @@ def _notes(proj: dict, entry: dict) -> str:
             or sc.get("quote", "")[:60]
         txt = (sc["heading"] + (f" — {extra}" if extra else "")).replace("|", "/")
         a = sc.get("asset") or {}
-        foto = {"ai": "AI", "stok": a.get("credit", "stok"), "unggah": "unggahan sendiri"}.get(a.get("source"), "-")
+        foto = {"ai": "AI", "stok": (a.get("credit") or "stok").replace("|", "/"), "unggah": "unggahan sendiri"}.get(a.get("source"), "-")
         lines.append(f"| {i + 1} | {sc['start']:.1f}–{sc['end']:.1f} | {LAYOUTS[sc['layout']]} | {txt} | {foto} |")
     lines += ["", "## Pemeriksaan otomatis", ""] + [f"- {'LULUS' if c['ok'] else 'PERIKSA'}: {c['text']}" for c in entry["checks"]]
     if entry["credits"]:

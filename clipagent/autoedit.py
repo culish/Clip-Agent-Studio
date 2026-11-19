@@ -1,6 +1,6 @@
 """Editor otomatis untuk klip yang sudah jadi: b-roll, musik latar dengan ducking, dan caption.
 
-AI memilih 2–5 momen di klip yang cocok diberi b-roll (video stok Pexels atau gambar AI), lalu klip
+AI memilih 2–5 momen di klip yang cocok diberi b-roll (video stok Pexels/Pixabay atau gambar AI), lalu klip
 dirender ulang dengan Remotion: video asli + potongan b-roll + caption karaoke + musik yang otomatis
 mengecil saat ada orang bicara.
 """
@@ -17,7 +17,7 @@ from .imagegen import ImageGen
 from .llm import LLMClient
 from .utils import ClipAgentError, check_cancel, log, probe, progress
 
-SOURCES = {"stock": "Video stok (Pexels)", "ai_image": "Gambar AI", "none": "Tanpa b-roll"}
+SOURCES = {"stock": "Video stok (Pexels/Pixabay)", "ai_image": "Gambar AI", "none": "Tanpa b-roll"}
 
 BR_SYSTEM = "You are a short-form video editor. Answer ONLY with valid JSON."
 BR_PROMPT = """Clip title: {title}
@@ -105,8 +105,8 @@ def auto_edit(ctx: ClipContext, opts: dict) -> dict:
     progress(0.34, "Memilih momen b-roll")
     plans, mood = plan_broll(ctx, count) if source != "none" and count else ([], "santai")
     if source == "stock" and not broll.available():
-        log("PEXELS_API_KEY belum diisi; b-roll memakai gambar AI." if ImageGen.from_env() else
-            "PEXELS_API_KEY dan GEMINI_API_KEY belum diisi; klip diedit tanpa b-roll.")
+        log("Key video stok (PEXELS_API_KEY/PIXABAY_API_KEY) belum diisi; b-roll memakai gambar AI." if ImageGen.from_env() else
+            "Key video stok dan GEMINI_API_KEY belum diisi; klip diedit tanpa b-roll.")
         source = "ai_image" if ImageGen.from_env() else "none"
     gen = ImageGen.from_env() if source == "ai_image" else None
     used: set[int] = set()

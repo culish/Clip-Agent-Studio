@@ -6,7 +6,7 @@ Alur:
    diminta menulis ulang bila terlalu mirip. Ini penting agar lolos aturan "inauthentic/reused content".
 2. Pengguna mengedit naskah per adegan (narasi, judul layar, jenis visual, deskripsi gambar, kata kunci stok).
 3. build_assets(): suara narasi per adegan (TTS), visual per adegan (gambar AI dengan karakter, video AI,
-   video stok Pexels, atau kartu teks), musik latar.
+   video stok Pexels/Pixabay, atau kartu teks), musik latar.
 4. render(): semua digabung dan dirender dengan Remotion (caption karaoke, musik dengan ducking).
 Proyek disimpan di <output>/_projects/<id>/.
 """
@@ -30,7 +30,7 @@ from .imagegen import ImageGen
 from .llm import LLMClient
 from .utils import ClipAgentError, check_cancel, log, progress, slugify
 
-VISUALS = {"ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)", "stock": "Video stok (Pexels)",
+VISUALS = {"ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)", "stock": "Video stok (Pexels/Pixabay)",
            "text": "Kartu teks"}
 CAMERAS = ["zoom_in", "pan_right", "zoom_out", "pan_left", "static"]
 TRANSITIONS = ["fade", "slide", "wipe", "flip", "clockwipe", "iris", "none"]
@@ -381,7 +381,7 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
                     item.update(video=fit.name, credit=got["credit"])
                 else:
                     if not broll.available():
-                        log(f"  Adegan {i + 1}: PEXELS_API_KEY belum diisi.")
+                        log(f"  Adegan {i + 1}: key video stok (PEXELS_API_KEY atau PIXABAY_API_KEY) belum diisi.")
                     kind = "ai_image" if gen and not blocked["image"] else "text"
                     item["kind"] = kind
             if kind in ("ai_image", "ai_video"):
@@ -394,7 +394,7 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
                     except QuotaError as exc:
                         blocked["image"] = str(exc)
                         log(f"  {exc}")
-                        log("  Adegan berikutnya memakai " + ("video stok Pexels." if broll.available() else "kartu teks."))
+                        log("  Adegan berikutnya memakai " + (f"video stok {broll.label()}." if broll.available() else "kartu teks."))
                         raise
                     item["image"] = img_path.name
                     if kind == "ai_video" and blocked["video"]:
