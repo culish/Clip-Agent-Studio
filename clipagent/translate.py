@@ -70,7 +70,7 @@ def translate_clip_words(cfg: Settings, words: list[Word], ranges: list[tuple[fl
             payload = json.dumps([{"i": i, "s": t} for i, t in enumerate(batch)], ensure_ascii=False)
             try:
                 data = client.complete_json(SYSTEM, PROMPT.format(lang=LANG_NAMES.get(target, target),
-                                                                  lines=payload))
+                                                                  lines=payload), list_key="lines")
             except ClipAgentError as exc:
                 log(f"Terjemahan gagal ({str(exc).splitlines()[0]}); subtitle yang belum "
                     "diterjemahkan memakai bahasa asli.")

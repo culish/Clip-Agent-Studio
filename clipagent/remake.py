@@ -260,7 +260,7 @@ def write_script(out_dir: Path, pid: str) -> dict:
     for attempt in range(3):
         check_cancel()
         progress(0.25 + 0.2 * attempt, "AI menulis naskah orisinal" if attempt == 0 else "Menulis ulang agar lebih orisinal")
-        data = client.complete_json(SCRIPT_SYSTEM, prompt)
+        data = client.complete_json(SCRIPT_SYSTEM, prompt, list_key="scenes")
         scenes = clean_scenes(data.get("scenes"))
         if not scenes:
             log("Jawaban AI tidak berisi adegan; mencoba lagi.")

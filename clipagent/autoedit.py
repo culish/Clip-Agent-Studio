@@ -60,7 +60,8 @@ def plan_broll(ctx: ClipContext, n: int) -> tuple[list[dict], str]:
         if cfg.provider != "heuristic":
             lines = "\n".join(f"[{i}] {s['start']:.1f}-{s['end']:.1f}: {s['text']}" for i, s in enumerate(segs))
             client = LLMClient(cfg.provider, cfg.model, cfg.base_url, cfg.api_key, fallbacks=cfg.fallback_models)
-            data = client.complete_json(BR_SYSTEM, BR_PROMPT.format(title=ctx.clip.get("title", ""), lines=lines, n=n))
+            data = client.complete_json(BR_SYSTEM, BR_PROMPT.format(title=ctx.clip.get("title", ""), lines=lines, n=n),
+                                         list_key="broll")
             for b in data.get("broll") or []:
                 try:
                     i = int(b.get("sentence"))

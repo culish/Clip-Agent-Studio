@@ -48,14 +48,16 @@ class LLMClient:
     def model(self) -> str:
         return self.models[0]
 
-    def complete_json(self, system: str, user: str, attempts_per_model: int = 3) -> dict:
+    def complete_json(self, system: str, user: str, attempts_per_model: int = 3, list_key: str = "") -> dict:
+        """Jawaban JSON berupa objek. Bila model menjawab dengan daftar saja (mis. langsung [ {...}, ... ]),
+        daftar itu dibungkus menjadi {list_key: [...]}; bentuk lain diminta ulang."""
         problems = []
         for mi, model in enumerate(list(self.models)):
             for attempt in range(1, attempts_per_model + 1):
                 try:
                     text = (self._anthropic(model, system, user) if self.provider == "anthropic"
                             else self._openai(model, system, user))
-                    result = extract_json(text)
+                    result = _as_object(extract_json(text), list_key)
                     if mi > 0:
                         # Model cadangan berhasil: pakai model ini untuk permintaan berikutnya.
                         self.models = self.models[mi:] + self.models[:mi]
@@ -167,3 +169,14 @@ def _retry_after(r: requests.Response) -> float | None:
         return float(r.headers.get("retry-after", ""))
     except ValueError:
         return None
+
+
+def _as_object(result, list_key: str = "") -> dict:
+    if isinstance(result, dict):
+        return result
+    if isinstance(result, list):
+        if len(result) == 1 and isinstance(result[0], dict) and (not list_key or list_key in result[0]):
+            return result[0]
+        if list_key:
+            return {list_key: result}
+    raise ClipAgentError("Jawaban LLM bukan JSON yang valid (bukan objek): " + str(result)[:300])

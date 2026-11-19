@@ -61,7 +61,7 @@ def cover_texts(ctx: ClipContext) -> list[dict]:
     try:
         client = LLMClient(cfg.provider, cfg.model, cfg.base_url, cfg.api_key, fallbacks=cfg.fallback_models)
         data = client.complete_json(TEXT_SYSTEM, TEXT_PROMPT.format(
-            title=title, hook=ctx.clip.get("hook", ""), text=spoken or "-", lang=cfg.output_language))
+            title=title, hook=ctx.clip.get("hook", ""), text=spoken or "-", lang=cfg.output_language), list_key="texts")
     except ClipAgentError as exc:
         log(f"Teks cover AI tidak tersedia ({str(exc).splitlines()[0]}); memakai judul klip.")
         return fallback

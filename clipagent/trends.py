@@ -289,7 +289,7 @@ def recommend_ideas(cfg: Settings, trends: list[dict], geo: str = "US", n: int =
                                  niches=niches, n=n)
     try:
         client = LLMClient(cfg.provider, cfg.model, cfg.base_url, cfg.api_key, fallbacks=cfg.fallback_models)
-        data = client.complete_json(IDEAS_SYSTEM, prompt)
+        data = client.complete_json(IDEAS_SYSTEM, prompt, list_key="ideas")
     except ClipAgentError as exc:
         log(f"Ide AI gagal ({str(exc).splitlines()[0]}); memakai aturan sederhana.")
         return heuristic_ideas(trends, n), "aturan"

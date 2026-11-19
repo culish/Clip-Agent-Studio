@@ -467,6 +467,15 @@ def validate_scenes(raw: list, beats: list[dict], total: float, photos: bool, ta
     if not beats:
         return []
     full_text = " ".join(b["text"] for b in beats)
+
+    def fill(a: int, b: int) -> list[tuple[int, int, dict]]:
+        """Ketukan yang dilewati AI diisi adegan pendek dengan aturan sederhana (bukan satu adegan panjang)."""
+        out_ = []
+        for h in _heuristic(beats[a:b + 1], photos):
+            x, y = h["beats"]
+            out_.append((a + x, a + y, h))
+        return out_
+
     claimed: list[tuple[int, int, dict]] = []
     nxt = 0
     for sc in raw or []:
@@ -479,7 +488,7 @@ def validate_scenes(raw: list, beats: list[dict], total: float, photos: bool, ta
         b = a if b is None else b
         if a is None or a != nxt or b < a or b >= len(beats):
             if a is not None and a > nxt:              # ketukan terlewat: sisipkan adegan judul
-                claimed.append((nxt, a - 1, {"layout": "judul"}))
+                claimed += fill(nxt, a - 1)
                 nxt = a
                 if b < a or b >= len(beats):
                     continue
@@ -488,7 +497,9 @@ def validate_scenes(raw: list, beats: list[dict], total: float, photos: bool, ta
         claimed.append((a, b, sc))
         nxt = b + 1
     if nxt < len(beats):
-        claimed.append((nxt, len(beats) - 1, {"layout": "judul"}))
+        if nxt < len(beats) // 2:
+            log(f"AI hanya mengatur {nxt} dari {len(beats)} ketukan; sisanya diisi aturan sederhana.")
+        claimed += fill(nxt, len(beats) - 1)
     # gabung adegan yang terlalu pendek (< 1,3 detik) ke adegan sebelumnya
     merged: list[tuple[int, int, dict]] = []
     for a, b, sc in claimed:
@@ -601,8 +612,10 @@ def storyboard(out_dir: Path, pid: str) -> dict:
                       "No photos are available: do NOT use potong or foto.")
         try:
             data = client.complete_json(SB_SYSTEM, SB_PROMPT.format(beats=lines, lang=lang, ratio=st["ratio"],
-                                                                     photo_rule=photo_rule, moods=", ".join(music.MOODS)))
-            raw, title = data.get("scenes"), str(data.get("title") or "")[:100]
+                                                                     photo_rule=photo_rule, moods=", ".join(music.MOODS)),
+                                       list_key="scenes")
+            raw = data.get("scenes") if isinstance(data.get("scenes"), list) else None
+            title = str(data.get("title") or "")[:100]
             mood = data.get("mood") if data.get("mood") in music.MOODS else "santai"
         except (ClipAgentError, ValueError) as exc:
             log(f"AI storyboard tidak tersedia ({str(exc).splitlines()[0][:120]}); memakai aturan sederhana.")

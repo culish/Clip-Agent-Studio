@@ -137,7 +137,7 @@ def _llm_select(cfg: Settings, meta: dict, segments: list[Segment], total: float
             lines=to_prompt_lines(chunk),
         )
         try:
-            data = client.complete_json(SYSTEM_PROMPT, prompt)
+            data = client.complete_json(SYSTEM_PROMPT, prompt, list_key="clips")
         except LLMUnavailable:
             if not candidates:
                 raise
@@ -166,7 +166,7 @@ def _rank(client: LLMClient, cfg: Settings, meta: dict, segments: list[Segment],
                                   audience=AUDIENCE_TEXT.get(cfg.audience, AUDIENCE_TEXT["id"]),
                                   k=cfg.num_clips, lang=cfg.output_language, cands="\n\n".join(lines))
     try:
-        data = client.complete_json(SYSTEM_PROMPT, prompt)
+        data = client.complete_json(SYSTEM_PROMPT, prompt, list_key="selected")
     except ClipAgentError as exc:
         log(f"Tahap pemeringkatan gagal ({exc}); memakai skor awal.")
         return cands
