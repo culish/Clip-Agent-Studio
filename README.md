@@ -51,6 +51,22 @@ Buat karakter sekali (nama, persona, penampilan, gaya gambar, suara), lalu ungga
 
 Sejak Juli 2025 YouTube tidak memonetisasi konten "inauthentic": video massal yang mirip satu sama lain, atau konten orang lain yang diulang tanpa nilai tambah. Karena itu Clip Agent menulis naskah baru dan mengukur kemiripannya. Tetap tambahkan sudut pandang Anda sendiri (kolom **Sudut pandang / arahan**), variasikan format, dan jangan mengunggah puluhan video yang hampir sama.
 
+## Layout streaming, reaction, dan podcast
+
+Di Studio, bagian **Efek video → Layout**, pilih susunan klip vertikal (9:16 atau 4:5):
+
+| Layout | Susunan | Cocok untuk |
+|---|---|---|
+| Satu layar | Seperti biasa, ikuti Pembingkaian | Vlog, podcast satu orang |
+| Streaming/gameplay | Facecam di atas, game di bawah | Live stream GTA, Resident Evil, dan game lain |
+| Reaction | Video yang ditonton utuh di atas, wajah di bawah | Video reaction |
+| Facecam kecil di pojok | Game memenuhi layar, facecam di pojok atas | Gameplay yang butuh layar penuh |
+| Podcast 2 orang | Dua wajah ditumpuk atas-bawah | Podcast, wawancara |
+
+Facecam dicari otomatis: wajah yang posisinya tetap di banyak frame dianggap facecam (wajah karakter game yang muncul sesekali diabaikan), dan tepi kotak facecam dibaca dari garis yang menetap sehingga gameplay tidak ikut masuk ke panel wajah. Game di panel bawah digeser agar facecam tidak ikut terpotong; di layout Reaction, facecam di video atas diburamkan agar wajah tidak muncul dua kali. Caption otomatis diletakkan di garis batas dua panel.
+
+Hasil deteksi bisa diatur per klip di tab **Kreatif → Layout klip**: geser kotak *Facecam / wajah* dan *Video utama* di frame, tarik pojok kanan-bawah untuk mengubah ukuran, atur tinggi panel wajah, lalu lihat pratinjaunya sebelum **Render ulang klip**. Pengaturan itu disimpan dan dipakai lagi saat klip dirender ulang.
+
 ## Video kolase editorial (tab Kolase)
 
 Dari satu voice-over menjadi video explainer bergaya kolase: foto arsip hitam-putih yang digunting dan ditempel, dokumen yang distabilo tepat saat kata itu diucapkan, peta, tipografi besar, angka yang berhitung naik, garis waktu, perbandingan, dan diagram alur. Efek suara (kertas, stempel, spidol, ketikan, transisi) disintesis sendiri dan jatuh tepat di animasinya; musik otomatis mengecil saat ada suara.

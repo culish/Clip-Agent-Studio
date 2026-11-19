@@ -35,7 +35,7 @@ KEY_VARS = ["GEMINI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GROQ_A
             "YOUTUBE_API_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY"]
 PLAIN_VARS = ["LLM_PROVIDER", "LLM_MODEL", "LLM_FALLBACK_MODELS", "LLM_BASE_URL", "COOKIES_FROM_BROWSER",
               "IMAGE_MODEL", "TTS_MODEL", "VIDEO_MODEL"]
-CREATIVE_KINDS = ("covers", "storyboard", "preview", "styles_preview", "animate", "autoedit")
+CREATIVE_KINDS = ("covers", "storyboard", "preview", "styles_preview", "animate", "autoedit", "relayout")
 APK_PATH = PROJECT_DIR / "android" / "ClipAgent.apk"
 LOOPBACK = ("127.", "::1", "::ffff:127.")
 
@@ -43,12 +43,13 @@ CHOICES = {
     "audience": ["us", "id"], "sub_lang": ["auto", "en", "id"], "anim": list(ANIMATIONS),
     "font": list(FONTS), "position": ["lower", "middle", "upper"], "zoom": ["none", "punch"],
     "aspect": ["9:16", "1:1", "4:5", "original"], "crop": ["face", "center", "blur"],
+    "layout": ["auto", "stream", "reaction", "pip", "duo"],
     "whisper_model": ["tiny", "base", "small", "medium", "large-v3"],
 }
 _TYPES = {f.name: f.type for f in fields(Settings)}
 ALLOWED = ["source", "num_clips", "min_dur", "max_dur", "instructions", "audience", "sub_lang", "language",
            "anim", "font", "uppercase", "text_color", "highlight_color", "words_per_line", "position",
-           "hook_overlay", "progress_bar", "zoom", "aspect", "crop", "subtitles", "provider", "model",
+           "hook_overlay", "progress_bar", "zoom", "aspect", "crop", "layout", "split", "subtitles", "provider", "model",
            "whisper_model", "max_height", "plan_only", "force_whisper"]
 
 
@@ -175,6 +176,9 @@ def run_creative(kind: str, opts: dict, out_dir: Path) -> dict:
     if kind == "autoedit":
         from .autoedit import auto_edit
         return {**base, **auto_edit(ctx, anim_opts(opts))}
+    if kind == "relayout":
+        from .creative import relayout_clip
+        return {**base, **relayout_clip(ctx, {"layout": opts.get("layout")})}
     from .animation import preview_frames, preview_styles, render_animation
     opts = anim_opts(opts)
     if kind == "preview":

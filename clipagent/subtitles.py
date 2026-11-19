@@ -41,6 +41,7 @@ class CaptionStyle:
     captions: bool = True
     hook_text: str = ""
     progress_bar: bool = False
+    y_frac: float = 0.0            # >0: caption di tengah garis ini (mis. batas dua panel layout streaming)
 
 
 # ---------------------------------------------------------------- utilitas
@@ -135,7 +136,9 @@ def build_ass(words: list[Word], clip_start: float, clip_end: float, width: int,
 
     # Posisi teks: anchor bawah/tengah/atas.
     x = width // 2
-    if style.position == "upper":
+    if style.y_frac > 0:
+        an, y = 5, int(height * style.y_frac)
+    elif style.position == "upper":
         an, y = 8, int(height * (0.20 if vertical else 0.10))
     elif style.position == "middle":
         an, y = 5, int(height * (0.58 if vertical else 0.55))

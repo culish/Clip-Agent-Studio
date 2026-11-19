@@ -113,7 +113,8 @@ def clean_clip(ctx: ClipContext) -> Path:
     """Klip tanpa subtitle/efek dengan crop yang sama, bahan untuk versi animasi (disimpan di cache)."""
     work = ctx.cdir / "work"
     out = work / "clean.mp4"
-    stamp = f"{ctx.start:.2f}-{ctx.end:.2f}-{ctx.render_opts.get('aspect', '9:16')}-{ctx.render_opts.get('crop', 'face')}"
+    stamp = (f"{ctx.start:.2f}-{ctx.end:.2f}-{ctx.render_opts.get('aspect', '9:16')}-{ctx.render_opts.get('crop', 'face')}-"
+             f"{json.dumps(ctx.clip.get('layout') or ctx.render_opts.get('layout') or 'auto', sort_keys=True)}")
     marker = work / "clean.txt"
     if out.is_file() and marker.is_file() and marker.read_text() == stamp:
         return out
@@ -125,6 +126,75 @@ def clean_clip(ctx: ClipContext) -> Path:
                 on_frac=lambda f: progress(0.02 + 0.3 * f, "Menyiapkan klip bersih"))
     marker.write_text(stamp)
     return out
+
+
+def layout_info(ctx: ClipContext) -> dict:
+    """Data untuk editor layout: frame sumber, ukuran, usulan kotak tiap mode, dan layout klip saat ini."""
+    import cv2
+
+    from . import layout as L
+    from .render import plan_geometry
+    W, H = ctx.info["width"], ctx.info["height"]
+    aspect = ctx.render_opts.get("aspect", "9:16")
+    geo = plan_geometry(aspect if aspect in ("9:16", "4:5") else "9:16", W, H)
+    frame = ctx.cdir / f"layout_frame_{int(ctx.start * 10)}_{int(ctx.end * 10)}.jpg"
+    if not frame.is_file():
+        cap = cv2.VideoCapture(str(ctx.video))
+        cap.set(cv2.CAP_PROP_POS_MSEC, (ctx.start + ctx.duration * 0.4) * 1000)
+        ok, img = cap.read()
+        cap.release()
+        if not ok:
+            raise ClipAgentError("Frame video sumber tidak bisa dibaca.")
+        sc = min(1.0, 1280 / img.shape[1])
+        if sc < 1:
+            img = cv2.resize(img, (int(img.shape[1] * sc), int(img.shape[0] * sc)), interpolation=cv2.INTER_AREA)
+        cv2.imwrite(str(frame), img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    cache = ctx.cdir / f"layout_suggest_{int(ctx.start * 10)}_{int(ctx.end * 10)}.json"
+    if cache.is_file():
+        sug = json.loads(cache.read_text(encoding="utf-8"))
+    else:
+        sug = L.suggestions(ctx.video, ctx.start, ctx.end, geo["out_w"], geo["out_h"])
+        cache.write_text(json.dumps(sug), encoding="utf-8")
+    cur = L.clean(ctx.clip.get("layout") or {"mode": ctx.render_opts.get("layout", "auto"),
+                                              "split": ctx.render_opts.get("split", 0)})
+    return {"frame_url": ctx.url(frame), "W": W, "H": H, "OW": geo["out_w"], "OH": geo["out_h"], "aspect": aspect,
+            "modes": L.MODES, "suggest": sug, "current": cur, "title": ctx.clip.get("title", ""),
+            "video_url": ctx.url(ctx.workdir / "clips" / ctx.clip["file"]) if ctx.clip.get("file") else ""}
+
+
+def relayout_clip(ctx: ClipContext, opts: dict) -> dict:
+    """Render ulang klip dengan layout baru (streaming/reaction/pip/podcast atau satu layar)."""
+    import os
+
+    from . import layout as L
+    from .translate import translate_clip_words
+    lay = L.clean(opts.get("layout"))
+    cfg = ctx.settings()
+    if lay["mode"] != "auto" and cfg.aspect not in ("9:16", "4:5"):
+        raise ClipAgentError("Layout streaming/reaction hanya untuk klip 9:16 atau 4:5. Buat ulang klip dengan rasio 9:16.")
+    sub_words = None
+    target = ctx.clip.get("sub_lang") or ""
+    if cfg.subtitles and target and target != (ctx.tlang or ""):
+        try:
+            sub_words = translate_clip_words(cfg, ctx.words, [(ctx.start, ctx.end)], target,
+                                             ctx.workdir / f"translations_{target}.json").get(0)
+        except ClipAgentError as exc:
+            log(f"Terjemahan subtitle dilewati ({str(exc).splitlines()[0][:100]}).")
+    clips_dir = ctx.workdir / "clips"
+    name = Path(ctx.clip.get("file") or f"{ctx.slug}.mp4").stem
+    tmp = f"{name}__layout"
+    log(f"Render ulang klip #{ctx.rank} dengan layout: {L.MODES[lay['mode']]}")
+    out = render_clip(cfg, ctx.video, ctx.info, dict(ctx.clip, layout=lay), ctx.words, clips_dir, sub_words=sub_words,
+                      name=tmp, on_frac=lambda f: progress(0.05 + 0.9 * f, "Render ulang klip"))
+    for ext in (".mp4", ".ass", ".srt"):
+        src = clips_dir / f"{tmp}{ext}"
+        if src.is_file():
+            os.replace(src, clips_dir / f"{name}{ext}")
+    ctx.clip["layout"] = lay
+    ctx.clip["file"] = f"{name}.mp4"
+    save_plan(ctx)
+    progress(1.0, "Klip selesai dirender ulang")
+    return {"file": f"{name}.mp4", "layout": lay, "video_url": ctx.url(clips_dir / f"{name}.mp4")}
 
 
 def save_plan(ctx: ClipContext) -> None:

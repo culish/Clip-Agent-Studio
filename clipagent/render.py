@@ -8,6 +8,7 @@ import urllib.request
 from dataclasses import replace
 from pathlib import Path
 
+from . import layout as lay_mod
 from .config import FONTS, PROJECT_DIR, Settings
 from .subtitles import CaptionStyle, build_ass, build_srt
 from .transcript import Word, group_segments
@@ -187,6 +188,19 @@ def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[
     vertical = oh > ow
     sub_words = sub_words if sub_words is not None else words
 
+    # layout streaming / reaction / pip / podcast (hanya untuk keluaran vertikal)
+    lp = None
+    lay = lay_mod.clean(clip.get("layout") or {"mode": cfg.layout, "split": cfg.split})
+    if lay["mode"] != "auto":
+        if cfg.aspect not in ("9:16", "4:5"):
+            log(f"  Layout '{lay['mode']}' hanya untuk rasio 9:16 atau 4:5; memakai satu layar.")
+        else:
+            need_detect = not lay.get("face_box") or (lay["mode"] == "duo" and not lay.get("face2_box"))
+            det = lay_mod.detect(video, start, end) if need_detect else {"faces": []}
+            lp = lay_mod.plan(lay, src_w, src_h, ow, oh, det)
+            if lp:
+                log(f"  layout: {lay_mod.MODES[lp['mode']]}")
+
     style = CaptionStyle(
         anim=cfg.anim, font=cfg.font, fake_bold=FONTS.get(cfg.font, (None, True))[1],
         size=cfg.font_size, uppercase=cfg.uppercase, text_color=cfg.text_color,
@@ -194,6 +208,7 @@ def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[
         captions=cfg.subtitles,
         hook_text=(clip.get("title") or clip.get("hook") or "") if cfg.hook_overlay else "",
         progress_bar=cfg.progress_bar,
+        y_frac=(lp["seam"] if lp and lp["seam"] else 0.0),
     )
     sub_filter = ""
     if style.captions or style.hook_text or style.progress_bar:
@@ -214,7 +229,9 @@ def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[
     post = f"{zoom_filter}{sub_filter}"
 
     mode = cfg.crop if cfg.aspect != "original" else "none"
-    if mode == "blur":
+    if lp:
+        graph = lay_mod.filter_graph(lp, ow, oh, post)
+    elif mode == "blur":
         graph = (f"[0:v]split=2[a][b];"
                  f"[a]scale={ow}:{oh}:force_original_aspect_ratio=increase,crop={ow}:{oh},"
                  f"gblur=sigma=28,eq=brightness=-0.07[bg];"

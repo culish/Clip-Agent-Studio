@@ -137,7 +137,7 @@ def run_pipeline(cfg: Settings) -> dict:
 
 
 def _save_plan(path: Path, meta: dict, clips: list[dict], cfg: Settings) -> None:
-    opts = {k: getattr(cfg, k) for k in ("audience", "sub_lang", "anim", "font", "aspect", "crop",
+    opts = {k: getattr(cfg, k) for k in ("audience", "sub_lang", "anim", "font", "aspect", "crop", "layout", "split",
                                          "position", "hook_overlay", "progress_bar", "zoom")}
     path.write_text(json.dumps({"source": meta, "render": opts, "clips": clips,
                                 "updated": time.strftime("%Y-%m-%d %H:%M:%S")},

@@ -161,6 +161,11 @@ def all_videos(out_dir: Path) -> list[dict]:
 
 # ---------------------------------------------------------------- routing
 def handle_get(h, p: str, q) -> bool:
+    if p == "/api/layout":
+        from .creative import layout_info
+        from .webapp import creative_ctx
+        h._json(layout_info(creative_ctx({"video_id": q("video_id"), "rank": q("rank")}, h.out_dir)))
+        return True
     out = h.out_dir
     if p == "/api/viral":
         h._json(viral.research(q("q"), period=q("period", "week"), length=q("length", "short"),

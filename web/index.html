@@ -139,6 +139,15 @@ details.adv[open] summary { margin-bottom: 12px; }
    radial-gradient(120% 80% at 20% 0%, #4A3F7A, #1A1633); }
 .media .fake::after { content: ""; position: absolute; left: 33%; right: 33%; top: 18%; height: 16%; border-radius: 50% 50% 40% 40%; background: #2A2036; }
 .media.zoom { transform: scale(1.12); }
+.media .lay { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; }
+.media .lay > div { position: relative; overflow: hidden; border-bottom: 2px solid #000; }
+.media .lp { position: absolute; inset: 0; display: grid; place-items: end start; padding: 6px 8px; font-size: 10px; font-weight: 700; color: #fff; letter-spacing: .04em; text-transform: uppercase; }
+.media .lp span { background: rgba(0,0,0,.55); padding: 2px 6px; border-radius: 4px; }
+.media .lp.face { background: radial-gradient(26% 34% at 50% 42%, #E8B89A 0 60%, transparent 61%), radial-gradient(60% 40% at 50% 100%, #3B5BA8 0 70%, transparent 71%), linear-gradient(#5B4E8C, #2B2550); }
+.media .lp.face.two { background: radial-gradient(26% 34% at 50% 42%, #C99877 0 60%, transparent 61%), radial-gradient(60% 40% at 50% 100%, #A8473B 0 70%, transparent 71%), linear-gradient(#4E6B8C, #25384F); }
+.media .lp.game { background: linear-gradient(160deg, transparent 40%, rgba(255,255,255,.18) 41% 44%, transparent 45%), repeating-linear-gradient(90deg, #2E7D32 0 18%, #F9A825 18% 34%, #1565C0 34% 52%, #6A1B9A 52% 70%, #C62828 70% 86%, #00838F 86% 100%); }
+.media .lp.pip { inset: 6% 6% auto auto; width: 40%; height: 26%; border: 2px solid #fff; }
+
 .cap { position: absolute; left: 7%; right: 7%; text-align: center; line-height: 1.12; color: #fff; z-index: 2;
   -webkit-text-stroke: .09em #000; paint-order: stroke fill; text-shadow: .04em .06em 0 rgba(0,0,0,.6); }
 .cap.lower { bottom: 24%; } .cap.middle { top: 58%; transform: translateY(-50%); } .cap.upper { top: 20%; }
@@ -397,6 +406,17 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
   .phone { width: 230px; }
   .top { gap: 12px; }
 }
+.ly-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 216px; gap: 16px; align-items: start; }
+.ly-stage { position: relative; width: 100%; user-select: none; touch-action: none; border-radius: var(--r-sm); overflow: hidden; background: #000; }
+.ly-stage img { display: block; width: 100%; height: auto; pointer-events: none; }
+.ly-box { position: absolute; border: 2px solid; box-shadow: 0 0 0 9999px rgba(0,0,0,.0); cursor: move; touch-action: none; }
+.ly-box b { position: absolute; left: 0; top: 0; font-size: 11px; padding: 1px 6px; color: #111; white-space: nowrap; }
+.ly-box i { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 50%; background: inherit; border: 2px solid #fff; cursor: nwse-resize; }
+.ly-box[data-box="face_box"] { border-color: #FFD43D; background: rgba(255,212,61,.14); } .ly-box[data-box="face_box"] b, .ly-box[data-box="face_box"] i { background: #FFD43D; }
+.ly-box[data-box="main_box"] { border-color: #4FD1FF; background: rgba(79,209,255,.1); } .ly-box[data-box="main_box"] b, .ly-box[data-box="main_box"] i { background: #4FD1FF; }
+.ly-box[data-box="face2_box"] { border-color: #FF7AC6; background: rgba(255,122,198,.14); } .ly-box[data-box="face2_box"] b, .ly-box[data-box="face2_box"] i { background: #FF7AC6; }
+#lyPrev { width: 216px; height: auto; aspect-ratio: 9 / 16; border-radius: 14px; background: #111; display: block; }
+@media (max-width: 760px) { .ly-wrap { grid-template-columns: minmax(0, 1fr); } #lyPrev { margin: 0 auto; width: 180px; } }
 .ko-pkg { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
 .ko-pkg summary { cursor: pointer; font-weight: 700; font-size: 14px; }
 .ko-pkg[open] { gap: 10px; }
@@ -520,7 +540,18 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
               <option value="center">Potong bagian tengah</option>
               <option value="blur">Video utuh dengan latar blur</option>
             </select></label>
+          <label class="field"><span>Layout</span>
+            <select name="layout">
+              <option value="auto">Satu layar</option>
+              <option value="stream">Streaming/gameplay: facecam atas, game bawah</option>
+              <option value="reaction">Reaction: video atas, wajah bawah</option>
+              <option value="pip">Facecam kecil di pojok</option>
+              <option value="duo">Podcast 2 orang: atas dan bawah</option>
+            </select></label>
+          <label class="field" id="splitField" hidden><span>Tinggi panel wajah: <b class="num" id="splitVal">otomatis</b></span>
+            <input type="range" name="split" min="0" max="0.6" step="0.02" value="0" aria-describedby="layoutNote"></label>
         </div>
+        <p class="small muted" id="layoutNote" hidden></p>
         <details class="adv">
           <summary>Pengaturan lanjutan</summary>
           <div class="grid3">
@@ -824,6 +855,23 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
       <p class="small muted num" id="crMeta"></p>
     </aside>
     <div>
+      <section class="cr-sec" id="lySec">
+        <div class="row" style="justify-content:space-between"><h2>Layout klip</h2><span class="small muted">Streaming, reaction, podcast</span></div>
+        <p class="small muted" style="max-width:70ch">Pilih layout, lalu geser atau tarik pojok kanan-bawah kotak untuk mengatur area facecam dan video utama. Pratinjau di samping menunjukkan hasilnya sebelum dirender.</p>
+        <div class="grid3">
+          <label class="field"><span>Layout</span><select id="lyMode"></select></label>
+          <label class="field" id="lySplitF"><span>Tinggi panel wajah: <b class="num" id="lySplitV"></b></span><input type="range" id="lySplit" min="0.2" max="0.7" step="0.01"></label>
+          <label class="field" id="lyFitF"><span>Video utama</span><select id="lyFit"><option value="cover">Penuhi panel (dipotong)</option><option value="contain">Utuh (latar blur)</option></select></label>
+          <label class="switch" id="lyHideF"><input type="checkbox" id="lyHide"><span class="small">Buramkan facecam di video utama</span></label>
+        </div>
+        <div class="ly-wrap">
+          <div class="ly-stage" id="lyStage"><img id="lyImg" alt="Frame dari video sumber klip ini"></div>
+          <canvas id="lyPrev" width="216" height="384" aria-label="Pratinjau layout"></canvas>
+        </div>
+        <div class="row"><button class="btn small" type="button" id="lyAuto">Deteksi otomatis</button><button class="btn primary" type="button" id="lyGo">Render ulang klip</button><span class="small muted" id="lyNote" aria-live="polite"></span></div>
+        <div class="crjob" id="lyJob" hidden></div>
+      </section>
+
       <section class="cr-sec">
         <div class="row" style="justify-content:space-between"><h2>Cover</h2><span class="small muted">9:16 untuk Shorts, 16:9 untuk thumbnail YouTube</span></div>
         <div class="grid3">
@@ -842,7 +890,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
         <div class="row" style="justify-content:space-between"><h2>Edit otomatis</h2><span class="small muted">B-roll, musik, dan caption</span></div>
         <p class="small muted" style="max-width:68ch">AI memilih momen yang cocok untuk b-roll, lalu klip dirender ulang dengan caption karaoke dan musik latar yang otomatis mengecil saat ada orang bicara.</p>
         <div class="grid3">
-          <label class="field"><span>Sumber b-roll</span><select id="aeSrc"><option value="stock">Video stok (Pexels)</option><option value="ai_image">Gambar AI</option><option value="none">Tanpa b-roll</option></select></label>
+          <label class="field"><span>Sumber b-roll</span><select id="aeSrc"><option value="stock">Video stok (Pixabay/Pexels)</option><option value="ai_image">Gambar AI</option><option value="none">Tanpa b-roll</option></select></label>
           <label class="field"><span>Jumlah b-roll</span><select id="aeCount"><option value="">Otomatis</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
           <label class="field"><span>Gaya caption</span><select id="aePreset"></select></label>
           <label class="field"><span>Musik</span><select id="aeMusic"></select></label>
@@ -1116,7 +1164,7 @@ $$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.d
 const DEFAULTS = { audience: "us", sub_lang: "en", num_clips: 5, min_dur: 20, max_dur: 55, instructions: "",
   anim: "pop", font: "Montserrat Black", uppercase: true, subtitles: true, text_color: "#FFFFFF", highlight_color: "#FFE24A",
   words_per_line: 3, position: "lower", hook_overlay: true, progress_bar: false, zoom_punch: false, aspect: "9:16",
-  crop: "face", language: "", whisper_model: "small", max_height: "1080" };
+  crop: "face", layout: "auto", split: 0, language: "", whisper_model: "small", max_height: "1080" };
 let META = { animations: {}, fonts: [] };
 let CLIENT = { local: true, app: /ClipAgentApp/.test(navigator.userAgent) };
 let form = { ...DEFAULTS, ...store.get("clipagent.studio.v1", {}) };
@@ -1138,6 +1186,14 @@ function syncUi() {
   $$("#animGrid button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.value === form.anim)));
   $("#wplVal").textContent = form.anim === "bounce" ? "1" : form.words_per_line;
   F.elements.words_per_line.disabled = form.anim === "bounce";
+  const lay = form.layout || "auto";
+  $("#splitField").hidden = !["stream", "duo", "reaction"].includes(lay);
+  $("#splitVal").textContent = form.split > 0 ? Math.round(form.split * 100) + "%" : "otomatis";
+  const lnote = { stream: "Facecam dicari otomatis (wajah yang posisinya tetap). Game di bawah dipotong di bagian tengah. Kotak bisa diatur per klip di tab Kreatif.",
+    reaction: "Video yang ditonton tampil utuh di atas, wajah di bawah. Facecam di video atas diburamkan agar wajah tidak muncul dua kali.",
+    pip: "Video utama memenuhi layar, facecam kecil di pojok atas.", duo: "Dua wajah terbesar ditumpuk: kiri di atas, kanan di bawah.",
+    auto: "" }[lay] + (lay !== "auto" && !["9:16", "4:5"].includes(form.aspect) ? " Layout ini hanya untuk rasio 9:16 atau 4:5." : "");
+  $("#layoutNote").hidden = !lnote; $("#layoutNote").textContent = lnote;
   $("#audNote").textContent = form.audience === "us"
     ? "Agen memilih momen yang menarik untuk penonton AS. Judul, caption, dan hashtag ditulis dalam bahasa Inggris; subtitle diterjemahkan ke Inggris bila videonya berbahasa lain."
     : "Judul, caption, dan hashtag ditulis dalam bahasa Indonesia untuk penonton lokal.";
@@ -1248,9 +1304,26 @@ function renderPreview(first) {
   bar.style.display = form.progress_bar ? "block" : "none";
   bar.style.width = (step === 0 ? 0 : (step / (total - 1)) * 100) + "%";
   $("#media").classList.toggle("zoom", !!form.zoom_punch && Math.floor(gi / 2) % 2 === 1);
+  pvLayout(cap);
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     pv.timer = setTimeout(() => { pv.step++; renderPreview(false); }, 420);
   }
+}
+function pvLayout(cap) {
+  const lay = ["9:16", "4:5"].includes(form.aspect) ? (form.layout || "auto") : "auto";
+  const media = $("#media");
+  let box = media.querySelector(".lay");
+  if (lay === "auto") { box?.remove(); cap.style.top = cap.style.bottom = cap.style.transform = ""; return; }
+  if (!box) { box = document.createElement("div"); box.className = "lay"; media.appendChild(box); }
+  const sp = form.split > 0 ? form.split : { stream: 0.38, reaction: 0.68, duo: 0.5 }[lay] || 0.38;
+  const face = `<div class="lp face"><span>Facecam</span></div>`, face2 = `<div class="lp face two"><span>Orang 2</span></div>`;
+  const game = `<div class="lp game"><span>${lay === "reaction" ? "Video" : "Game"}</span></div>`;
+  if (lay === "pip") box.innerHTML = `${game.replace("lp game", "lp game full")}<div class="lp face pip"><span>Facecam</span></div>`;
+  else if (lay === "reaction") box.innerHTML = `<div style="height:${(1 - sp) * 100}%">${game}</div><div style="height:${sp * 100}%">${face}</div>`;
+  else box.innerHTML = `<div style="height:${sp * 100}%">${face}</div><div style="height:${(1 - sp) * 100}%">${lay === "duo" ? face2 : game}</div>`;
+  const seam = lay === "pip" ? 0 : lay === "reaction" ? 1 - sp : sp;
+  if (seam) { cap.style.top = seam * 100 + "%"; cap.style.bottom = "auto"; cap.style.transform = "translateY(-50%)"; }
+  else cap.style.top = cap.style.bottom = cap.style.transform = "";
 }
 function setPreviewMedia(url) {
   if (!url) return;
@@ -1507,6 +1580,7 @@ async function loadCreative(key, keep) {
   const rm = st.remotion;
   $("#rmWarn").hidden = rm.ready; $("#rmWarn").textContent = rm.ready ? "" : "Remotion belum siap. " + rm.hint;
   renderCovers(); renderAnimTab(); renderAnimations();
+  if (changed || !LY.info) lyLoad(vid, rank);
 }
 function renderAnimTab() { renderOptions(); renderScenes(); renderPresets(); renderCustom(); renderPreviewFrames(); updateNote(); }
 function renderCovers() {
@@ -1768,6 +1842,164 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-creative]"); if (!b) return;
   CR.want = b.dataset.creative; showTab("creative"); window.scrollTo({ top: 0 });
 });
+
+/* ------------------------------------------------------------ layout klip (streaming / reaction) */
+const LY = { info: null, mode: "auto", split: 0, fit: "cover", hide: true, boxes: {}, key: "" };
+const LY_LABEL = { face_box: "Facecam / wajah", main_box: "Video utama", face2_box: "Orang 2" };
+async function lyLoad(vid, rank) {
+  LY.key = `${vid}|${rank}`; $("#lyNote").textContent = "Mencari wajah dan facecam…";
+  try { LY.info = await api(`/api/layout?video_id=${encodeURIComponent(vid)}&rank=${encodeURIComponent(rank)}`); }
+  catch (e) { $("#lyNote").textContent = e.message; LY.info = null; return; }
+  const cur = LY.info.current;
+  $("#lyMode").innerHTML = optHtml(LY.info.modes, cur.mode);
+  lySetMode(cur.mode, cur);
+  $("#lyImg").onload = () => { lyBoxes(); lyDraw(); };
+  $("#lyImg").src = LY.info.frame_url;
+  const n = LY.info.suggest.faces.length;
+  $("#lyNote").textContent = n ? `${n} wajah tetap ditemukan${LY.info.suggest.cams?.some(Boolean) ? ", tepi facecam terbaca" : ""}.` : "Wajah tidak ditemukan otomatis; atur kotaknya sendiri.";
+}
+function lyGeom() {
+  const { OW, OH, W, H } = LY.info, m = LY.mode;
+  let split = LY.split;
+  const main = LY.boxes.main_box;
+  if (m === "reaction" && !split) {
+    const ma = main ? (main[2] * W) / (main[3] * H) : W / H;
+    split = 1 - Math.min(OH * 0.62, Math.max(OH * 0.3, OW / ma)) / OH;
+  }
+  split = Math.min(0.7, Math.max(0.2, split || { stream: 0.38, duo: 0.5 }[m] || 0.4));
+  const fh = OH * split, mh = OH - fh;
+  const asp = {};                                       // rasio lebar/tinggi yang dibutuhkan tiap kotak (piksel sumber)
+  if (m === "stream" || m === "reaction") { asp.face_box = OW / fh; if (LY.fit === "cover") asp.main_box = OW / mh; }
+  if (m === "duo") { asp.face_box = OW / fh; asp.face2_box = OW / mh; }
+  if (m === "pip" && LY.fit === "cover") asp.main_box = OW / OH;
+  return { split, fh, mh, asp };
+}
+function lyNeeded() { return { auto: [], stream: ["face_box", "main_box"], reaction: ["face_box", "main_box"], pip: ["face_box", "main_box"], duo: ["face_box", "face2_box"] }[LY.mode]; }
+function lyDefault(k) {
+  const g = lyGeom(), { W, H } = LY.info, a = g.asp[k];
+  if (k === "main_box" && !a) return [0, 0, 1, 1];
+  const r = a || 0.8;
+  let h = k === "main_box" ? 1 : 0.4, w = (h * r * H) / W;
+  if (w > 1) { w = 1; h = (w * W) / (r * H); }
+  return [(1 - w) / 2, (1 - h) / 2, w, h];
+}
+function lyFix(k) {                                     // samakan rasio kotak dengan panel, tetap di dalam frame
+  const b = LY.boxes[k]; if (!b) return;
+  const a = lyGeom().asp[k], { W, H } = LY.info;
+  let [x, y, w, h] = b;
+  if (a) {
+    const cx = x + w / 2, cy = y + h / 2;
+    h = (w * W) / (a * H);
+    if (h > 1) { h = 1; w = (h * a * H) / W; }
+    if (w > 1) { w = 1; h = (w * W) / (a * H); }
+    x = cx - w / 2; y = cy - h / 2;
+  }
+  w = Math.min(1, Math.max(0.03, w)); h = Math.min(1, Math.max(0.03, h));
+  LY.boxes[k] = [Math.min(Math.max(0, x), 1 - w), Math.min(Math.max(0, y), 1 - h), w, h];
+}
+function lySetMode(mode, cur) {
+  LY.mode = mode;
+  const sug = (LY.info.suggest.modes || {})[mode] || {};
+  const src = cur && cur.mode === mode ? cur : sug;
+  LY.split = cur && cur.mode === mode ? cur.split || 0 : 0;
+  LY.fit = src.main_fit || sug.main_fit || (mode === "reaction" ? "contain" : "cover");
+  LY.hide = cur && cur.mode === mode && "hide_cam" in cur ? !!cur.hide_cam : mode === "reaction";
+  LY.boxes = {};
+  for (const k of lyNeeded()) LY.boxes[k] = (src[k] || sug[k] || lyDefault(k)).slice();
+  lyNeeded().forEach(lyFix);
+  lyControls(); lyBoxes(); lyDraw();
+}
+function lyControls() {
+  const m = LY.mode, g = lyGeom();
+  $("#lySplitF").hidden = !["stream", "reaction", "duo"].includes(m);
+  $("#lyFitF").hidden = !["stream", "reaction", "pip"].includes(m);
+  $("#lyHideF").hidden = !["stream", "reaction"].includes(m);
+  $("#lySplit").value = g.split; $("#lySplitV").textContent = Math.round(g.split * 100) + "%" + (LY.split ? "" : " (otomatis)");
+  $("#lyFit").value = LY.fit; $("#lyHide").checked = LY.hide;
+}
+function lyBoxes() {
+  const st = $("#lyStage");
+  st.querySelectorAll(".ly-box").forEach(b => b.remove());
+  if (!LY.info) return;
+  for (const k of lyNeeded()) {
+    const [x, y, w, h] = LY.boxes[k];
+    const d = document.createElement("div");
+    d.className = "ly-box"; d.dataset.box = k;
+    d.style.cssText = `left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%`;
+    d.innerHTML = `<b>${LY_LABEL[k]}</b><i aria-hidden="true"></i>`;
+    st.appendChild(d);
+  }
+}
+$("#lyStage").addEventListener("pointerdown", e => {
+  const box = e.target.closest(".ly-box"); if (!box) return;
+  e.preventDefault();
+  const k = box.dataset.box, resize = e.target.tagName === "I";
+  const r = $("#lyStage").getBoundingClientRect(), start = LY.boxes[k].slice(), x0 = e.clientX, y0 = e.clientY;
+  box.setPointerCapture(e.pointerId);
+  const move = ev => {
+    const dx = (ev.clientX - x0) / r.width, dy = (ev.clientY - y0) / r.height;
+    let [x, y, w, h] = start;
+    if (resize) {
+      const a = lyGeom().asp[k];
+      w = Math.max(0.03, Math.min(1 - x, w + dx));
+      h = a ? (w * LY.info.W) / (a * LY.info.H) : Math.max(0.03, Math.min(1 - y, h + dy));
+      if (y + h > 1) { h = 1 - y; if (a) w = (h * a * LY.info.H) / LY.info.W; }
+    } else { x += dx; y += dy; }
+    LY.boxes[k] = [Math.min(Math.max(0, x), 1 - w), Math.min(Math.max(0, y), 1 - h), w, h];
+    Object.assign(box.style, { left: LY.boxes[k][0] * 100 + "%", top: LY.boxes[k][1] * 100 + "%", width: w * 100 + "%", height: h * 100 + "%" });
+    lyDraw();
+  };
+  const up = () => { box.removeEventListener("pointermove", move); box.removeEventListener("pointerup", up); box.removeEventListener("pointercancel", up); };
+  box.addEventListener("pointermove", move); box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
+});
+$("#lyMode").addEventListener("change", e => lySetMode(e.target.value));
+$("#lySplit").addEventListener("input", e => { LY.split = +e.target.value; lyNeeded().forEach(lyFix); lyControls(); lyBoxes(); lyDraw(); });
+$("#lyFit").addEventListener("change", e => { LY.fit = e.target.value; if (LY.fit === "contain" && LY.mode !== "pip") LY.boxes.main_box = [0, 0, 1, 1]; lyNeeded().forEach(lyFix); lyControls(); lyBoxes(); lyDraw(); });
+$("#lyHide").addEventListener("change", e => { LY.hide = e.target.checked; });
+$("#lyAuto").addEventListener("click", () => { if (LY.info) lySetMode(LY.mode); });
+function lyDraw() {
+  const cv = $("#lyPrev"), c = cv.getContext("2d"), img = $("#lyImg");
+  c.fillStyle = "#111"; c.fillRect(0, 0, cv.width, cv.height);
+  if (!LY.info || !img.complete || !img.naturalWidth) return;
+  const S = cv.width / LY.info.OW, IW = img.naturalWidth, IH = img.naturalHeight;
+  const src = k => { const [x, y, w, h] = LY.boxes[k]; return [x * IW, y * IH, w * IW, h * IH]; };
+  const cover = (s, dx, dy, dw, dh) => {
+    let [sx, sy, sw, sh] = s; const a = dw / dh;
+    if (sw / sh > a) { const nw = sh * a; sx += (sw - nw) / 2; sw = nw; } else { const nh = sw / a; sy += (sh - nh) / 2; sh = nh; }
+    c.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  };
+  const contain = (s, dx, dy, dw, dh) => {
+    c.save(); c.filter = "blur(6px) brightness(0.8)"; cover(s, dx, dy, dw, dh); c.restore();
+    const [sx, sy, sw, sh] = s, k = Math.min(dw / sw, dh / sh);
+    c.drawImage(img, sx, sy, sw, sh, dx + (dw - sw * k) / 2, dy + (dh - sh * k) / 2, sw * k, sh * k);
+  };
+  const m = LY.mode, g = lyGeom(), W = cv.width, H = cv.height, fh = g.fh * S;
+  const draw = (k, y, h) => (k === "main_box" && LY.fit === "contain" ? contain : cover)(src(k), 0, y, W, h);
+  if (m === "auto") { cover([0, 0, IW, IH], 0, 0, W, H); }
+  else if (m === "stream") { draw("face_box", 0, fh); draw("main_box", fh, H - fh); }
+  else if (m === "reaction") { draw("main_box", 0, H - fh); draw("face_box", H - fh, fh); }
+  else if (m === "duo") { draw("face_box", 0, fh); draw("face2_box", fh, H - fh); }
+  else if (m === "pip") {
+    draw("main_box", 0, H);
+    const [, , fw, fhh] = src("face_box"), pw = W * 0.4, ph = pw * fhh / fw, fb = LY.boxes.face_box;
+    const px = fb[0] + fb[2] / 2 < 0.5 ? W * 0.045 : W - pw - W * 0.045;
+    c.fillStyle = "#fff"; c.fillRect(px - 2, H * 0.06 - 2, pw + 4, ph + 4); cover(src("face_box"), px, H * 0.06, pw, ph);
+  }
+  if (m !== "auto" && m !== "pip") { const sy = m === "reaction" ? H - fh : fh; c.fillStyle = "#000"; c.fillRect(0, sy - 1, W, 2);
+    c.font = "900 15px Montserrat, sans-serif"; c.textAlign = "center"; c.lineWidth = 4; c.strokeStyle = "#000"; c.fillStyle = "#fff";
+    c.strokeText("CONTOH CAPTION", W / 2, sy + 5); c.fillText("CONTOH CAPTION", W / 2, sy + 5); }
+}
+$("#lyGo").addEventListener("click", () => {
+  if (!LY.info || !CR.state) return;
+  const layout = { mode: LY.mode, split: LY.split, main_fit: LY.fit, hide_cam: LY.hide };
+  for (const k of lyNeeded()) layout[k] = LY.boxes[k].map(v => +v.toFixed(4));
+  crJob($("#lyJob"), { kind: "relayout", video_id: CR.state.video_id, rank: CR.state.rank, layout }, "render ulang klip", async () => {
+    await loadCreative(CR.key, true);
+    const v = $("#crVideo"); v.src = CR.state.clip.video_url + (CR.state.clip.video_url.includes("?") ? "&" : "?") + "t=" + Date.now();
+    toast("Klip dirender ulang dengan layout baru.");
+  });
+});
+window.addEventListener("resize", () => { if (LY.info) lyDraw(); });
 
 /* ------------------------------------------------------------ data studio bersama */
 let STUDIO = null;

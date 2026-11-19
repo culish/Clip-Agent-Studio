@@ -112,6 +112,8 @@ class Settings:
     # Render
     aspect: str = "9:16"            # 9:16 | 1:1 | 4:5 | original
     crop: str = "face"              # face | center | blur
+    layout: str = "auto"            # auto | stream | reaction | pip | duo (lihat layout.py)
+    split: float = 0.0              # porsi tinggi panel wajah (0 = bawaan tiap layout)
     subtitles: bool = True
     anim: str = "karaoke"           # lihat ANIMATIONS
     font: str = "Montserrat Black"  # lihat FONTS (dibundel di folder fonts/)
