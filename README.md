@@ -98,6 +98,28 @@ Pexels sedang menghentikan sementara pembuatan API key baru. Clip Agent memakai 
 
 Video stok untuk b-roll (Buat video, Edit otomatis) butuh Pixabay atau Pexels. Foto stok untuk tab Kolase sudah jalan tanpa key lewat Openverse; isi Pixabay key agar pilihan fotonya lebih banyak. Matikan Openverse dengan `OPENVERSE_ENABLED=0`.
 
+## Kanal: naskah, judul, SEO, Shorts, retensi (tab Kanal)
+
+Tab **Kanal** memasang seluruh [youtube-agent-skill](https://github.com/jakeschincariol/youtube-agent-skill) (MIT, Jake Schincariol): sebelas skill beserta alat Python-nya, dijalankan langsung oleh Clip Agent. Skor dan angka dihitung oleh alatnya (bukan dikarang AI), dengan kosakata bahasa Indonesia tambahan (kata pengisi seperti *eh, jadi, nah*; kata kabur seperti *luar biasa, gila*; sapaan *kamu, lo, kalian* dan akhiran *-mu*; 21 rumus hook versi Indonesia).
+
+| Alat | Skill | Yang Anda dapat | Tambahan di Clip Agent |
+|---|---|---|---|
+| Naskah video | yt-script | 5 hook dari 21 rumus, dinilai, lalu naskah per beat dengan catatan layar | Naskah ucapannya bisa langsung dijadikan video **Kolase** (suara AI) |
+| Judul & thumbnail | yt-package | 10 pasangan judul + teks thumbnail, dicek panjang, potongan di ponsel, kekaburan, duplikasi; brief thumbnail | Judul pemenang langsung ke **Posting** |
+| Deskripsi & SEO | yt-seo | Dua baris pertama, tag secukupnya, 3 kueri yang diuji terhadap judul + dua baris pertama | Deskripsi dan tag langsung ke **Posting** |
+| Bab video | yt-chapters | Bab dari transkrip, divalidasi dengan aturan YouTube (0:00, minimal 3, minimal 10 dtk) | Blok bab langsung masuk ke Deskripsi & SEO |
+| Cari Shorts | yt-shorts | Momen 20–55 dtk yang berdiri sendiri + kalimat pembuka baru yang dinilai | **Render dengan Clip Agent**: momen itu langsung dipotong dengan gaya Studio Anda |
+| Potong jeda & ulangan | yt-edit | Daftar potong: jeda kosong, kata pengisi, kalimat yang diulang | **Terapkan potongan ke video**: hasilnya video baru tanpa jeda, siap diposting |
+| Baca retensi | yt-retention | Hook leak, cliff, slide dari CSV YouTube Studio, dan satu kebocoran terbesar | Kurva retensi interaktif + kalimat yang diucapkan di tiap cliff |
+| Riset outlier | yt-viral | Video yang mengalahkan median channelnya sendiri + rumus judulnya | Daftar video diambil sendiri lewat yt-dlp (tanpa API key), bisa dari kata kunci; satu klik jadi naskah |
+| Balas komentar | yt-comment | Komentar dipilah 4 kelompok, balasan di bawah 30 kata, yang perlu disematkan | Komentar diambil langsung dari URL video |
+| Rencana mingguan | yt-plan | Jadwal yang muat di jam Anda | Memakai video yang sudah ada di Clip Agent sebagai bahan |
+| Audit channel | yt-audit | Satu perbaikan terpenting, tiga hal yang sudah jalan | 10 video terakhir dibaca otomatis: skor judul, skor hook 15 dtk pertama, ritme upload, grid thumbnail ukuran feed |
+
+Sumber transkrip bisa video di **Klip saya**, URL YouTube (subtitle diambil tanpa mengunduh video; Whisper bila tidak ada), file SRT/VTT, atau teks tempelan. **Profil suara** (`data/voice.md`) dibaca semua alat agar hasilnya terdengar seperti Anda; isi sendiri atau biarkan AI menyusunnya dari 1–3 video Anda. **Uji hook** dan **Cek judul** jalan tanpa AI. Judul di tab Posting juga dicek langsung saat diketik, dan setiap klip baru diberi skor kalimat pembuka dan skor judul (juga di `RINGKASAN.md`).
+
+Seperti repo aslinya, tidak ada yang diposting otomatis dari tab ini. Alat yang menulis butuh penyedia AI (Gemini gratis cukup); Bab, Potong jeda, Retensi, dan Riset outlier tetap jalan tanpa AI, hanya tanpa ringkasan.
+
 ## Edit otomatis: b-roll, musik, caption
 
 Di tab **Edit & animasi**, bagian **Edit otomatis** merender ulang klip yang sudah jadi:
@@ -222,7 +244,7 @@ APK ada di `android/ClipAgent.apk` (Android 7.0 ke atas). Aplikasi ini adalah **
 
 **Buat video**, **Edit & animasi**, dan **Posting**: lihat bagian-bagian di atas.
 
-**Klip saya** menampilkan semua klip yang pernah dibuat. **Pengaturan** berisi penyedia AI, model, model cadangan, cookies browser untuk YouTube, kunci API tambahan (Gemini untuk suara/gambar/video, Pixabay/Pexels, YouTube Data API), dan pemeriksaan sistem.
+**Kanal**: lihat bagian di atas. **Klip saya** menampilkan semua klip yang pernah dibuat. **Pengaturan** berisi penyedia AI, model, model cadangan, cookies browser untuk YouTube, kunci API tambahan (Gemini untuk suara/gambar/video, Pixabay/Pexels, YouTube Data API), dan pemeriksaan sistem.
 
 ### Catatan monetisasi
 
@@ -297,4 +319,4 @@ output/<id_video>/
 
 ## Lisensi komponen
 
-Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), termasuk Fraunces, Caveat, Archivo Black, dan Plus Jakarta Sans, kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT).
+Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), termasuk Fraunces, Caveat, Archivo Black, dan Plus Jakarta Sans, kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT). Folder `clipagent/ytkit/vendor/` berisi salinan utuh youtube-agent-skill (lisensi MIT, © 2026 Jake Schincariol, lihat `LICENSE` di folder itu).

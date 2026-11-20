@@ -435,6 +435,53 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
 #kVo { width: 100%; max-width: 360px; }
 .ko-prompt { width: 100%; min-height: 96px; font-family: ui-monospace, monospace; font-size: 13px; }
 @media (max-width: 760px) { .ko-render { grid-template-columns: minmax(0, 1fr); } }
+.kn-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }
+.kn-form { display: grid; gap: 14px; }
+.kn-group { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); margin: 10px 0 0; }
+.kn-tools .ic { font-size: 15px; }
+.kn-src { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; background: var(--panel); }
+.kn-result { display: grid; gap: 14px; min-width: 0; }
+.kn-res-head { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.kn-res-head h2 { margin: 0; overflow-wrap: anywhere; }
+.kn-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.kn-md { min-width: 0; overflow-wrap: anywhere; line-height: 1.6; }
+.kn-md h2, .kn-md h3, .kn-md h4 { margin: 18px 0 6px; line-height: 1.25; }
+.kn-md h2 { font-size: 20px; } .kn-md h3 { font-size: 17px; } .kn-md h4 { font-size: 15px; }
+.kn-md p { margin: 8px 0; max-width: 80ch; }
+.kn-md ul, .kn-md ol { margin: 8px 0; padding-left: 22px; max-width: 80ch; }
+.kn-md li { margin: 3px 0; }
+.kn-md blockquote { margin: 10px 0; padding: 8px 12px; border-left: 3px solid var(--violet); background: var(--violet-soft); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.kn-md code { font: 13px ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunk); padding: 1px 5px; border-radius: 4px; }
+.kn-md hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+.kn-table { overflow: auto; max-height: 520px; margin: 10px 0; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.kn-table thead th { position: sticky; top: 0; z-index: 1; }
+.kn-table table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+.kn-table th, .kn-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.kn-table th { background: var(--sunk); font-weight: 700; white-space: nowrap; }
+.kn-table tr:last-child td { border-bottom: 0; }
+.kn-code { margin: 10px 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; background: var(--panel); }
+.kn-code-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 6px 5px 12px; background: var(--sunk); font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.kn-code pre { margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font: 13px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; max-height: 520px; overflow: auto; }
+.kn-score { display: inline-block; min-width: 2.6em; text-align: center; font-weight: 800; border-radius: 6px; padding: 1px 6px; font-variant-numeric: tabular-nums; }
+.kn-score.s-good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.kn-score.s-mid { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.kn-score.s-bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.kn-chart { position: relative; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 10px 4px; background: var(--panel); }
+.kn-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.kn-chart .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font-size: 12px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%); }
+.kn-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
+.kn-thumbs figure { margin: 0; display: grid; gap: 4px; font-size: 12.5px; }
+.kn-thumbs img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--sunk); }
+.kn-voice { width: 100%; min-height: 360px; font: 13.5px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.po-lint { font-size: 12.5px; color: var(--ink-2); }
+.po-lint b { color: var(--ink); }
+#tab-kanal .mk-main { min-width: 0; display: grid; gap: 22px; }
+.kn-pick { display: none; }
+@media (max-width: 980px) {
+  .kn-pick { display: grid; }
+  #knTools { display: none; }
+  #tab-kanal .mk-side { order: 2; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -450,6 +497,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
     <button role="tab" data-tab="kolase" aria-selected="false">Kolase</button>
     <button role="tab" data-tab="creative" aria-selected="false">Edit &amp; animasi</button>
     <button role="tab" data-tab="library" aria-selected="false">Klip saya</button>
+    <button role="tab" data-tab="kanal" aria-selected="false">Kanal</button>
     <button role="tab" data-tab="posting" aria-selected="false">Posting</button>
     <button role="tab" data-tab="settings" aria-selected="false">Pengaturan</button>
   </nav>
@@ -949,6 +997,34 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
   </div>
 </section>
 
+<!-- ================================================================ KANAL (youtube-agent-skill) -->
+<section role="tabpanel" id="tab-kanal" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:24ch">Kanal: dari ide, naskah, judul, sampai baca retensi</h1>
+      <p class="muted" style="max-width:76ch">Sebelas alat dari <a href="https://github.com/jakeschincariol/youtube-agent-skill" target="_blank" rel="noopener">youtube-agent-skill</a> (MIT) yang berjalan langsung di Clip Agent, dengan kosakata bahasa Indonesia. Angka (skor hook, skor judul, daftar potong, bab, retensi, outlier) dihitung oleh alatnya, bukan dikarang AI. Tidak ada yang diposting otomatis.</p>
+    </div>
+  </div>
+  <p class="note-box" id="knWarn" hidden></p>
+  <div class="make">
+    <aside class="mk-side">
+      <div class="side-list kn-tools" id="knTools"></div>
+      <div class="row" style="justify-content:space-between;margin-top:14px"><h3>Riwayat</h3><span class="small muted num" id="knHistN"></span></div>
+      <div class="side-list" id="knHist"></div>
+    </aside>
+    <div class="mk-main" id="knMain">
+      <label class="field kn-pick"><span>Alat</span><select id="knPick"></select></label>
+      <section class="mk-panel">
+        <div class="kn-head"><h2 id="knTitle"></h2><span class="small muted" id="knSkill"></span></div>
+        <p class="muted" id="knDesc" style="max-width:72ch"></p>
+        <div id="knForm" class="kn-form"></div>
+        <div class="crjob" id="knJob" hidden></div>
+      </section>
+      <section class="mk-panel kn-result" id="knResult" hidden></section>
+    </div>
+  </div>
+</section>
+
 <!-- ================================================================ POSTING -->
 <section role="tabpanel" id="tab-posting" hidden>
   <div class="radar-head">
@@ -965,7 +1041,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
       <fieldset class="plats"><legend class="label">Akun tujuan</legend>
         <div id="poAccts"></div>
       </fieldset>
-      <label class="field"><span>Judul (YouTube)</span><input type="text" id="poTitle" maxlength="100"></label>
+      <label class="field"><span>Judul (YouTube)</span><input type="text" id="poTitle" maxlength="100"><span class="po-lint" id="poLint" aria-live="polite"></span></label>
       <label class="field"><span>Deskripsi / caption</span><textarea id="poDesc" rows="4"></textarea></label>
       <label class="field"><span>Tagar (pisahkan koma)</span><input type="text" id="poTags"></label>
       <div class="grid2">
@@ -1156,6 +1232,7 @@ function showTab(name) {
   if (name === "make") initMake();
   if (name === "kolase") initKolase();
   if (name === "posting") initPosting();
+  if (name === "kanal") initKanal();
   if (name === "radar") initViral();
 }
 $$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -1401,7 +1478,7 @@ function clipCard(c, aspect, vid) {
   return `<article class="clip">
     <video class="${cls}" src="${esc(c.video_url)}" controls preload="metadata" playsinline></video>
     <h3>${esc(c.title || "Klip " + c.rank)}</h3>
-    <div class="meta num"><span>${fmtTime(c.start)}–${fmtTime(c.end)}</span><span>${Math.round(c.duration)} dtk</span>${c.score != null ? `<span>Skor ${Math.round(c.score)}</span>` : ""}${c.sub_lang ? `<span>Subtitle ${esc(c.sub_lang.toUpperCase())}</span>` : ""}${c.src_height && c.src_height < 720 ? `<span class="err" title="Video sumbernya beresolusi rendah, klip akan terlihat buram">Sumber ${esc(c.src_height)}p</span>` : ""}</div>
+    <div class="meta num"><span>${fmtTime(c.start)}–${fmtTime(c.end)}</span><span>${Math.round(c.duration)} dtk</span>${c.score != null ? `<span>Skor ${Math.round(c.score)}</span>` : ""}${c.hook_score != null ? `<span title="${esc("Kalimat pembuka: " + (c.opening || "") + (c.hook_tip ? "\nPerbaiki " + c.hook_tip : ""))}">Pembuka ${knScore(c.hook_score)}</span>` : ""}${c.title_score != null ? `<span title="${esc((c.title_issues || []).join(", ") || "Judul rapi")}">Judul ${knScore(c.title_score)}</span>` : ""}${c.sub_lang ? `<span>Subtitle ${esc(c.sub_lang.toUpperCase())}</span>` : ""}${c.src_height && c.src_height < 720 ? `<span class="err" title="Video sumbernya beresolusi rendah, klip akan terlihat buram">Sumber ${esc(c.src_height)}p</span>` : ""}</div>
     ${caption ? `<p class="caption">${esc(caption).replace(/\n/g, "<br>")}</p>` : ""}
     <div class="actions">
       ${caption ? `<button class="btn small" type="button" data-copy="${esc(caption)}">Salin caption</button>` : ""}
@@ -2363,7 +2440,7 @@ $("#aeGo").addEventListener("click", () => {
 });
 
 /* ------------------------------------------------------------ posting (banyak akun) */
-const PO = { videos: [], accounts: null, timer: null, want: "", sel: new Set(), tt: {}, creator: {} };
+const PO = { videos: [], accounts: null, timer: null, want: "", sel: new Set(), tt: {}, creator: {}, fill: null };
 const PLAT = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
 const TT_PRIV = { PUBLIC_TO_EVERYONE: "Semua orang", MUTUAL_FOLLOW_FRIENDS: "Teman (saling mengikuti)", FOLLOWER_OF_CREATOR: "Pengikut", SELF_ONLY: "Hanya saya" };
 async function initPosting() {
@@ -2375,6 +2452,13 @@ async function initPosting() {
     : `<option value="">Belum ada video. Buat klip atau video dulu.</option>`;
   if (cur && PO.videos.some(v => v.path === cur)) { sel.value = cur; pickVideo(PO.want === cur); }
   PO.want = "";
+  if (PO.fill) {                                         // judul/deskripsi/tag dari tab Kanal
+    const f = PO.fill; PO.fill = null;
+    if (f.title) $("#poTitle").value = f.title;
+    if (f.description) $("#poDesc").value = f.description;
+    if (f.tags?.length) $("#poTags").value = f.tags.join(", ");
+    $("#poTitle").dispatchEvent(new Event("input"));
+  }
   PO.creator = {};
   await loadPosts();
   renderTT();
@@ -2387,6 +2471,7 @@ function pickVideo(fill = true) {
   if (fill) {
     $("#poTitle").value = v.title || ""; $("#poDesc").value = v.description || "";
     $("#poTags").value = (v.hashtags || []).join(", "); $("#poAi").checked = !!v.ai;
+    $("#poTitle").dispatchEvent(new Event("input"));
   }
 }
 $("#poVideo").addEventListener("change", () => { pickVideo(true); renderTT(); });
@@ -2679,7 +2764,7 @@ async function checkAi() {
 }
 
 /* ------------------------------------------------------------ video kolase */
-const KO = { meta: null, items: [], pid: "", proj: null, view: "new", src: "upload", local: false };
+const KO = { meta: null, items: [], pid: "", proj: null, view: "new", src: "upload", local: false, prefill: "" };
 const KO_ITEMS_HINT = { garis_waktu: "Satu baris per tahun: 1998 | keterangan singkat", banding: "Dua baris: hal pertama | keterangan", alur: "2–4 baris, satu langkah per baris: langkah | keterangan" };
 async function initKolase() {
   try { const r = await api("/api/kolase"); KO.items = r.items; KO.meta = r.meta; KO.local = r.local; }
@@ -2695,6 +2780,12 @@ async function initKolase() {
   $("#koPkgPath").disabled = $("#koPkgSave").disabled = !KO.local;
   koPkgStatus(m.paket);
   koList();
+  if (KO.prefill) {                                      // naskah dari tab Kanal
+    KO.view = "new"; KO.src = "tts";
+    $$("#koSrc button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.src === "tts")));
+    $("#koUpBox").hidden = true; $("#koTtsBox").hidden = false; $("#koText").value = KO.prefill.slice(0, 6000);
+    KO.prefill = ""; toast("Naskah dari Kanal sudah diisi. Atur gaya lalu klik Buat storyboard.");
+  }
   if (KO.view === "edit" && KO.pid) koOpen(KO.pid); else koShow("new");
 }
 function koShow(view) {
@@ -2963,8 +3054,381 @@ $("#kPkgGo").addEventListener("click", async () => {
     if (live) attachJob(live.id, false);
   } catch {}
   const tab = location.hash.slice(1).split("?")[0];
-  if (["radar", "make", "kolase", "creative", "library", "posting", "settings"].includes(tab)) showTab(tab);
+  if (["radar", "make", "kolase", "creative", "library", "kanal", "posting", "settings"].includes(tab)) showTab(tab);
 })();
+/* ------------------------------------------------------------ kanal (youtube-agent-skill) */
+const KN = { meta: null, lib: [], hist: [], tool: "script", res: null, src: {}, vals: {}, ai: true, loaded: false };
+const KN_GROUPS = [
+  ["Rencanakan", ["plan", "viral", "audit"]],
+  ["Tulis", ["script", "package", "seo"]],
+  ["Dari video yang ada", ["shorts", "chapters", "edit"]],
+  ["Setelah upload", ["retention", "comment"]],
+  ["Alat cepat, tanpa AI", ["hooks", "titles"]],
+  ["Gaya Anda", ["voice"]],
+];
+const KN_EXTRA = {
+  hooks: { label: "Uji hook", skill: "hookscore.py", desc: "Tempel hook (satu per baris). Dinilai pada lima sifat: spesifik, menyapa penonton, taruhan, rasa penasaran, ringkas. Juga mengenali rumus hook yang dipakai." },
+  titles: { label: "Cek judul", skill: "title.py", desc: "Satu judul per baris; tambahkan teks thumbnail setelah tanda | bila ada. Dicek panjang, potongan di feed ponsel, kapital, kata kabur, angka, dan duplikasi dengan thumbnail." },
+  voice: { label: "Profil suara", skill: "voice.md", desc: "Semua alat membaca profil ini agar hasilnya terdengar seperti Anda. Isi sendiri, atau biarkan AI menyusunnya dari 1–3 video Anda." },
+};
+const KN_IC = { plan: "📅", viral: "📈", audit: "🩺", script: "✍️", package: "🖼️", seo: "🔎", shorts: "📱", chapters: "🔖", edit: "✂️", retention: "📉", comment: "💬", hooks: "🎯", titles: "🏷️", voice: "🎙️" };
+const KN_FORMS = {
+  script: [["idea", "Ide video", "area", { rows: 3, ph: "mis. Cara dapat uang cepat di GTA V tanpa cheat untuk pemain baru" }],
+    ["notes", "Catatan (opsional)", "area", { rows: 2, ph: "Fakta, pengalaman pribadi, hal yang wajib disebut" }],
+    ["minutes", "Durasi target (menit)", "num", { min: 0.5, max: 40, step: 0.5, val: 8 }], ["lang", "Bahasa ucapan", "lang"]],
+  package: [["topic", "Topik / isi video", "text", { ph: "mis. 7 trik uang GTA V tanpa cheat" }], ["current", "Judul sekarang (opsional)", "text"],
+    ["lang", "Bahasa judul", "lang"], ["source", "Isi video sebagai bahan (opsional)", "source", { optional: 1 }]],
+  seo: [["title", "Judul video", "text"], ["summary", "Ringkasan / poin penting (opsional)", "area", { rows: 2 }],
+    ["links", "Link atau sumber yang dijanjikan (opsional)", "area", { rows: 2 }], ["chapters", "Blok bab (opsional, dari alat Bab video)", "area", { rows: 3 }],
+    ["lang", "Bahasa deskripsi", "lang"], ["source", "Transkrip sebagai bahan (opsional)", "source", { optional: 1 }]],
+  chapters: [["source", "Video", "source", { timing: 1 }], ["target", "Jumlah bab target", "num", { min: 3, max: 20, val: 7 }], ["lang", "Bahasa judul bab", "lang"]],
+  shorts: [["source", "Video panjang", "source", { timing: 1 }], ["count", "Jumlah Shorts", "num", { min: 1, max: 8, val: 5 }], ["lang", "Bahasa kalimat pembuka", "lang"]],
+  edit: [["source", "Video", "source", { timing: 1 }], ["floor", "Jeda minimum yang dipotong (detik)", "num", { min: 0.2, max: 3, step: 0.05, val: 0.45 }]],
+  retention: [["csv", "File retensi (CSV dari YouTube Studio: Analytics, Engagement, grafik retensi, unduh)", "file", { accept: ".csv,text/csv" }],
+    ["duration", "Durasi video dalam detik (wajib bila sumbu grafiknya persen)", "num", { min: 0, val: "" }], ["title", "Judul video (opsional)", "text"],
+    ["source", "Transkrip, agar tiap cliff menunjukkan kalimat yang diucapkan (opsional)", "source", { optional: 1, timing: 1 }]],
+  viral: [["channels", "Channel pesaing (URL atau @handle, satu per baris)", "area", { rows: 3, ph: "@channelgame1\nhttps://www.youtube.com/@channelgame2" }],
+    ["keyword", "atau kata kunci niche (mencari channelnya otomatis)", "text", { ph: "mis. resident evil 4 remake indonesia" }],
+    ["per_channel", "Video terakhir per channel", "num", { min: 8, max: 60, val: 30 }], ["min", "Minimal kelipatan median channel", "num", { min: 1, max: 20, step: 0.5, val: 2 }],
+    ["lang", "Bahasa naskah ide", "lang"]],
+  comment: [["url", "URL video (komentar diambil otomatis)", "text"], ["text", "atau tempel komentar, satu per baris", "area", { rows: 4 }],
+    ["max", "Maks. komentar diambil", "num", { min: 10, max: 300, val: 100 }], ["lang", "Bahasa balasan bawaan", "lang"]],
+  plan: [["hours", "Jam per minggu yang benar-benar ada", "text", { ph: "mis. 6 jam, Sabtu dan Minggu" }], ["half", "Yang sudah setengah jadi (opsional)", "area", { rows: 2 }],
+    ["best_day", "Hari upload terbaik dari Analytics (opsional)", "text"], ["weeks", "Berapa minggu", "num", { min: 1, max: 4, val: 1 }],
+    ["notes", "Niche / catatan", "text", { val: "gaming (GTA, Resident Evil, dan lainnya)" }], ["lang", "Bahasa judul", "lang"]],
+  audit: [["channel", "URL atau @handle channel Anda", "text", { ph: "@namachannel" }], ["lang", "Bahasa channel", "lang"]],
+};
+const knInfo = t => KN_EXTRA[t] || (KN.meta && KN.meta.tools[t]) || { label: t, skill: "", desc: "" };
+const knScoreCls = v => v == null ? "" : v >= 70 ? "s-good" : v >= 45 ? "s-mid" : "s-bad";
+const knScore = (v, title = "") => v == null ? "-" : `<span class="kn-score ${knScoreCls(v)}"${title ? ` title="${esc(title)}"` : ""}>${Math.round(v)}</span>`;
+
+async function initKanal(force) {
+  if (!KN.loaded || force) {
+    try {
+      const r = await api("/api/kanal");
+      KN.meta = r; KN.lib = r.library; KN.hist = r.history; KN.ai = r.ai; KN.loaded = true;
+    } catch (e) { toast(e.message, true); return; }
+  }
+  const warn = [];
+  if (!KN.ai) warn.push("Penyedia AI belum diatur, jadi alat yang menulis (naskah, judul, SEO, Shorts, komentar, rencana, audit) belum bisa dipakai. Atur di Pengaturan; Gemini gratis cukup. Uji hook, Cek judul, Potong jeda, Bab, Retensi, dan Riset outlier tetap jalan.");
+  if (!KN.meta.voice) warn.push("Profil suara belum diisi: isi sekali di Profil suara agar semua hasil terdengar seperti Anda.");
+  $("#knWarn").hidden = !warn.length; $("#knWarn").textContent = warn.join(" ");
+  knTools(); knHistory(); knOpen(KN.tool);
+}
+function knTools() {
+  $("#knPick").innerHTML = KN_GROUPS.map(([g, ts]) => `<optgroup label="${esc(g)}">${ts.map(t => `<option value="${t}" ${t === KN.tool ? "selected" : ""}>${esc(knInfo(t).label)}</option>`).join("")}</optgroup>`).join("");
+  $("#knTools").innerHTML = KN_GROUPS.map(([g, ts]) => `<p class="kn-group">${esc(g)}</p>` + ts.map(t => {
+    const i = knInfo(t);
+    return `<button type="button" data-kntool="${t}" aria-current="${t === KN.tool}"><span class="ic" aria-hidden="true">${KN_IC[t] || "·"}</span><b>${esc(i.label)}</b><span>${esc(i.skill)}</span></button>`;
+  }).join("")).join("");
+}
+function knHistory() {
+  $("#knHistN").textContent = KN.hist.length ? String(KN.hist.length) : "";
+  const n = KN.histAll ? KN.hist.length : 10;
+  $("#knHist").innerHTML = KN.hist.length ? KN.hist.slice(0, n).map(h => `<button type="button" data-knres="${esc(h.id)}" aria-current="${KN.res && KN.res.id === h.id}"><span class="ic" aria-hidden="true">${KN_IC[h.tool] || "·"}</span><b>${esc(h.title || h.label)}</b><span>${esc(h.label)}, ${esc((h.created || "").slice(5, 16))}</span></button>`).join("")
+    + (KN.hist.length > n ? `<button type="button" class="btn small ghost" data-knmore>Tampilkan semua (${KN.hist.length})</button>` : "")
+    : `<p class="small muted">Hasil alat akan tersimpan di sini.</p>`;
+}
+$("#knTools").addEventListener("click", e => { const b = e.target.closest("[data-kntool]"); if (b) knOpen(b.dataset.kntool); });
+$("#knPick").addEventListener("change", e => knOpen(e.target.value));
+$("#knHist").addEventListener("click", e => {
+  if (e.target.closest("[data-knmore]")) { KN.histAll = true; knHistory(); return; }
+  const b = e.target.closest("[data-knres]"); if (b) knLoadResult(b.dataset.knres);
+});
+
+function knOpen(tool, values) {
+  KN.tool = tool;
+  if (values) KN.vals[tool] = { ...(KN.vals[tool] || {}), ...values };
+  $$("#knTools [data-kntool]").forEach(b => b.setAttribute("aria-current", String(b.dataset.kntool === tool)));
+  if ($("#knPick").value !== tool) $("#knPick").value = tool;
+  const i = knInfo(tool);
+  $("#knTitle").textContent = i.label; $("#knSkill").textContent = i.skill; $("#knDesc").textContent = i.desc;
+  $("#knJob").hidden = true;
+  if (tool === "hooks" || tool === "titles") return knQuickForm(tool);
+  if (tool === "voice") return knVoiceForm();
+  const v = KN.vals[tool] || {};
+  const fields = KN_FORMS[tool].map(([k, label, type, o = {}]) => {
+    const val = v[k] ?? o.val ?? "";
+    if (type === "area") return `<label class="field"><span>${esc(label)}</span><textarea data-kn="${k}" rows="${o.rows || 3}" placeholder="${esc(o.ph || "")}">${esc(val)}</textarea></label>`;
+    if (type === "num") return `<label class="field"><span>${esc(label)}</span><input type="number" data-kn="${k}" min="${o.min ?? ""}" max="${o.max ?? ""}" step="${o.step || 1}" value="${esc(val)}"></label>`;
+    if (type === "lang") return `<label class="field"><span>${esc(label)}</span><select data-kn="${k}">${optHtml({ id: "Bahasa Indonesia", en: "English" }, v[k] || "id")}</select></label>`;
+    if (type === "file") return `<label class="field"><span>${esc(label)}</span><input type="file" data-kn="${k}" data-file="1" accept="${esc(o.accept || "")}"></label>`;
+    if (type === "source") return knSourceHtml(tool, label, o);
+    return `<label class="field"><span>${esc(label)}</span><input type="text" data-kn="${k}" placeholder="${esc(o.ph || "")}" value="${esc(val)}"></label>`;
+  });
+  const needAi = (KN.meta.needs_ai || []).includes(tool) && !KN.ai;
+  $("#knForm").innerHTML = fields.join("") + `<div class="row"><button class="btn primary" type="button" id="knGo" ${needAi ? "disabled" : ""}>Jalankan ${esc(i.label)}</button>${needAi ? `<span class="small err">Butuh penyedia AI (atur di Pengaturan).</span>` : ""}</div>`;
+  $("#knGo").addEventListener("click", knRun);
+  knSourceSync(tool);
+}
+function knSourceHtml(tool, label, o) {
+  const kinds = [["library", "Video di Klip saya"], ["url", "URL YouTube"], ["srt", "File SRT/VTT"]];
+  if (!o.timing) kinds.push(["text", "Tempel teks"]);
+  if (o.optional) kinds.unshift(["none", "Tanpa"]);
+  const cur = KN.src[tool] || (o.optional ? "none" : KN.lib.length ? "library" : "url");
+  KN.src[tool] = cur;
+  const v = (KN.vals[tool] || {}).source || {};
+  const libOpts = KN.lib.length ? KN.lib.map(x => `<option value="${esc(x.id)}" ${v.video_id === x.id ? "selected" : ""}>${esc(x.title)}${x.duration ? ` (${fmtTime(x.duration)})` : ""}</option>`).join("")
+    : `<option value="">Belum ada video dengan transkrip. Buat klip dulu, atau pakai URL.</option>`;
+  return `<div class="kn-src" data-knsrc="1"><span class="label">${esc(label)}</span>
+    <div class="seg" role="group" aria-label="${esc(label)}">${kinds.map(([k, l]) => `<button type="button" data-srckind="${k}" aria-pressed="${k === cur}">${esc(l)}</button>`).join("")}</div>
+    <label class="field" data-srcbox="library"><span>Video</span><select data-srcv="video_id">${libOpts}</select></label>
+    <label class="field" data-srcbox="url"><span>URL video YouTube</span><input type="url" data-srcv="url" placeholder="https://www.youtube.com/watch?v=…" value="${esc(v.url || "")}"><span class="small muted">Subtitle diambil tanpa mengunduh video; bila tidak ada, audionya ditranskrip Whisper.</span></label>
+    <label class="field" data-srcbox="srt"><span>File transkrip</span><input type="file" data-srcv="file" accept=".srt,.vtt,text/vtt"></label>
+    ${o.timing ? "" : `<label class="field" data-srcbox="text"><span>Teks / transkrip</span><textarea data-srcv="text" rows="4">${esc(v.text || "")}</textarea></label>`}
+  </div>`;
+}
+function knSourceSync(tool) {
+  const box = $("#knForm [data-knsrc]"); if (!box) return;
+  const cur = KN.src[tool];
+  box.querySelectorAll("[data-srckind]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.srckind === cur)));
+  box.querySelectorAll("[data-srcbox]").forEach(x => x.hidden = x.dataset.srcbox !== cur);
+}
+$("#knForm").addEventListener("click", e => {
+  const b = e.target.closest("[data-srckind]"); if (!b) return;
+  KN.src[KN.tool] = b.dataset.srckind; knSourceSync(KN.tool);
+});
+const readText = file => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => bad(new Error("File tidak bisa dibaca.")); r.readAsText(file); });
+async function knCollect(tool) {
+  const inp = {};
+  for (const el of $$("#knForm [data-kn]")) {
+    const k = el.dataset.kn;
+    if (el.dataset.file) {
+      const f = el.files[0];
+      if (f) { if (f.size > 15e6) throw new Error("File terlalu besar (maks. 15 MB)."); inp[k] = await readText(f); }
+    } else if (el.type === "number") { if (el.value !== "") inp[k] = +el.value; }
+    else inp[k] = el.value.trim();
+  }
+  const box = $("#knForm [data-knsrc]");
+  if (box) {
+    const kind = KN.src[tool];
+    const q = s => box.querySelector(`[data-srcv="${s}"]`);
+    if (kind === "library") { if (!q("video_id").value) throw new Error("Pilih video, atau pakai sumber lain."); inp.source = { kind, video_id: q("video_id").value }; }
+    else if (kind === "url") { if (!/^https?:\/\//.test(q("url").value.trim())) throw new Error("Isi URL video YouTube."); inp.source = { kind, url: q("url").value.trim() }; }
+    else if (kind === "srt") { const f = q("file").files[0]; if (!f) throw new Error("Pilih file SRT atau VTT."); inp.source = { kind, text: await readText(f), title: f.name.replace(/\.\w+$/, "") }; }
+    else if (kind === "text") { if (q("text").value.trim().length < 20) throw new Error("Tempel teksnya dulu."); inp.source = { kind, text: q("text").value.trim() }; }
+  }
+  KN.vals[tool] = { ...inp, source: inp.source && inp.source.kind !== "srt" ? inp.source : undefined, csv: undefined };
+  return inp;
+}
+async function knRun() {
+  const tool = KN.tool;
+  let inputs;
+  try { inputs = await knCollect(tool); } catch (e) { toast(e.message, true); return; }
+  $("#knGo").disabled = true;
+  crJob($("#knJob"), { kind: "kanal", tool, inputs }, knInfo(tool).label, async j => {
+    $("#knGo").disabled = false;
+    await knRefreshHist();
+    if (j.result?.id) knLoadResult(j.result.id, true);
+  });
+  setTimeout(() => { const g = $("#knGo"); if (g) g.disabled = false; }, 4000);
+}
+async function knRefreshHist() { try { const r = await api("/api/kanal"); KN.hist = r.history; KN.lib = r.library; KN.meta.voice = r.voice; } catch {} knHistory(); }
+async function knLoadResult(id, scroll) {
+  try { KN.res = await api(`/api/kanal/r/${encodeURIComponent(id)}`); } catch (e) { toast(e.message, true); return; }
+  knHistory(); knRenderResult();
+  if (scroll) $("#knResult").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function knRenderResult() {
+  const r = KN.res, box = $("#knResult");
+  if (!r) { box.hidden = true; return; }
+  box.hidden = false;
+  const acts = (r.actions || []).map((a, i) => `<button class="btn small ${i ? "" : "primary"}" type="button" data-knact="${i}">${esc(a.label)}</button>`).join("");
+  box.innerHTML = `<div class="kn-res-head"><div><span class="small muted">${esc(r.label)} · ${esc(r.created)}</span><h2>${esc(r.title || r.label)}</h2></div>
+      <div class="kn-actions">${acts}<button class="btn small" type="button" data-knmd>Salin semua</button><button class="btn small ghost" type="button" data-kndl>Unduh .md</button><button class="btn small ghost" type="button" data-kndel>Hapus</button></div></div>
+    <div class="crjob" id="knActJob" hidden></div><div id="knActOut"></div>
+    ${knDataHtml(r)}
+    <div class="kn-md">${mdHtml(r.markdown)}</div>`;
+  if (r.tool === "retention") knChart(box.querySelector(".kn-chart"), r.data);
+}
+function knDataHtml(r) {
+  const d = r.data || {};
+  if (r.tool === "script" && d.hooks?.length)
+    return `<div><h3 style="margin:0 0 6px">Skor kelima hook (hookscore.py, dihitung aplikasi)</h3>${knHookTable(d.hooks)}${d.words ? `<p class="small muted">Naskah ucapan ${d.words} kata, sekitar ${fmtTime(d.runtime)} pada 150 kata/menit.</p>` : ""}</div>`;
+  if (r.tool === "package" && d.rows?.length) return `<div><h3 style="margin:0 0 6px">Semua pasangan (title.py)</h3>${knTitleTable(d.rows)}</div>`;
+  if (r.tool === "retention" && d.points?.length)
+    return `<div><h3 style="margin:0 0 6px">Kurva retensi</h3><div class="kn-chart" role="img" aria-label="Kurva retensi penonton"></div>
+      <p class="small muted">Hook leak <b>${d.hook_leak?.toFixed(1)}%</b> (${esc(d.verdict)}; di bawah 25% sehat) · slide ${esc(d.slide_per_unit)}% per unit · tersisa ${esc(d.end)}% di akhir.</p></div>`;
+  if (r.tool === "audit" && d.rows?.length)
+    return `<div><h3 style="margin:0 0 6px">Thumbnail di ukuran feed</h3><p class="small muted" style="margin:0 0 8px">Lihat sekilas seperti penonton: apakah tiap thumbnail terbaca tanpa judulnya? Ritme upload: median ${esc(d.rhythm?.median_days ?? "?")} hari, jeda terpanjang ${esc(d.rhythm?.max_days ?? "?")} hari.</p>
+      <div class="kn-thumbs">${d.rows.map(x => `<figure>${x.thumb ? `<img src="${esc(x.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}<figcaption><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a><br><span class="muted">${fmtViews(x.views)} views · judul ${knScore(x.title_score, (x.title_issues || []).join(", "))}${x.hook_score != null ? ` · hook ${knScore(x.hook_score)}` : ""}</span></figcaption></figure>`).join("")}</div></div>`;
+  return "";
+}
+function knHookTable(rows) {
+  return `<div class="kn-table"><table><thead><tr><th>Hook</th><th>Skor</th><th>Spesifik</th><th>Sapa</th><th>Taruhan</th><th>Penasaran</th><th>Ringkas</th><th>Rumus</th><th>Perbaiki</th></tr></thead><tbody>${rows.map(h => {
+    const p = h.properties;
+    return `<tr><td>${esc(h.hook)}</td><td>${knScore(h.verdict)} <span class="small muted">${esc(h.band_id)}</span></td><td>${p.SPECIFICITY}</td><td>${p.ADDRESS}</td><td>${p.STAKES}</td><td>${p.CURIOSITY}</td><td>${p.BREVITY}</td><td>${esc(h.formula)}</td><td class="small">${h.band === "STRONG" ? "—" : `<b>${esc(h.weakest_id)}</b>: ${esc(h.fix_id)}`}</td></tr>`;
+  }).join("")}</tbody></table></div>`;
+}
+function knTitleTable(rows) {
+  return `<div class="kn-table"><table><thead><tr><th>Judul</th><th>Thumbnail</th><th>Skor</th><th>Karakter</th><th>Masalah</th></tr></thead><tbody>${rows.map(t =>
+    `<tr><td>${esc(t.title)}</td><td>${esc(t.thumb || "")}</td><td>${knScore(t.score)}</td><td class="num">${t.chars}</td><td class="small">${(t.issues_id || []).map(x => `<b>${esc(x.label)}</b>: ${esc(x.detail)}`).join("<br>") || "✓ rapi"}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function knChart(box, d) {
+  if (!box) return;
+  const pts = d.points, W = 640, H = 220, L = 36, R = 10, T = 10, B = 26;
+  const xmax = Math.max(...pts.map(p => p[0])) || 1, ymax = Math.max(100, ...pts.map(p => p[1]));
+  const pct = xmax <= 100.5;
+  const X = x => L + (W - L - R) * x / xmax, Y = y => T + (H - T - B) * (1 - y / ymax);
+  const lbl = x => pct ? (d.duration ? fmtTime(x / 100 * d.duration) : `${Math.round(x)}%`) : fmtTime(x);
+  const cut = pct ? (d.duration ? 30 / d.duration * 100 : 10) : 30;
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+  const grid = [0, 25, 50, 75, 100].filter(v => v <= ymax).map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)">${v}%</text>`).join("");
+  const ticks = [0, .25, .5, .75, 1].map(f => `<text x="${X(f * xmax)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--ink-2)">${lbl(f * xmax)}</text>`).join("");
+  const cliffs = (d.cliffs || []).slice(0, 3).map((c, i) => { const x = X(c.from), end = x > W * 0.72;
+    return `<line x1="${x}" x2="${x}" y1="${T}" y2="${H - B}" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="3 3"/><text x="${end ? x - 4 : x + 4}" y="${T + 12 + i * 14}" text-anchor="${end ? "end" : "start"}" font-size="11" font-weight="600" fill="var(--ink)" stroke="var(--panel)" stroke-width="3" paint-order="stroke">−${c.lost}% di ${lbl(c.from)}</text>`; }).join("");
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${grid}<rect x="${L}" y="${T}" width="${Math.max(0, X(Math.min(cut, xmax)) - L)}" height="${H - T - B}" fill="var(--violet-soft)" opacity=".7"/><text x="${L + 4}" y="${H - B - 6}" font-size="11" fill="var(--ink-2)">hook</text>${cliffs}<path d="${line}" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linejoin="round"/>${ticks}<line class="xh" y1="${T}" y2="${H - B}" stroke="var(--ink-2)" stroke-width="1" visibility="hidden"/><circle class="dot" r="4" fill="var(--violet)" stroke="var(--panel)" stroke-width="2" visibility="hidden"/></svg><div class="tip" hidden></div>`;
+  const svg = box.querySelector("svg"), tip = box.querySelector(".tip"), xh = svg.querySelector(".xh"), dot = svg.querySelector(".dot");
+  svg.addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W;
+    const xv = Math.max(0, Math.min(xmax, (x - L) / (W - L - R) * xmax));
+    const p = pts.reduce((a, b) => Math.abs(b[0] - xv) < Math.abs(a[0] - xv) ? b : a);
+    xh.setAttribute("x1", X(p[0])); xh.setAttribute("x2", X(p[0])); dot.setAttribute("cx", X(p[0])); dot.setAttribute("cy", Y(p[1]));
+    xh.setAttribute("visibility", "visible"); dot.setAttribute("visibility", "visible");
+    tip.hidden = false; tip.textContent = `${lbl(p[0])}: ${p[1]}% masih menonton`;
+    tip.style.left = (X(p[0]) / W * r.width + 10) + "px"; tip.style.top = (Y(p[1]) / H * r.height + 10) + "px";
+  });
+  svg.addEventListener("pointerleave", () => { tip.hidden = true; xh.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+}
+$("#knResult").addEventListener("click", async e => {
+  const r = KN.res; if (!r) return;
+  if (e.target.closest("[data-kncopy]")) { const pre = e.target.closest(".kn-code").querySelector("pre"); toast(await copyText(pre.textContent) ? "Tersalin" : "Gagal menyalin", false); return; }
+  if (e.target.closest("[data-knmd]")) { toast(await copyText(r.markdown) ? "Hasil tersalin" : "Gagal menyalin"); return; }
+  if (e.target.closest("[data-kndl]")) {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([r.markdown], { type: "text/markdown" }));
+    a.download = `${r.tool}-${(r.title || "hasil").replace(/[^\w-]+/g, "-").slice(0, 40)}.md`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); return;
+  }
+  if (e.target.closest("[data-kndel]")) {
+    try { await api(`/api/kanal/r/${encodeURIComponent(r.id)}/delete`, { method: "POST" }); KN.res = null; knRenderResult(); await knRefreshHist(); } catch (err) { toast(err.message, true); }
+    return;
+  }
+  const b = e.target.closest("[data-knact]"); if (!b) return;
+  knAction(r.actions[+b.dataset.knact], r);
+});
+function knAction(a, r) {
+  if (!a) return;
+  if (a.type === "kolase") { KO.prefill = a.text; KO.view = "new"; showTab("kolase"); window.scrollTo({ top: 0 }); return; }
+  if (a.type === "posting") { PO.fill = { title: a.title, description: a.description, tags: a.tags }; showTab("posting"); window.scrollTo({ top: 0 }); toast("Judul/deskripsi terisi. Pilih videonya."); return; }
+  if (a.type === "chapters") { knOpen("seo", { chapters: a.block }); window.scrollTo({ top: 0 }); return; }
+  if (a.type === "script_idea") { knOpen("script", { idea: a.idea }); window.scrollTo({ top: 0 }); return; }
+  if (a.type === "render_shorts") { showTab("studio"); startJob(jobOptions({ source: a.source, plan: a.plan })); return; }
+  if (a.type === "apply_edit") {
+    crJob($("#knActJob"), { kind: "kanal_apply_edit", result: r.id }, "potongan", j => {
+      const x = j.result;
+      $("#knActOut").innerHTML = `<article class="clip" style="max-width:520px"><video class="wide" src="${esc(x.video_url)}" controls preload="metadata" playsinline></video>
+        <div class="meta num"><span>${fmtTime(x.before)} → ${fmtTime(x.after)}</span><span>${Math.round(x.before - x.after)} dtk dibuang</span></div>
+        <div class="actions"><a class="btn small" href="${esc(x.video_url)}&download=1">Unduh MP4</a><button class="btn small primary" type="button" data-post="${esc(x.file)}">Posting</button></div></article>`;
+    });
+  }
+}
+function knQuickForm(tool) {
+  const v = (KN.vals[tool] || {}).text || (tool === "hooks" ? "Kamu kehilangan 3 jam tiap minggu di GTA karena satu misi yang salah urutan.\nVideo ini membahas tips GTA yang menarik." : "7 Trik Uang Cepat di GTA V Tanpa Cheat (2026) | MILIARAN GRATIS\nTips GTA yang luar biasa untuk kamu semua | TIPS GTA");
+  $("#knForm").innerHTML = `<label class="field"><span>${tool === "hooks" ? "Hook, satu per baris" : "Judul | teks thumbnail, satu per baris"}</span><textarea id="knQuick" rows="6">${esc(v)}</textarea></label>
+    <div class="row"><button class="btn primary" type="button" id="knQuickGo">${tool === "hooks" ? "Nilai hook" : "Cek judul"}</button><span class="small muted">Tanpa AI, langsung di komputer Anda.</span></div><div id="knQuickOut"></div>`;
+  $("#knQuickGo").addEventListener("click", async () => {
+    const lines = $("#knQuick").value.split("\n").map(l => l.trim()).filter(Boolean);
+    KN.vals[tool] = { text: $("#knQuick").value };
+    try {
+      if (tool === "hooks") {
+        const { rows } = await api("/api/kanal/hooks", { method: "POST", body: { hooks: lines } });
+        $("#knQuickOut").innerHTML = knHookTable(rows) + `<p class="small muted">70 ke atas kuat, 45–69 lumayan, di bawah 45 lemah. Rumus dikenali dari kata-katanya; skor bukan jaminan, tapi sifat terlemah adalah tempat memperbaiki.</p>`;
+      } else {
+        const pairs = lines.map(l => { const [t, ...th] = l.split("|"); return [t.trim(), th.join("|").trim()]; });
+        const { rows } = await api("/api/kanal/title", { method: "POST", body: { pairs } });
+        $("#knQuickOut").innerHTML = knTitleTable(rows);
+      }
+    } catch (e) { toast(e.message, true); }
+  });
+}
+async function knVoiceForm() {
+  $("#knForm").innerHTML = `<p class="small muted">Memuat…</p>`;
+  let v; try { v = await api("/api/kanal/voice"); } catch (e) { toast(e.message, true); return; }
+  $("#knForm").innerHTML = `<label class="field"><span>voice.md ${v.exists ? "" : "(belum disimpan; ini templatenya)"}</span><textarea id="knVoice" class="kn-voice">${esc(v.text)}</textarea></label>
+    <div class="row"><button class="btn primary" type="button" id="knVoiceSave">Simpan profil</button><span class="small muted" id="knVoiceMsg" aria-live="polite"></span></div>
+    <details class="kn-src"><summary style="cursor:pointer;font-weight:700">Susun otomatis dari video saya</summary>
+      <label class="field"><span>1–3 URL video Anda sendiri (satu per baris)</span><textarea id="knVoiceUrls" rows="3"></textarea></label>
+      <div class="row"><button class="btn" type="button" id="knVoiceGen" ${KN.ai ? "" : "disabled"}>Susun profil</button><span class="small muted">Menimpa isi di atas. Periksa hasilnya setelah selesai.</span></div></details>`;
+  $("#knVoiceSave").addEventListener("click", async () => {
+    try { await api("/api/kanal/voice", { method: "POST", body: { text: $("#knVoice").value } }); KN.meta.voice = true; $("#knVoiceMsg").textContent = "Tersimpan."; initKanal(); }
+    catch (e) { toast(e.message, true); }
+  });
+  $("#knVoiceGen").addEventListener("click", () => {
+    crJob($("#knJob"), { kind: "kanal", tool: "voice", inputs: { urls: $("#knVoiceUrls").value } }, "profil suara", async j => {
+      KN.meta.voice = true; await knRefreshHist(); knVoiceForm(); if (j.result?.id) knLoadResult(j.result.id);
+    });
+  });
+}
+function mdInline(s) {
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, "$1<i>$2</i>")
+    .replace(/(^|[^\w])_([^_\s][^_]*?)_(?!\w)/g, "$1<i>$2</i>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[+i]}</code>`);
+}
+function mdHtml(md) {
+  const lines = String(md || "").replace(/\r/g, "").split("\n"), out = [];
+  const isList = l => /^\s*([-*+]|\d+[.)])\s+/.test(l), isRow = l => /^\s*\|.*\|\s*$/.test(l);
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    const fence = l.match(/^\s*```\s*([\w-]*)/);
+    if (fence) {
+      const buf = []; i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) buf.push(lines[i++]);
+      i++;
+      out.push(`<div class="kn-code"><div class="kn-code-bar"><span>${esc(fence[1] || "salin")}</span><button class="btn small" type="button" data-kncopy>Salin</button></div><pre>${esc(buf.join("\n"))}</pre></div>`);
+      continue;
+    }
+    if (isRow(l) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      const row = s => s.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+      const head = row(l); i += 2; const body = [];
+      while (i < lines.length && isRow(lines[i])) body.push(row(lines[i++]));
+      out.push(`<div class="kn-table"><table><thead><tr>${head.map(c => `<th>${mdInline(esc(c))}</th>`).join("")}</tr></thead><tbody>${body.map(r => `<tr>${r.map(c => `<td>${mdInline(esc(c))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+      continue;
+    }
+    const h = l.match(/^(#{1,4})\s+(.*)/);
+    if (h) { const n = Math.min(4, h[1].length + 1); out.push(`<h${n}>${mdInline(esc(h[2]))}</h${n}>`); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (/^\s*>/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ""));
+      out.push(`<blockquote>${mdInline(esc(buf.join("\n"))).replace(/\n/g, "<br>")}</blockquote>`);
+      continue;
+    }
+    if (isList(l)) {
+      const ordered = /^\s*\d/.test(l), items = [];
+      while (i < lines.length && isList(lines[i])) {
+        let t = lines[i++].replace(/^\s*([-*+]|\d+[.)])\s+/, "");
+        while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !isList(lines[i])) t += " " + lines[i++].trim();
+        items.push(t);
+      }
+      out.push(`<${ordered ? "ol" : "ul"}>${items.map(t => `<li>${mdInline(esc(t))}</li>`).join("")}</${ordered ? "ol" : "ul"}>`);
+      continue;
+    }
+    if (!l.trim()) { i++; continue; }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !/^\s*(```|#{1,4}\s|>)/.test(lines[i]) && !isList(lines[i]) && !isRow(lines[i])) buf.push(lines[i++]);
+    if (!buf.length) buf.push(lines[i++]);
+    out.push(`<p>${mdInline(esc(buf.join("\n"))).replace(/\n/g, "<br>")}</p>`);
+  }
+  return out.join("");
+}
+/* judul di Posting dicek langsung dengan title.py */
+let poLintTimer = null;
+$("#poTitle").addEventListener("input", () => {
+  clearTimeout(poLintTimer);
+  const t = $("#poTitle").value.trim();
+  if (!t) { $("#poLint").textContent = ""; return; }
+  poLintTimer = setTimeout(async () => {
+    try {
+      const { rows } = await api("/api/kanal/title", { method: "POST", body: { pairs: [[t, ""]] } });
+      const r = rows[0];
+      $("#poLint").innerHTML = `Skor judul ${knScore(r.score)} ` + (r.issues_id.length ? r.issues_id.map(x => `· <b>${esc(x.label)}</b>`).join(" ") : "· rapi");
+      $("#poLint").title = r.issues_id.map(x => `${x.label}: ${x.detail}`).join("\n");
+    } catch { $("#poLint").textContent = ""; }
+  }, 450);
+});
 function applyHashSource() {
   const m = location.hash.match(/[?&]source=([^&]+)/);
   if (!m) return;

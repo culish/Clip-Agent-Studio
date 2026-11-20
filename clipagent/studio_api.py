@@ -12,12 +12,34 @@ from . import characters, kolase, music, publish, remake, tts, videogen, viral
 from .utils import ClipAgentError
 
 STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images", "kolase_storyboard", "kolase_render",
-                "kolase_paket", "kolase_preview", "kolase_clip")
+                "kolase_paket", "kolase_preview", "kolase_clip", "kanal", "kanal_apply_edit")
 
 
 # ---------------------------------------------------------------- job
 def validate_job(body: dict, out_dir: Path) -> None:
     kind = body.get("kind")
+    if kind in ("kanal", "kanal_apply_edit"):
+        from . import ytkit
+        try:
+            if kind == "kanal_apply_edit":
+                res = ytkit.get_result(out_dir, str(body.get("result") or ""))
+                if not res["data"].get("video_id"):
+                    raise ValueError("Daftar potong ini bukan untuk video di Library.")
+                body["label"] = f"Terapkan potongan: {res['title']}"
+                return
+            tool = str(body.get("tool") or "")
+            if tool not in ytkit.RUNNERS:
+                raise ValueError("Alat Kanal tidak dikenal.")
+            if tool in ytkit.NEEDS_AI:
+                ytkit._client(out_dir)
+            body["inputs"] = ytkit.stash_uploads(out_dir, body.get("inputs") if isinstance(body.get("inputs"), dict) else {})
+        except ClipAgentError as exc:
+            raise ValueError(str(exc)) from exc
+        name = ytkit.TOOLS[tool][1] if tool in ytkit.TOOLS else "Profil suara"
+        inp = body["inputs"]
+        hint = inp.get("idea") or inp.get("topic") or inp.get("title") or inp.get("channel") or inp.get("keyword") or ""
+        body["label"] = f"Kanal · {name}" + (f": {str(hint)[:50]}" if hint else "")
+        return
     if kind and kind.startswith("kolase_"):
         proj = kolase.load(out_dir, str(body.get("project") or ""))
         body["label"] = f"Kolase: {proj.get('title') or 'video'}"
@@ -51,6 +73,13 @@ def validate_job(body: dict, out_dir: Path) -> None:
 
 
 def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
+    if kind == "kanal":
+        from . import ytkit
+        res = ytkit.run(out_dir, str(opts["tool"]), opts.get("inputs") or {})
+        return {"kind": kind, "tool": res["tool"], "id": res["id"], "title": res["title"]}
+    if kind == "kanal_apply_edit":
+        from . import ytkit
+        return {"kind": kind, "result": opts["result"], **ytkit.apply_edit(out_dir, str(opts["result"]))}
     if kind.startswith("kolase_"):
         pid = str(opts["project"])
         if kind == "kolase_storyboard":
@@ -152,6 +181,19 @@ def all_videos(out_dir: Path) -> list[dict]:
                         "label": f"{proj.get('title') or 'Kolase'} ({r['created'][5:16]})", "title": proj.get("title", ""),
                         "description": desc.strip(), "hashtags": [], "ai": bool(r.get("ai_media", True)),
                         "mtime": p.stat().st_mtime, "url": f"/files/{p.relative_to(out_dir).as_posix()}"})
+    for p in out_dir.glob("*/edited_*.mp4"):
+        meta = {}
+        if (p.parent / "meta.json").is_file():
+            try:
+                meta = json.loads((p.parent / "meta.json").read_text(encoding="utf-8"))
+            except (ValueError, OSError):
+                pass
+        title = meta.get("title") or p.parent.name
+        stamp = p.stem.removeprefix("edited_")
+        out.append({"path": p.relative_to(out_dir).as_posix(), "group": "Video tanpa jeda (Kanal)",
+                    "label": f"{title} (dipotong {stamp[6:8]}/{stamp[4:6]} {stamp[9:11]}:{stamp[11:13]})", "title": title,
+                    "description": "", "hashtags": [], "ai": False, "mtime": p.stat().st_mtime,
+                    "url": f"/files/{p.relative_to(out_dir).as_posix()}"})
     for v in kolase.paket_videos(out_dir):
         out.append({"path": v["path"], "group": "Kolase Editorial (paket lokal)", "label": f"{v['project']}: {v['name']}",
                     "title": "", "description": "", "hashtags": [], "ai": True, "mtime": v["mtime"],
@@ -201,6 +243,19 @@ def handle_get(h, p: str, q) -> bool:
         return True
     if p == "/api/posts":
         h._json({"items": h.posts.list(), "accounts": publish.status(), "now": time.time()})
+        return True
+    if p == "/api/kanal":
+        from . import ytkit
+        h._json({**ytkit.meta(), "history": ytkit.history(out), "library": ytkit.library(out), "ai": ytkit.ai_ready(out)})
+        return True
+    if p == "/api/kanal/voice":
+        from . import ytkit
+        h._json(ytkit.voice_get())
+        return True
+    m = re.fullmatch(r"/api/kanal/r/([\w-]{6,80})", p)
+    if m:
+        from . import ytkit
+        h._json(ytkit.get_result(out, m.group(1)))
         return True
     if p in ("/oauth/youtube", "/oauth/tiktok", "/oauth/tiktok/"):
         params = {k: v[0] for k, v in h._qs.items()}
@@ -282,6 +337,34 @@ def handle_post(h, p: str, body: dict) -> bool:
             upd = kolase.update(out, m.group(1), body)
             h._json(dict(kolase.public(out, upd), notices=upd.get("notices", [])))
         return True
+    # ---- kanal (youtube-agent-skill)
+    if p.startswith("/api/kanal/"):
+        from . import ytkit
+        if p == "/api/kanal/voice":
+            h._json(ytkit.voice_save(str(body.get("text") or "")))
+            return True
+        if p == "/api/kanal/hooks":
+            hooks = [str(x).strip() for x in body.get("hooks") or [] if str(x).strip()][:30]
+            if not hooks:
+                raise ValueError("Tulis minimal satu hook (satu per baris).")
+            h._json({"rows": ytkit.score_hooks_id(hooks)})
+            return True
+        if p == "/api/kanal/title":
+            pairs = []
+            for x in (body.get("pairs") or [])[:30]:
+                t, th = (list(x) + ["", ""])[:2] if isinstance(x, (list, tuple)) else (x, "")
+                if str(t).strip():
+                    pairs.append((str(t).strip(), str(th).strip() or None))
+            if not pairs:
+                raise ValueError("Tulis minimal satu judul.")
+            h._json({"rows": ytkit.lint_titles_id(pairs)})
+            return True
+        m = re.fullmatch(r"/api/kanal/r/([\w-]{6,80})/delete", p)
+        if m:
+            ytkit.delete_result(out, m.group(1))
+            h._json({"ok": True})
+            return True
+        return False
     # ---- posting
     if p in ("/api/publish/youtube/client", "/api/publish/tiktok/client"):
         if not h.is_local:

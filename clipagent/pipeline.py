@@ -79,6 +79,11 @@ def run_pipeline(cfg: Settings) -> dict:
         log(f"Memakai rencana dari {cfg.plan_file} ({len(clips)} klip)")
     else:
         clips = select_clips(cfg, meta, words, segments, total)
+    try:                                    # skor pembuka & judul (youtube-agent-skill, lihat clipagent/ytkit)
+        from .ytkit import score_clips
+        score_clips(clips, words)
+    except Exception as exc:                # noqa: BLE001 - skor hanya tambahan, jangan gagalkan render
+        log(f"Skor hook/judul dilewati ({type(exc).__name__}: {str(exc)[:80]})")
     _save_plan(plan_path, meta, clips, cfg)
 
     print()
@@ -172,6 +177,10 @@ def _write_summary(clips_dir: Path, meta: dict, clips: list[dict], tsrc: str) ->
         lines += [
             f"## {c['rank']:02d}. {c.get('title', '')}", "",
             f"- **Waktu:** {fmt_ts(c['start'])}–{fmt_ts(c['end'])} ({c['duration']:.0f} dtk), skor {_score(c)}",
+            *([f"- **Kalimat pembuka:** {c['opening']} (skor hook {c['hook_score']}"
+                + (f"; perbaiki {c['hook_tip']}" if c.get("hook_tip") else "") + ")"] if c.get("opening") else []),
+            *([f"- **Skor judul:** {c['title_score']}" + (f" ({', '.join(c['title_issues'])})" if c.get("title_issues") else "")]
+              if c.get("title_score") is not None else []),
             f"- **File:** {c.get('file', '(gagal dirender)')}",
             f"- **Hook:** {c.get('hook', '')}",
             f"- **Alasan dipilih:** {c.get('reason', '')}",

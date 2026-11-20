@@ -84,6 +84,43 @@ class LLMClient:
                 log(f"Beralih ke model cadangan: {self.models[mi + 1]}")
         raise LLMUnavailable("Semua model LLM sedang tidak tersedia:\n  - " + "\n  - ".join(problems[-4:]))
 
+    def complete_text(self, system: str, user: str, attempts_per_model: int = 3) -> str:
+        """Jawaban teks bebas (Markdown), dengan coba ulang dan model cadangan seperti complete_json."""
+        problems = []
+        self._json_mode = False
+        try:
+            return self._complete_text(system, user, attempts_per_model, problems)
+        finally:
+            self._json_mode = True
+
+    def _complete_text(self, system: str, user: str, attempts_per_model: int, problems: list) -> str:
+        for mi, model in enumerate(list(self.models)):
+            for attempt in range(1, attempts_per_model + 1):
+                try:
+                    text = (self._anthropic(model, system, user) if self.provider == "anthropic"
+                            else self._openai(model, system, user))
+                    if not (text or "").strip():
+                        raise _Retryable("jawaban kosong")
+                    if mi > 0:
+                        self.models = self.models[mi:] + self.models[:mi]
+                    return text.strip()
+                except _SkipModel as exc:
+                    log(f"Model {model} tidak bisa dipakai ({exc}).")
+                    problems.append(f"{model}: {exc}")
+                    break
+                except _Retryable as exc:
+                    if attempt == attempts_per_model:
+                        log(f"Model {model} masih tidak tersedia ({exc}).")
+                        problems.append(f"{model}: {exc}")
+                        break
+                    wait = min(60.0, exc.wait if exc.wait else 5.0 * 3 ** (attempt - 1))
+                    log(f"Model {model} {exc}; coba lagi dalam {wait:.0f} dtk "
+                        f"(percobaan {attempt + 1}/{attempts_per_model})...")
+                    time.sleep(wait)
+            if mi + 1 < len(self.models):
+                log(f"Beralih ke model cadangan: {self.models[mi + 1]}")
+        raise LLMUnavailable("Semua model LLM sedang tidak tersedia:\n  - " + "\n  - ".join(problems[-4:]))
+
     # ------------------------------------------------------------------ HTTP
     def _post(self, url: str, headers: dict, payload: dict) -> dict:
         try:
@@ -115,14 +152,15 @@ class LLMClient:
             "model": model,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
-            "response_format": {"type": "json_object"},
         }
+        if getattr(self, "_json_mode", True):
+            payload["response_format"] = {"type": "json_object"}
         url = f"{self.base_url}/chat/completions"
         try:
             data = self._post(url, headers, payload)
         except (ClipAgentError, _SkipModel) as exc:
             # Sebagian model tidak mendukung response_format; ulangi tanpa itu.
-            if "response_format" in str(exc) or "json_object" in str(exc).lower():
+            if "response_format" in payload and ("response_format" in str(exc) or "json_object" in str(exc).lower()):
                 payload.pop("response_format")
                 data = self._post(url, headers, payload)
             else:
