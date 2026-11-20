@@ -115,6 +115,20 @@ Pexels sedang menghentikan sementara pembuatan API key baru. Clip Agent memakai 
 
 Video stok untuk b-roll (Buat video, Edit otomatis) butuh Pixabay atau Pexels. Foto stok untuk tab Kolase sudah jalan tanpa key lewat Openverse; isi Pixabay key agar pilihan fotonya lebih banyak. Matikan Openverse dengan `OPENVERSE_ENABLED=0`.
 
+## Film bergaya: 99 gaya Lemo-Opuscar (tab Film)
+
+Tab **Film** membuat film pendek dalam salah satu dari 99 gaya [Lemo-Opuscar](https://github.com/lemomo-ai/lemo-opuscar) karya Lemomo (LemoLab): cat air, ukiyo-e, papan tulis, stickman, pixel RPG, berita, peta 3D, dan lainnya. Library itu dibuat untuk agen coding: **Claude Code** di komputer Anda menulis treatment, menggambar setiap frame dengan kode, mengisi suara, membuat musik, me-mix, lalu memeriksa hasilnya. Clip Agent mengatur semuanya dari satu formulir: pilih gaya, tulis topik, pilih durasi dan format (16:9, 9:16, 4:5, 1:1), bahasa dan narator, lalu lampirkan bahan sendiri bila ada (foto, logo, musik, rekaman suara).
+
+- **Yang dibutuhkan:** [Claude Code](https://docs.claude.com/en/docs/claude-code) terpasang dan sudah login (perintah `claude` jalan di terminal), Node.js 20+, ffmpeg 7+, Python 3.11+ atau uv, dan git (di Windows: Git for Windows untuk Git Bash). Tab Film memeriksa semuanya dan menulis cara memperbaiki yang kurang.
+- **Pasang library** dari tab itu: Clip Agent mengunduh library ke `~/lemo-opuscar` (bisa diganti) memakai skrip pemasang library itu sendiri, lalu memasang paket rendernya. Paket suara dan musik dipasang agen bila filmnya butuh.
+- **Membuat film** memakan sekitar 30–60 menit dan kuota Claude Anda; Clip Agent menjalankan Claude Code tanpa pengawasan (`claude -p` dengan skill lemo-opuscar, effort high), menampilkan kemajuan dan langkahnya, dan bisa dibatalkan. Film berjalan di antrean sendiri, jadi Studio dan tab lain tetap bisa dipakai. Pengguna API key bisa memasang batas biaya per film.
+- **Izin:** agen menjalankan perintah (Node, ffmpeg, Python, pemasangan paket) dan menulis file di folder film dan library. Anda harus mencentang izin ini sekali di Pengaturan agen.
+- **Revisi:** tulis catatan, dan agen melanjutkan sesi yang sama dan hanya mengubah yang diminta.
+- **Hasil:** folder proyek di `output/_film/<nama>/` berisi film MP4, poster, subtitle, `TREATMENT.md`, `CREDITS`, dan sumber dengan `build.sh`. Filmnya langsung muncul di Posting.
+- Gaya bertanda ✦ (Manga Panels, Text Flash Cuts, Comic History Cartoon) menggambar tokohnya dengan generator gambar milik Anda sendiri (mis. Codex CLI); tanpa itu filmnya tidak bisa dimulai. Narasi bahasa Indonesia memakai suara edge-tts dan butuh internet.
+
+Clip Agent **tidak menyertakan** isi library itu; library diunduh ke komputer Anda dari repo resminya. Panduan dan prompt gayanya berlisensi CC BY-NC 4.0, kodenya MIT. Film yang Anda buat sepenuhnya milik Anda, termasuk untuk komersial, tanpa wajib mencantumkan kredit; aset pihak ketiga di dalamnya mengikuti lisensinya masing-masing (lihat `CREDITS` tiap film). Lihat [LICENSE library](https://github.com/lemomo-ai/lemo-opuscar/blob/main/LICENSE).
+
 ## Kanal: naskah, judul, SEO, Shorts, retensi (tab Kanal)
 
 Tab **Kanal** memasang seluruh [youtube-agent-skill](https://github.com/jakeschincariol/youtube-agent-skill) (MIT, Jake Schincariol): sebelas skill beserta alat Python-nya, dijalankan langsung oleh Clip Agent. Skor dan angka dihitung oleh alatnya (bukan dikarang AI), dengan kosakata bahasa Indonesia tambahan (kata pengisi seperti *eh, jadi, nah*; kata kabur seperti *luar biasa, gila*; sapaan *kamu, lo, kalian* dan akhiran *-mu*; 21 rumus hook versi Indonesia).

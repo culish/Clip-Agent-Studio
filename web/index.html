@@ -488,6 +488,23 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
   #knTools { display: none; }
   #tab-kanal .mk-side { order: 2; }
 }
+.fl-status { display: grid; gap: 12px; }
+.fl-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.fl-chip { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font-size: 13px; background: var(--panel); }
+.fl-chip.ok b { color: var(--good); } .fl-chip.no b { color: var(--bad); }
+.fl-filter { gap: 10px; flex-wrap: wrap; } .fl-filter input { flex: 1 1 260px; min-width: 0; } .fl-filter select { flex: 0 1 220px; }
+.fl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 12px; max-height: 620px; overflow: auto; padding: 4px; margin-top: 12px; }
+.fl-card { display: grid; gap: 6px; text-align: left; border: 2px solid var(--line); border-radius: var(--r-md); background: var(--panel); padding: 8px; cursor: pointer; font: inherit; color: inherit; }
+.fl-card[aria-pressed="true"] { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-soft); }
+.fl-card .img { aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--sunk); display: grid; place-items: center; font-weight: 800; color: var(--ink-2); }
+.fl-card .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fl-card b { font-size: 14px; line-height: 1.25; } .fl-card span { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+.fl-card .tag { color: var(--warn); font-weight: 700; }
+.fl-view { display: grid; gap: 14px; min-width: 0; }
+.fl-view video { width: 100%; max-height: 520px; background: #000; border-radius: var(--r-md); }
+.fl-runs { font-size: 13px; color: var(--ink-2); }
+#tab-film .mk-main { min-width: 0; display: grid; gap: 22px; }
+#flList .ic { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -500,6 +517,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
     <button role="tab" data-tab="studio" aria-selected="true">Studio</button>
     <button role="tab" data-tab="radar" aria-selected="false">Riset viral</button>
     <button role="tab" data-tab="make" aria-selected="false">Buat video</button>
+    <button role="tab" data-tab="film" aria-selected="false">Film</button>
     <button role="tab" data-tab="kolase" aria-selected="false">Kolase</button>
     <button role="tab" data-tab="creative" aria-selected="false">Edit &amp; animasi</button>
     <button role="tab" data-tab="library" aria-selected="false">Klip saya</button>
@@ -805,6 +823,45 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
         <div class="crjob" id="chJob" hidden></div>
         <div class="ch-cands" id="chCands"></div>
       </section>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ FILM (Lemo-Opuscar) -->
+<section role="tabpanel" id="tab-film" hidden>
+  <div class="radar-head">
+    <div style="display:grid;gap:8px">
+      <h1 style="max-width:22ch">Film bergaya, dibuat agen dengan kode</h1>
+      <p class="muted" style="max-width:78ch">99 gaya film dari <a href="https://github.com/lemomo-ai/lemo-opuscar" target="_blank" rel="noopener">Lemo-Opuscar</a> (Lemomo/LemoLab): cat air, ukiyo-e, papan tulis, peta 3D, pixel RPG, berita, dan lainnya. Claude Code di komputer Anda menulis treatment, menggambar, mengisi suara, membuat musik, lalu me-mix filmnya sendiri. Satu film butuh sekitar 30–60 menit dan memakai kuota Claude Anda. Film yang Anda buat sepenuhnya milik Anda.</p>
+    </div>
+  </div>
+  <section class="mk-panel fl-status" id="flStatus"></section>
+  <div class="make" style="margin-top:22px">
+    <aside class="mk-side">
+      <div class="row" style="justify-content:space-between"><h3>Film saya</h3><button class="btn small primary" type="button" id="flNewBtn">Film baru</button></div>
+      <div class="side-list" id="flList"></div>
+    </aside>
+    <div class="mk-main" id="flMain">
+      <section class="mk-panel" id="flNew">
+        <div class="flow-head"><span class="step">1</span><h3>Pilih gaya</h3></div>
+        <div class="row fl-filter"><input type="text" id="flSearch" role="searchbox" placeholder="Cari gaya: watercolor, peta, papan tulis, anime…" aria-label="Cari gaya">
+          <select id="flCat" aria-label="Kategori"></select></div>
+        <div class="fl-grid" id="flStyles" role="radiogroup" aria-label="Gaya film"></div>
+        <p class="small muted" id="flPicked"></p>
+        <div class="flow-head" style="margin-top:22px"><span class="step">2</span><h3>Cerita dan format</h3></div>
+        <label class="field"><span>Topik / cerita film</span><textarea id="flTopic" rows="3" placeholder="mis. kebun kopi keluarga saya di Garut, dari biji sampai cangkir"></textarea></label>
+        <div class="grid3">
+          <label class="field"><span>Durasi</span><select id="flDur"><option value="30">30 detik</option><option value="45" selected>45 detik</option><option value="60">60 detik</option><option value="90">90 detik</option><option value="120">2 menit</option></select></label>
+          <label class="field"><span>Format</span><select id="flAspect"><option value="16:9">16:9 YouTube</option><option value="9:16">9:16 Shorts/Reels/TikTok</option><option value="4:5">4:5 Instagram</option><option value="1:1">1:1 Persegi</option></select></label>
+          <label class="field"><span>Bahasa</span><select id="flLang"><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
+          <label class="field"><span>Narator</span><select id="flVoice"><option value="pria">Pria, hangat</option><option value="wanita">Wanita, hangat</option><option value="none">Tanpa narasi</option></select></label>
+          <label class="field" style="grid-column:span 2"><span>Fakta / nama yang wajib ada (opsional)</span><input type="text" id="flFacts" placeholder="mis. kopi arabika Gunung Papandayan, sejak 1998"></label>
+        </div>
+        <label class="field"><span>Catatan lain untuk sutradara (opsional)</span><input type="text" id="flNotes" placeholder="mis. akhiri dengan logo channel, suasana hangat"></label>
+        <label class="field"><span>Bahan sendiri (opsional): foto, logo, musik, rekaman suara, data</span><input type="file" id="flFiles" multiple></label>
+        <div class="row"><button class="btn primary" type="button" id="flGo">Buat film</button><span class="small muted" id="flGoNote"></span></div>
+      </section>
+      <section class="mk-panel" id="flView" hidden></section>
     </div>
   </div>
 </section>
@@ -1240,6 +1297,7 @@ function showTab(name) {
   if (name === "creative") { initCreative(); initAutoEdit(); }
   if (name === "make") initMake();
   if (name === "kolase") initKolase();
+  if (name === "film") initFilm();
   if (name === "posting") initPosting();
   if (name === "kanal") initKanal();
   if (name === "radar") initViral();
@@ -1589,7 +1647,7 @@ document.addEventListener("click", e => {
 
 /* ------------------------------------------------------------ cover & animasi */
 const CR = { key: "", state: null, sb: [], from: "", preset: "komik", useCustom: false, custom: null, loaded: false };
-function crJob(box, body, label, onDone) {
+function crJob(box, body, label, onDone, existingId) {
   box.hidden = false;
   box.innerHTML = `<div class="row"><span class="small" data-k="stage">Menyiapkan ${esc(label)}…</span><span class="row" style="gap:10px"><span class="num small" data-k="pct">0%</span><button class="btn small" type="button" data-k="cancel">Batalkan</button></span></div>
     <div class="track"><i></i></div><p class="err small" data-k="err" hidden></p>
@@ -1610,6 +1668,7 @@ function crJob(box, body, label, onDone) {
     if (["queued", "running"].includes(j.status)) setTimeout(tick, 1000);
     else if (j.status === "done") { onDone && onDone(j); }
   };
+  if (existingId) { id = existingId; tick(); return; }
   api("/api/jobs", { method: "POST", body }).then(j => { id = j.id; tick(); })
     .catch(e => { q("err").hidden = false; q("err").textContent = e.message; q("cancel").hidden = true; q("stage").textContent = "Gagal"; });
 }
@@ -3130,7 +3189,7 @@ $("#kPkgGo").addEventListener("click", async () => {
     if (live) attachJob(live.id, false);
   } catch {}
   const tab = location.hash.slice(1).split("?")[0];
-  if (["radar", "make", "kolase", "creative", "library", "kanal", "posting", "settings"].includes(tab)) showTab(tab);
+  if (["radar", "make", "film", "kolase", "creative", "library", "kanal", "posting", "settings"].includes(tab)) showTab(tab);
 })();
 /* ------------------------------------------------------------ kanal (youtube-agent-skill) */
 const KN = { meta: null, lib: [], hist: [], tool: "script", res: null, src: {}, vals: {}, ai: true, loaded: false };
@@ -3505,6 +3564,146 @@ $("#poTitle").addEventListener("input", () => {
     } catch { $("#poLint").textContent = ""; }
   }, 450);
 });
+/* ------------------------------------------------------------ film (Lemo-Opuscar) */
+const FL = { data: null, style: "", view: "new", fid: "", files: [] };
+async function initFilm(keepView) {
+  try { FL.data = await api("/api/film"); } catch (e) { toast(e.message, true); return; }
+  flStatus(); flStyles(); flList();
+  if (keepView && FL.view === "film" && FL.fid) flOpen(FL.fid); else flShow("new");
+}
+function flStatus() {
+  const st = FL.data.status, s = st.settings;
+  const missing = st.checks.filter(c => !c.ok);
+  $("#flStatus").innerHTML = `<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><h3 style="margin:0">${st.ready ? "✓ Siap membuat film" : "Persiapan"}</h3>
+      <div class="row" style="gap:8px"><button class="btn small" type="button" id="flInstall">${st.checks.find(c => c.id === "library").ok ? "Perbarui library" : "Pasang library"}</button>
+      <a class="btn small ghost" href="${esc(st.gallery)}" target="_blank" rel="noopener">Galeri 99 gaya</a></div></div>
+    <div class="fl-checks">${st.checks.map(c => `<span class="fl-chip ${c.ok ? "ok" : "no"}" title="${esc(c.ok ? c.detail : c.fix)}"><b>${c.ok ? "✓" : "✗"}</b>${esc(c.label)}${c.detail && c.ok ? ` <span class="muted">${esc(c.detail)}</span>` : ""}</span>`).join("")}</div>
+    ${missing.length ? `<ul class="small" style="margin:0;padding-left:18px">${missing.map(c => `<li><b>${esc(c.label)}:</b> ${esc(c.fix)}</li>`).join("")}</ul>` : ""}
+    <div class="crjob" id="flSetupJob" hidden></div>
+    <details ${s.consent ? "" : "open"}><summary style="cursor:pointer;font-weight:700">Pengaturan agen</summary>
+      <div class="grid3" style="margin-top:10px">
+        <label class="field"><span>Folder library</span><input type="text" data-fs="library" value="${esc(s.library || "")}" placeholder="${esc(st.library)}"></label>
+        <label class="field"><span>Lokasi perintah claude (bila tidak di PATH)</span><input type="text" data-fs="claude" value="${esc(s.claude || "")}" placeholder="claude"></label>
+        <label class="field"><span>Model</span><select data-fs="model">${optHtml({ "": "Bawaan Claude Code", fable: "Fable", opus: "Opus", sonnet: "Sonnet" }, s.model || "")}</select></label>
+        <label class="field"><span>Effort (library menyarankan high)</span><select data-fs="effort">${optHtml(Object.fromEntries(st.efforts.map(e => [e, e])), s.effort || "high")}</select></label>
+        <label class="field"><span>Batas biaya per film, US$ (pengguna API key; 0 = tanpa batas)</span><input type="number" min="0" step="1" data-fs="budget_usd" value="${esc(s.budget_usd || 0)}"></label>
+      </div>
+      <label class="switch" style="margin-top:8px;align-items:flex-start"><input type="checkbox" data-fs="consent" ${s.consent ? "checked" : ""}> <span>Saya mengizinkan Claude Code bekerja tanpa diawasi: menjalankan perintah (Node, ffmpeg, Python, pemasangan paket) dan menulis file di folder film dan library di komputer ini.</span></label>
+      <div class="row" style="margin-top:8px"><button class="btn small primary" type="button" id="flSaveSet">Simpan pengaturan</button></div>
+    </details>`;
+  $("#flInstall").addEventListener("click", () => crJob($("#flSetupJob"), { kind: "film_setup" }, "library", () => { toast("Library siap"); initFilm(true); }));
+  $("#flSaveSet").addEventListener("click", async () => {
+    const body = {};
+    $$("#flStatus [data-fs]").forEach(el => { body[el.dataset.fs] = el.type === "checkbox" ? el.checked : el.value; });
+    try { FL.data.status = await api("/api/film/settings", { method: "POST", body }); flStatus(); flGoNote(); toast("Pengaturan disimpan"); }
+    catch (e) { toast(e.message, true); }
+  });
+}
+function flStyles() {
+  const list = FL.data.styles;
+  const cats = [...new Set(list.map(s => s.category).filter(Boolean))];
+  const cur = $("#flCat").value;
+  $("#flCat").innerHTML = `<option value="">Semua kategori (${list.length})</option>` + cats.map(c => `<option ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
+  flRenderStyles();
+}
+function flRenderStyles() {
+  const q = $("#flSearch").value.trim().toLowerCase(), cat = $("#flCat").value;
+  const list = FL.data.styles.filter(s => (!cat || s.category === cat) &&
+    (!q || [s.en, s.cn, s.slug, s.category, ...(s.uses || [])].join(" ").toLowerCase().includes(q)));
+  $("#flStyles").innerHTML = list.length ? list.map(s => `<button type="button" class="fl-card" data-style="${esc(s.slug)}" aria-pressed="${FL.style === s.slug}">
+      <div class="img"><img src="${esc(s.card)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">${esc(s.num)}</div>
+      <b>${esc(s.en)}</b><span>${esc((s.uses || []).join(" · "))}</span>${s.image_gen ? `<span class="tag">✦ butuh generator gambar sendiri</span>` : ""}
+    </button>`).join("") : `<p class="muted small">${FL.data.styles.length ? "Tidak ada gaya yang cocok." : "Pasang library dulu untuk melihat daftar gaya."}</p>`;
+}
+$("#flSearch").addEventListener("input", flRenderStyles);
+$("#flCat").addEventListener("change", flRenderStyles);
+$("#flStyles").addEventListener("click", e => {
+  const b = e.target.closest("[data-style]"); if (!b) return;
+  FL.style = b.dataset.style;
+  $$("#flStyles [data-style]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.style === FL.style)));
+  const s = FL.data.styles.find(x => x.slug === FL.style);
+  $("#flPicked").innerHTML = s ? `Dipilih: <b>${esc(s.en)}</b> (${esc(s.category)}). ${esc(s.line)} <a href="${esc(s.page)}" target="_blank" rel="noopener">Tonton demonya</a>.`
+    + (s.image_gen ? ` <b>Gaya ✦ ini menggambar tokohnya dengan generator gambar (mis. Codex CLI). Tanpa itu filmnya tidak bisa dimulai.</b>` : "") : "";
+  flGoNote();
+});
+function flGoNote() {
+  const st = FL.data.status;
+  const why = !st.ready ? "Lengkapi persiapan di atas dulu." : !st.settings.consent ? "Centang izin agen di Pengaturan agen." : !FL.style ? "Pilih gaya dulu." : "Agen bekerja 30–60 menit; Anda boleh pindah tab, tapi jangan tutup Clip Agent.";
+  $("#flGoNote").textContent = why;
+  $("#flGo").disabled = !(st.ready && st.settings.consent && FL.style);
+}
+$("#flGo").addEventListener("click", async () => {
+  const topic = $("#flTopic").value.trim();
+  if (topic.length < 8) { toast("Ceritakan topik filmnya dulu.", true); return; }
+  const files = [...$("#flFiles").files];
+  if (files.some(f => f.size > 60e6)) { toast("Ada file lebih dari 60 MB.", true); return; }
+  $("#flGo").disabled = true;
+  try {
+    const f = await api("/api/film", { method: "POST", body: { style: FL.style, topic, duration: +$("#flDur").value, aspect: $("#flAspect").value,
+      lang: $("#flLang").value, voice: $("#flVoice").value, facts: $("#flFacts").value, notes: $("#flNotes").value } });
+    for (const file of files) await api(`/api/film/${f.id}/material`, { method: "POST", body: { name: file.name, data: await readDataUrl(file) } });
+    FL.fid = f.id; FL.data = await api("/api/film"); flList(); flOpen(f.id, true);
+    $("#flTopic").value = ""; $("#flFiles").value = "";
+  } catch (e) { toast(e.message, true); }
+  flGoNote();
+});
+const FL_STATUS = { baru: "Belum dibuat", dibuat: "Sedang dibuat", revisi: "Sedang direvisi", selesai: "Selesai", gagal: "Gagal", dibatalkan: "Dibatalkan" };
+function flList() {
+  const items = FL.data.films;
+  $("#flList").innerHTML = items.length ? items.map(f => `<button type="button" data-fid="${esc(f.id)}" aria-current="${FL.view === "film" && FL.fid === f.id}">
+      <span class="ic" aria-hidden="true">${f.poster_url ? `<img src="${esc(f.poster_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px">` : "🎬"}</span>
+      <b>${esc(f.topic)}</b><span>${esc(f.style_name)} · ${esc(FL_STATUS[f.status] || f.status)}</span></button>`).join("")
+    : `<p class="small muted">Belum ada film.</p>`;
+}
+$("#flList").addEventListener("click", e => { const b = e.target.closest("[data-fid]"); if (b) flOpen(b.dataset.fid); });
+$("#flNewBtn").addEventListener("click", () => flShow("new"));
+function flShow(v) {
+  FL.view = v;
+  $("#flNew").hidden = v !== "new"; $("#flView").hidden = v !== "film";
+  if (v === "new") { FL.fid = ""; flList(); flGoNote(); }
+}
+async function flOpen(fid, start) {
+  FL.fid = fid; flShow("film"); flList();
+  const f = FL.data.films.find(x => x.id === fid);
+  if (!f) return;
+  const runs = (f.runs || []).map((r, i) => `<li>${esc(r.at)}: ${r.revision ? "revisi" : "pembuatan"} ${r.ok ? "berhasil" : "tidak selesai"}, ${r.minutes} menit${r.cost_usd ? `, ±US$${r.cost_usd.toFixed(2)}` : ""}</li>`).join("");
+  $("#flView").innerHTML = `<div class="fl-view">
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><div><span class="small muted">${esc(f.style_name)} · ${esc(f.duration)} dtk · ${esc(f.aspect)} · ${esc(FL_STATUS[f.status] || f.status)}</span>
+      <h2 style="margin:4px 0 0;overflow-wrap:anywhere">${esc(f.topic)}</h2></div>
+      <div class="row" style="gap:8px">${f.video ? `<button class="btn small primary" type="button" data-post="${esc(f.video)}">Posting</button><a class="btn small" href="${esc(f.video_url)}&download=1">Unduh MP4</a>` : ""}</div></div>
+    ${f.video ? `<video src="${esc(f.video_url)}" ${f.poster_url ? `poster="${esc(f.poster_url)}"` : ""} controls preload="metadata" playsinline></video>` : ""}
+    <div class="crjob" id="flJob" hidden></div>
+    ${f.status === "baru" || f.status === "gagal" || f.status === "dibatalkan" ? `<div class="row"><button class="btn primary" type="button" id="flRun">${f.status === "baru" ? "Mulai buat film" : "Coba lagi"}</button><span class="small muted">30–60 menit, memakai kuota Claude Anda.</span></div>` : ""}
+    ${f.files?.length ? `<p class="small">Berkas: ${f.files.map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(" · ")}. <span class="muted">CREDITS mencantumkan aset pihak ketiga dan lisensinya; Anda bertanggung jawab atas bahan yang dipakai.</span></p>` : ""}
+    ${f.summary ? `<details><summary class="small" style="cursor:pointer;font-weight:700">Laporan terakhir agen</summary><pre class="log" style="white-space:pre-wrap">${esc(f.summary)}</pre></details>` : ""}
+    ${f.session && f.video ? `<div class="field"><span class="label">Revisi (agen melanjutkan sesi yang sama dan hanya mengubah yang diminta)</span>
+      <textarea id="flRevNotes" rows="3" placeholder="mis. narasinya lebih pelan, judul akhir lebih besar, ganti warna latar jadi hijau tua"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" type="button" id="flRev">Kirim revisi</button></div></div>` : ""}
+    ${runs ? `<div class="fl-runs"><b>Riwayat</b><ul style="margin:4px 0 0;padding-left:18px">${runs}</ul></div>` : ""}
+    <p class="small muted">Folder proyek: <code>${esc(f.video ? f.video.replace(/\/[^/]+$/, "/") : "_film/" + f.name + "/")}</code> (di folder output Clip Agent), lengkap dengan TREATMENT.md, sumber, dan build.sh.</p>
+    <div class="row"><button class="btn small ghost" type="button" id="flDel">Hapus dari daftar</button><label class="switch small"><input type="checkbox" id="flDelFiles"> <span>hapus juga folder proyeknya</span></label></div>
+  </div>`;
+  const done = async () => { FL.data = await api("/api/film"); flList(); flOpen(fid); toast("Film siap"); };
+  const runBtn = $("#flRun");
+  if (runBtn) runBtn.addEventListener("click", () => { runBtn.disabled = true; crJob($("#flJob"), { kind: "film_make", film: fid }, "film", done); });
+  const rev = $("#flRev");
+  if (rev) rev.addEventListener("click", () => {
+    const notes = $("#flRevNotes").value.trim();
+    if (notes.length < 5) { toast("Tulis catatan revisinya.", true); return; }
+    rev.disabled = true; crJob($("#flJob"), { kind: "film_revise", film: fid, notes }, "revisi", done);
+  });
+  $("#flDel").addEventListener("click", async () => {
+    try { await api(`/api/film/${fid}/delete`, { method: "POST", body: { files: $("#flDelFiles").checked } }); FL.data = await api("/api/film"); flShow("new"); }
+    catch (e) { toast(e.message, true); }
+  });
+  // sambungkan lagi ke job yang masih berjalan untuk film ini
+  try {
+    const { jobs } = await api("/api/jobs");
+    const j = jobs.find(x => ["queued", "running"].includes(x.status) && x.options?.film === fid);
+    if (j) { if (runBtn) runBtn.disabled = true; crJob($("#flJob"), null, "film", done, j.id); }
+    else if (start && runBtn) runBtn.click();
+  } catch { if (start && runBtn) runBtn.click(); }
+}
 function applyHashSource() {
   const m = location.hash.match(/[?&]source=([^&]+)/);
   if (!m) return;

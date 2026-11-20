@@ -95,20 +95,25 @@ class JobManager:
         self.out_dir = out_dir
         self.jobs: dict[str, Job] = {}
         self.q: queue.Queue[Job] = queue.Queue()
+        self.q_long: queue.Queue[Job] = queue.Queue()     # film agen (30–60 menit) punya antrean sendiri
         threading.Thread(target=self._worker, daemon=True, name="clip-worker").start()
+        threading.Thread(target=self._worker, args=(self.q_long,), daemon=True, name="film-worker").start()
+
+    LONG_KINDS = ("film_setup", "film_make", "film_revise")
 
     def submit(self, options: dict) -> Job:
         job = Job(options)
         self.jobs[job.id] = job
-        self.q.put(job)
+        (self.q_long if options.get("kind") in self.LONG_KINDS else self.q).put(job)
         return job
 
     def list(self) -> list[dict]:
         return [j.to_dict() for j in sorted(self.jobs.values(), key=lambda j: j.created, reverse=True)][:30]
 
-    def _worker(self) -> None:
+    def _worker(self, q: "queue.Queue[Job] | None" = None) -> None:
+        q = q or self.q
         while True:
-            job = self.q.get()
+            job = q.get()
             if job.cancel.is_set():
                 job.status, job.stage = "canceled", "Dibatalkan"
                 continue

@@ -12,12 +12,35 @@ from . import characters, kolase, music, publish, remake, tts, videogen, viral
 from .utils import ClipAgentError
 
 STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images", "kolase_storyboard", "kolase_render",
-                "kolase_paket", "kolase_preview", "kolase_clip", "kanal", "kanal_apply_edit")
+                "kolase_paket", "kolase_preview", "kolase_clip", "kanal", "kanal_apply_edit",
+                "film_setup", "film_make", "film_revise")
 
 
 # ---------------------------------------------------------------- job
 def validate_job(body: dict, out_dir: Path) -> None:
     kind = body.get("kind")
+    if kind in ("film_setup", "film_make", "film_revise"):
+        from . import film
+        if kind == "film_setup":
+            body["label"] = "Pasang library Lemo-Opuscar"
+            return
+        try:
+            f = film.get_film(out_dir, str(body.get("film") or ""))
+        except ClipAgentError as exc:
+            raise ValueError(str(exc)) from exc
+        st = film.status()
+        if not st["ready"]:
+            missing = [c["label"] for c in st["checks"] if not c["ok"] and c["id"] != "deps"]
+            raise ValueError("Belum siap membuat film. Lengkapi dulu: " + ", ".join(missing))
+        if not st["settings"].get("consent"):
+            raise ValueError("Centang izin agen di pengaturan film dulu.")
+        if kind == "film_revise":
+            notes = str(body.get("notes") or "").strip()
+            if len(notes) < 5:
+                raise ValueError("Tulis catatan revisinya.")
+            body["notes"] = notes[:3000]
+        body["label"] = ("Revisi film: " if kind == "film_revise" else "Film: ") + f"{f['style_name']} · {f['topic'][:50]}"
+        return
     if kind in ("kanal", "kanal_apply_edit"):
         from . import ytkit
         try:
@@ -73,6 +96,13 @@ def validate_job(body: dict, out_dir: Path) -> None:
 
 
 def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
+    if kind == "film_setup":
+        from . import film
+        st = film.install(bool(opts.get("voice")), bool(opts.get("music")))
+        return {"kind": kind, "ready": st["ready"]}
+    if kind in ("film_make", "film_revise"):
+        from . import film
+        return {"kind": kind, **film.run_agent(out_dir, str(opts["film"]), str(opts.get("notes") or "") if kind == "film_revise" else "")}
     if kind == "kanal":
         from . import ytkit
         res = ytkit.run(out_dir, str(opts["tool"]), opts.get("inputs") or {})
@@ -194,6 +224,8 @@ def all_videos(out_dir: Path) -> list[dict]:
                     "label": f"{title} (dipotong {stamp[6:8]}/{stamp[4:6]} {stamp[9:11]}:{stamp[11:13]})", "title": title,
                     "description": "", "hashtags": [], "ai": False, "mtime": p.stat().st_mtime,
                     "url": f"/files/{p.relative_to(out_dir).as_posix()}"})
+    from . import film
+    out += film.all_film_videos(out_dir)
     for v in kolase.paket_videos(out_dir):
         out.append({"path": v["path"], "group": "Kolase Editorial (paket lokal)", "label": f"{v['project']}: {v['name']}",
                     "title": "", "description": "", "hashtags": [], "ai": True, "mtime": v["mtime"],
@@ -203,6 +235,11 @@ def all_videos(out_dir: Path) -> list[dict]:
 
 # ---------------------------------------------------------------- routing
 def handle_get(h, p: str, q) -> bool:
+    if p == "/api/film":
+        from . import film
+        h._json({"status": film.status(), "styles": film.styles(), "films": film.list_films(h.out_dir),
+                 "aspects": list(film.ASPECTS), "langs": film.LANGS, "voices": film.VOICES})
+        return True
     if p == "/api/layout":
         from .creative import layout_info
         from .webapp import creative_ctx
@@ -279,6 +316,26 @@ def handle_get(h, p: str, q) -> bool:
 
 def handle_post(h, p: str, body: dict) -> bool:
     out = h.out_dir
+    # ---- film (Lemo-Opuscar)
+    if p.startswith("/api/film"):
+        from . import film
+        if p == "/api/film/settings":
+            film.save_settings(body)
+            h._json(film.status())
+            return True
+        if p == "/api/film":
+            h._json(film.new_film(out, body))
+            return True
+        m = re.fullmatch(r"/api/film/([a-f0-9]{10})/(material|delete)", p)
+        if m:
+            fid, act = m.groups()
+            if act == "material":
+                h._json(film.add_material(out, fid, str(body.get("name") or ""), str(body.get("data") or "")))
+            else:
+                film.delete_film(out, fid, bool(body.get("files")))
+                h._json({"ok": True})
+            return True
+        return False
     # ---- karakter
     if p == "/api/characters":
         h._json(characters.save(out, body))
