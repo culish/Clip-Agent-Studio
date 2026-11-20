@@ -173,13 +173,14 @@ def references(out_dir: Path, cid: str) -> list[np.ndarray]:
     return [img] if img is not None else []
 
 
-def scene_prompt(ch: dict | None, scene_prompt_text: str, art_override: str = "") -> str:
-    """Prompt gambar adegan. Bila ada karakter, minta model mempertahankan wujudnya dari gambar referensi."""
+def scene_prompt(ch: dict | None, scene_prompt_text: str, art_override: str = "", style_text: str = "") -> str:
+    """Prompt gambar adegan. Bila ada karakter, minta model mempertahankan wujudnya dari gambar referensi.
+    `style_text` (gaya tema video) menggantikan gaya gambar bawaan/karakter."""
     if not ch:
-        art = ART_STYLES.get(art_override, ART_STYLES["kartun3d"])[1]
+        art = style_text or ART_STYLES.get(art_override, ART_STYLES["kartun3d"])[1]
         return (f"{scene_prompt_text.strip()}. Style: {art}. Vertical composition with the main subject in the "
                 "middle third. No text, no captions, no logos, no watermarks.")
-    art = ART_STYLES.get(ch.get("art"), ART_STYLES["kartun3d"])[1]
+    art = style_text or ART_STYLES.get(ch.get("art"), ART_STYLES["kartun3d"])[1]
     return (f"Use the exact same character shown in the reference image ({ch['name']}: {ch.get('look', '')}). "
             "Keep the face, hair, body shape, outfit and colors identical. "
             f"Scene: {scene_prompt_text.strip()}. Style: {art}. The character is clearly visible in the middle "

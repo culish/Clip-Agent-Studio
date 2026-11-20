@@ -38,10 +38,27 @@ Tab **Buat video** membuat video baru dari video viral atau dari topik yang Anda
 1. **Naskah orisinal.** AI membaca teks ucapan video sumber hanya sebagai riset (videonya tidak diunduh), lalu menulis naskah baru dengan sudut pandang dan kata-kata sendiri. Kemiripan dengan sumber diukur otomatis (5-kata berurutan yang sama). Bila lebih dari 8%, AI diminta menulis ulang. Angkanya tampil di editor.
 2. **Edit per adegan**: narasi, judul di layar, jenis visual, deskripsi gambar, kata kunci stok, gerak kamera, transisi. Urutan adegan bisa diubah.
 3. **Suara narasi**: Gemini TTS (30 suara, butuh Gemini API key) atau Edge (gratis, tanpa key).
-4. **Visual per adegan**: gambar AI (dengan karakter Anda), video stok (Pixabay/Pexels), kartu teks, atau video AI. Video AI memakai Gemini Omni Flash, berbayar sekitar US$0,10 per detik 720p, dan baru dipakai bila **Izinkan video AI berbayar** dicentang. Perkiraan biayanya tampil sebelum dibuat.
+4. **Visual per adegan**: gambar tema (gratis, lihat di bawah), gambar AI (dengan karakter Anda), video stok (Pixabay/Pexels), kartu teks, atau video AI. Video AI memakai Gemini Omni Flash, berbayar sekitar US$0,10 per detik 720p, dan baru dipakai bila **Izinkan video AI berbayar** dicentang. Perkiraan biayanya tampil sebelum dibuat.
 5. **Musik, caption, render**: musik bawaan atau file Anda, caption karaoke, dirender dengan Remotion.
 
 **Siapkan suara & gambar** membuat aset per adegan agar bisa dicek (ada pemutar suara dan gambar kecil per adegan). Aset disimpan, jadi **Buat video** hanya membuat ulang adegan yang berubah. Hasil ada di `output/_projects/<id>/`.
+
+### Tema video (stickman, lofi, dongeng, berita data, dan lainnya)
+
+Saat membuat proyek, pilih **Tema video**. Tema mengatur format naskah yang ditulis AI, gaya suara narator, musik, caption, judul, dan visual tiap adegan sekaligus. Visual tema **digambar langsung oleh Remotion sebagai grafis bergerak**, jadi gratis dan tidak butuh API gambar. Bila ada Gemini API key, ganti *Visual default* ke **Gambar AI** untuk ilustrasi AI dengan gaya tema yang sama; efek seperti hujan, kunang-kunang, dan kilat tetap dipasang di atasnya.
+
+| Tema | Visual | Cocok untuk |
+|---|---|---|
+| ✏️ Stickman | Stickman tangan di kertas putih: 12 pose, 33 benda (matahari, uang, grafik, jam, lampu ide...), tulisan spidol | Penjelasan sains, psikologi, uang, tips |
+| 🌧️ Cerita lofi | Kamar malam dengan hujan di jendela, jalan basah, atap kota, di dalam bus; lampu hangat, butiran film | Monolog pelan soal perasaan sehari-hari |
+| 🦌 Dongeng malam | Bulan purnama, bukit, danau, desa, laut; rusa, kelinci, burung hantu, rubah, kura-kura; kunang-kunang | Dongeng dengan pesan moral |
+| 🗺️ Berita data | Peta bertitik (koordinat asli), angka besar yang menghitung naik, grafik batang, judul ala koran | Jurnalisme data; AI hanya memakai angka dari bahan riset |
+| 🚪 Pilih pintu | Tiga pintu bernomor, pilihan di bawahnya, hitung mundur 3-2-1, pintu jawaban terbuka | Teka-teki dan tes pilihan yang memancing komentar |
+| 📼 Kaset cerita | Nenek/kakek/ibu/ayah dengan balon kata, kaset dengan pita berputar, gelombang suara yang mengikuti narasi | Nasihat dan kenangan, nostalgia |
+| 🌅 Senja minimalis | Matahari retro, laut, perahu nelayan, siluet, burung, sepeda | Kisah inspiratif dan filosofi |
+| ⛈️ Misteri malam | Awan badai, kilat, hujan, kabut, rumah tua, menara, jalan sepi | Misteri dan legenda (disajikan sebagai legenda, bukan fakta) |
+
+Setiap adegan punya kolom gambar tema yang bisa diubah di editor (pose dan benda stickman, tempat dan waktu lofi, titik peta, pilihan pintu, dan seterusnya). Musik bawaan bertambah dua: **Lo-fi hujan** (diredam, bunyi piringan hitam dan hujan) dan **Dongeng** (kotak musik). Tema bisa diganti kapan saja dari pengaturan proyek.
 
 ### Karakter (Character Studio)
 

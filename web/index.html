@@ -287,6 +287,12 @@ ol.flow > li { display: grid; gap: 12px; }
 .preset .sw .ln { position: absolute; left: 14%; right: 14%; bottom: 16%; height: 7%; border-radius: 3px; }
 .preset b { font-size: 14px; line-height: 1.2; }
 .preset span { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+.tema-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+.tema-grid .sw { aspect-ratio: 9 / 14; }
+.tema-grid .sw img { object-position: 50% 35%; }
+.tema-grid .sw .none { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 10px; font-size: 12px; color: var(--ink-2);
+  background: repeating-linear-gradient(135deg, var(--sunk) 0 10px, var(--panel) 10px 20px); }
+.tema-note { font-size: 13px; color: var(--ink-2); margin: 0; max-width: 72ch; }
 .custom { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px; border-left: 3px solid var(--marker); padding: 4px 0 4px 14px; }
 .custom .wide { grid-column: 1 / -1; }
 .custom .colors { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -723,6 +729,9 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
       <section class="mk-panel" id="mkNew">
         <h2>Proyek baru</h2>
         <label class="field"><span>Link video viral atau topik</span><textarea id="nSource" rows="2" placeholder="https://www.youtube.com/watch?v=…  atau  'kenapa bunga tabungan turun setelah Fed memangkas suku bunga'"></textarea></label>
+        <div class="field"><span class="label">Tema video</span>
+          <div class="presets tema-grid" id="nTheme" role="radiogroup" aria-label="Tema video"></div>
+          <p class="tema-note" id="nThemeNote"></p></div>
         <div class="grid3">
           <label class="field"><span>Durasi</span><select id="nLength"></select></label>
           <label class="field"><span>Format</span><select id="nAspect"><option value="9:16">9:16 Shorts/Reels/TikTok</option><option value="16:9">16:9 YouTube biasa</option></select></label>
@@ -2133,12 +2142,13 @@ document.addEventListener("click", e => {
 });
 
 /* ------------------------------------------------------------ buat video */
-const MK = { view: "new", pid: "", proj: null, cid: "", chars: [], projects: [], saveTimer: null, prefill: "" };
+const MK = { view: "new", pid: "", proj: null, cid: "", chars: [], projects: [], saveTimer: null, prefill: "", theme: "" };
 async function initMake() {
   const m = await studioMeta(true);
   if (!m) return;
   $("#nLength").innerHTML = m.lengths.map(n => `<option value="${n}" ${n === 45 ? "selected" : ""}>${n < 60 ? n + " detik" : n / 60 + " menit"}</option>`).join("");
   $("#chArt").innerHTML = optHtml(m.art_styles);
+  renderThemePicker();
   const warn = [];
   if (!m.keys.gemini) warn.push("Isi Gemini API key di Pengaturan untuk suara narasi Gemini, gambar AI, dan karakter.");
   if (!m.engines.gemini && !m.engines.edge) warn.push("Belum ada mesin suara: isi Gemini API key atau pasang suara gratis (pip install edge-tts).");
@@ -2175,8 +2185,23 @@ $("#mkProjects").addEventListener("click", e => { const b = e.target.closest("[d
 $("#mkChars").addEventListener("click", e => { const b = e.target.closest("[data-cid]"); if (b) openChar(b.dataset.cid); });
 function newSettings() {
   return { length: +$("#nLength").value, aspect: $("#nAspect").value, audience: $("#nAudience").value,
-           character: $("#nChar").value, angle: $("#nAngle").value.trim() };
+           character: $("#nChar").value, angle: $("#nAngle").value.trim(), theme: MK.theme };
 }
+function renderThemePicker() {
+  const th = STUDIO?.themes || {};
+  const card = (k, name, desc, img) => `<button type="button" class="preset" data-theme="${k}" aria-pressed="${MK.theme === k}" title="${esc(desc)}">
+      <div class="sw">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : `<div class="none">Gambar AI, video stok, atau kartu teks seperti biasa</div>`}</div>
+      <b>${esc(name)}</b></button>`;
+  $("#nTheme").innerHTML = card("", "Tanpa tema", "Visual dan gaya diatur sendiri", "") +
+    Object.entries(th).map(([k, v]) => card(k, `${v.icon} ${v.name}`, v.desc, v.sample)).join("");
+  const t = th[MK.theme];
+  $("#nThemeNote").innerHTML = t ? `${esc(t.desc)} <span class="muted">Contoh: ${esc(t.examples)}.</span> Visualnya digambar otomatis dan gratis; AI menulis naskah dengan format tema ini, lengkap dengan suara dan musik yang cocok.`
+    : "Pilih tema untuk gaya yang sedang ramai: stickman, lofi, dongeng, berita data, pilih pintu, kaset cerita, senja, misteri.";
+}
+$("#nTheme").addEventListener("click", e => {
+  const b = e.target.closest("[data-theme]"); if (!b) return;
+  MK.theme = b.dataset.theme; renderThemePicker();
+});
 $("#nGo").addEventListener("click", async () => {
   const source = $("#nSource").value.trim();
   if (!source) { $("#nSource").focus(); return; }
@@ -2209,7 +2234,12 @@ function renderProject() {
   $("#pDesc").value = sc.description || ""; $("#pTags").value = (sc.hashtags || []).join(", ");
   renderScenesMk(); renderSettingsMk(); renderRenders();
 }
-function sceneVisualMap() { return { "": "Ikuti pengaturan", ...STUDIO.visuals }; }
+function visualChoices() {
+  const v = { ...STUDIO.visuals };
+  if (!STUDIO.themes?.[MK.proj?.settings?.theme]) delete v.tema;
+  return v;
+}
+function sceneVisualMap() { return { "": "Ikuti pengaturan", ...visualChoices() }; }
 function renderScenesMk() {
   const p = MK.proj, scenes = p.script.scenes || [];
   const prev = Object.fromEntries(((p.preview || {}).scenes || []).map(x => [x.id, x]));
@@ -2232,11 +2262,39 @@ function renderScenesMk() {
           <label class="field wide"><span>Deskripsi gambar (bahasa Inggris)</span><textarea rows="2" data-f="prompt" maxlength="400">${esc(s.prompt)}</textarea></label>
           <label class="field"><span>Gerak kamera</span><select data-f="camera">${opt(STUDIO.cameras, s.camera)}</select></label>
           <label class="field"><span>Transisi ke berikutnya</span><select data-f="transition">${opt(STUDIO.transitions, s.transition)}</select></label>
+          ${artFields(s)}
           ${pv.credit ? `<p class="small muted wide">Stok: ${esc(pv.credit)}</p>` : ""}
         </div>
       </div></article>`;
   }).join("");
   updateSum();
+}
+const DATA_SHOW = { map: ["kind", "country", "points", "label"], number: ["kind", "value", "unit", "label"], bars: ["kind", "items"], title: ["kind", "label"] };
+function artFields(s) {
+  const tid = MK.proj.settings.theme, th = STUDIO.themes?.[tid];
+  if (!th || !s.art) return "";
+  const a = s.art;
+  const show = tid === "berita_data" ? DATA_SHOW[a.kind] || DATA_SHOW.title : null;
+  const items = th.fields.filter(([k]) => !show || show.includes(k)).filter(([k]) => !(tid === "stickman" && k === "pose2" && String(a.people) !== "2"));
+  return `<div class="wide small" style="font-weight:700;color:var(--violet);margin-top:4px">${esc(th.icon)} Gambar tema ${esc(th.name)}</div>` + items.map(([k, label, type]) => {
+    const v = a[k];
+    if (type && typeof type === "object") return `<label class="field"><span>${esc(label)}</span><select data-art="${k}">${optHtml(type, String(v))}</select></label>`;
+    if (type === "list") return `<label class="field"><span>${esc(label)}</span><input type="text" data-art="${k}" data-kind="list" value="${esc((v || []).join(", "))}"></label>`;
+    if (type === "points") return `<label class="field wide"><span>${esc(label)}</span><textarea rows="3" data-art="${k}" data-kind="points" placeholder="Jakarta;-6.2;106.8">${esc((v || []).map(p => `${p.name};${p.lat};${p.lon}`).join("\n"))}</textarea></label>`;
+    if (type === "items") return `<label class="field wide"><span>${esc(label)}</span><textarea rows="3" data-art="${k}" data-kind="items" placeholder="Jakarta;53">${esc((v || []).map(p => `${p.label};${p.value}`).join("\n"))}</textarea></label>`;
+    return `<label class="field"><span>${esc(label)}</span><input type="text" data-art="${k}" maxlength="60" value="${esc(v ?? "")}"></label>`;
+  }).join("");
+}
+function parseArt(t) {
+  const v = t.value, kind = t.dataset.kind, k = t.dataset.art;
+  if (kind === "list") return v.split(",").map(x => x.trim()).filter(Boolean);
+  if (kind === "points") return v.split("\n").map(l => l.split(";")).filter(p => p.length >= 3 && isFinite(+p[1]) && isFinite(+p[2]) && p[1].trim() !== "")
+    .map(p => ({ name: p[0].trim(), lat: +p[1], lon: +p[2] }));
+  if (kind === "items") return v.split("\n").map(l => l.split(";")).filter(p => p.length >= 2 && p[1].trim() !== "" && isFinite(+p[1].replace(",", ".")))
+    .map(p => ({ label: p[0].trim(), value: +p[1].replace(",", ".") }));
+  if (k === "people" || k === "answer") return +v;
+  if (k === "storm") return v === "true";
+  return v;
 }
 function updateSum() {
   const scenes = MK.proj.script.scenes || [];
@@ -2252,14 +2310,17 @@ function renderSettingsMk() {
   const voices = m.voices[engine] || {};
   const engines = { gemini: "Gemini" + (m.engines.gemini ? "" : " (butuh API key)"), edge: "Edge, gratis" + (m.engines.edge ? "" : " (belum terpasang)") };
   const presets = Object.fromEntries(Object.entries(m.presets).map(([k, v]) => [k, v.name]));
+  const themed = !!m.themes?.[st.theme];
+  const themeOpts = { "": "Tanpa tema", ...Object.fromEntries(Object.entries(m.themes || {}).map(([k, v]) => [k, `${v.icon} ${v.name}`])) };
   $("#pSettings").innerHTML = `
+    <label class="field"><span>Tema video</span><select data-s="theme">${optHtml(themeOpts, st.theme || "")}</select></label>
     <label class="field"><span>Karakter</span><select data-s="character"><option value="">Tanpa karakter</option>${MK.chars.map(c => `<option value="${c.id}" ${c.id === st.character ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
     <label class="field"><span>Mesin suara</span><select data-s="voice_engine" ${ch ? "disabled title=\"Mengikuti karakter\"" : ""}>${optHtml(engines, engine)}</select></label>
     <label class="field"><span>Suara</span><select data-s="voice"><option value="">${ch?.voice ? "Suara karakter (" + esc(ch.voice) + ")" : "Bawaan"}</option>${optHtml(Object.fromEntries(Object.entries(voices).map(([k, d]) => [k, engine === "gemini" ? `${k}, ${d}` : d])), st.voice)}</select></label>
     <label class="field"><span>Gaya bicara</span><input type="text" data-s="voice_style" maxlength="120" value="${esc(st.voice_style)}" placeholder="mis. energetic and friendly"></label>
-    <label class="field"><span>Visual default</span><select data-s="visual">${optHtml(m.visuals, st.visual)}</select></label>
-    <label class="field"><span>Gaya gambar${ch ? " (ikut karakter)" : ""}</span><select data-s="art" ${ch ? "disabled" : ""}>${optHtml(m.art_styles, ch?.art || st.art)}</select></label>
-    <label class="field"><span>Gaya video & caption</span><select data-s="preset">${optHtml(presets, st.preset)}</select></label>
+    <label class="field"><span>Visual default</span><select data-s="visual">${optHtml(visualChoices(), st.visual)}</select></label>
+    <label class="field"><span>Gaya gambar AI${themed ? " (ikut tema)" : ch ? " (ikut karakter)" : ""}</span><select data-s="art" ${ch || themed ? "disabled" : ""}>${optHtml(m.art_styles, ch?.art || st.art)}</select></label>
+    <label class="field"><span>Gaya video & caption${themed ? " (diatur tema)" : ""}</span><select data-s="preset" ${themed ? "disabled" : ""}>${optHtml(presets, st.preset)}</select></label>
     <label class="field"><span>Musik</span><select data-s="music">${optHtml(m.music, st.music)}</select></label>
     <label class="field"><span>Suasana musik otomatis</span><select data-m="mood">${optHtml(m.moods, MK.proj.script.mood)}</select></label>
     <label class="field"><span>Volume musik: <b class="num" data-k="vol">${Math.round(st.music_volume * 100)}%</b></span><input type="range" min="0" max="0.8" step="0.05" data-s="music_volume" value="${st.music_volume}"></label>
@@ -2279,7 +2340,9 @@ function updateCost() {
   const vids = scenes.filter(s => (s.visual || st.visual) === "ai_video").length;
   const imgs = scenes.filter(s => ["ai_image", "ai_video"].includes(s.visual || st.visual)).length;
   const stock = scenes.filter(s => (s.visual || st.visual) === "stock").length;
+  const tema = scenes.filter(s => (s.visual || st.visual) === "tema" && st.theme).length;
   const parts = [];
+  if (tema) parts.push(`${tema} gambar tema (gratis)`);
   if (imgs) parts.push(`${imgs} gambar AI` + (m.keys.gemini ? "" : " (butuh Gemini API key, sementara memakai kartu teks)"));
   if (stock) parts.push(`${stock} video stok` + (m.keys.pexels ? "" : " (butuh Pixabay atau Pexels API key)"));
   if (vids) parts.push(st.allow_paid_video ? `${vids} video AI, perkiraan biaya US$${(vids * m.video_price.seconds * m.video_price.per_second).toFixed(2)}` : `${vids} adegan video AI akan memakai gambar AI karena izin biaya belum dicentang`);
@@ -2304,7 +2367,16 @@ async function saveProject() {
 }
 ["#pTitle", "#pDesc", "#pTags"].forEach(s => $(s).addEventListener("input", scheduleSave));
 $("#pScenes").addEventListener("input", e => {
-  const t = e.target, row = t.closest("[data-i]"); if (!row || !t.dataset.f) return;
+  const t = e.target, row = t.closest("[data-i]");
+  if (row && t.dataset.art) {
+    const scenes = MK.proj.script.scenes, k = t.dataset.art, val = parseArt(t);
+    scenes[+row.dataset.i].art = { ...(scenes[+row.dataset.i].art || {}), [k]: val };
+    // pilih pintu: pilihan dan jawaban sama di semua adegan
+    if (MK.proj.settings.theme === "pilih_pintu" && (k === "options" || k === "answer")) scenes.forEach(x => { x.art = { ...(x.art || {}), [k]: val }; });
+    if (t.tagName === "SELECT" && ["kind", "people"].includes(k)) renderScenesMk();
+    scheduleSave(); return;
+  }
+  if (!row || !t.dataset.f) return;
   MK.proj.script.scenes[+row.dataset.i][t.dataset.f] = t.value;
   if (t.dataset.f === "narration") updateSum();
   if (t.dataset.f === "visual") updateCost();
@@ -2332,6 +2404,10 @@ $("#pSettings").addEventListener("input", e => {
   MK.proj.settings[k] = t.type === "checkbox" ? t.checked : t.type === "range" ? +t.value : t.value;
   if (k === "music_volume") $("#pSettings [data-k=vol]").textContent = Math.round(t.value * 100) + "%";
   if (["character", "voice_engine", "audience"].includes(k)) { if (k !== "audience") MK.proj.settings.voice = ""; renderSettingsMk(); updateSum(); }
+  if (k === "theme") {                       // server mengisi gambar tema, musik, dan gaya suara yang cocok
+    saveProject().then(() => openProject(MK.pid)).then(() => toast(t.value ? "Tema dipasang. Atur gambar tiap adegan bila perlu." : "Tema dilepas."));
+    return;
+  }
   updateCost(); scheduleSave();
 });
 $("#pRewrite").addEventListener("click", async () => {

@@ -20,6 +20,8 @@ import { flip } from "@remotion/transitions/flip";
 import { clockWipe } from "@remotion/transitions/clock-wipe";
 import { iris } from "@remotion/transitions/iris";
 import { ensureFonts } from "./fonts";
+import { ThemeArt, ThemeOverlay, themeHidesHeading } from "./Themes";
+import type { ThemeInfo } from "./Themes";
 import type { Music, Scene, StoryProps, Style, Word } from "./types";
 
 ensureFonts();
@@ -157,6 +159,17 @@ const Heading: React.FC<{ text: string; style: Style; delay: number; layout: Sty
       </div>
     );
   }
+  if (layout === "plain") {
+    const light = onColor(style.bg) === "#111111";
+    return (
+      <div style={{ ...base, flexDirection: "column", alignItems: "center", top: "5%" }}>
+        <div style={{ color: style.text, fontFamily: style.font, fontSize: size * 1.05, lineHeight: 1.05, textAlign: "center", maxWidth: "94%",
+          textShadow: light ? "none" : `0 ${width * 0.004}px ${width * 0.025}px rgba(0,0,0,0.55)` }}>{t}</div>
+        <div style={{ width: `${Math.min(60, 8 + t.length * 2.2)}%`, height: width * 0.012, marginTop: width * 0.012, background: style.accent,
+          borderRadius: width * 0.01, transform: `scaleX(${pop})`, opacity: 0.9 }} />
+      </div>
+    );
+  }
   if (layout === "card") {
     return (
       <div style={base}>
@@ -263,16 +276,18 @@ const TitleCard: React.FC<{ text: string; style: Style }> = ({ text, style }) =>
 };
 
 // ------------------------------------------------------------------ satu adegan
-const SceneView: React.FC<{ sc: Scene; idx: number; durF: number; style: Style; headingDelay: number; bubbleText: string }> = ({
-  sc, idx, durF, style, headingDelay, bubbleText,
-}) => {
+const SceneView: React.FC<{ sc: Scene; idx: number; durF: number; style: Style; headingDelay: number; bubbleText: string;
+  theme?: ThemeInfo; startF: number }> = ({ sc, idx, durF, style, headingDelay, bubbleText, theme, startF }) => {
   const frame = useCurrentFrame();
   const { fps, width } = useSize();
   const enter = spring({ frame, fps, config: { damping: 14, stiffness: 120 } });
-  const media = <Media sc={sc} idx={idx} durF={durF} style={style} />;
+  const themed = !!(theme && sc.art && !sc.image && !sc.video);
+  const media = themed ? <ThemeArt sc={sc} idx={idx} durF={durF} style={style} theme={theme as ThemeInfo} startF={startF} />
+    : <Media sc={sc} idx={idx} durF={durF} style={style} />;
   const showBubble = style.captions === "bubble" && !!bubbleText;
   // Adegan tanpa gambar/video: judul besar di tengah layar (kartu teks).
-  const cardOnly = !sc.image && !sc.video && !!sc.heading;
+  const cardOnly = !sc.image && !sc.video && !themed && !!sc.heading;
+  const hideHeading = themed && themeHidesHeading(theme, sc);
   // Tanpa caption di bawah, bingkai boleh lebih tinggi agar layar tidak kosong.
   const tall = style.captions === "bubble" || style.captions === "none";
   // Wajah di bagian atas gambar: balon kata dipindah ke bawah agar tidak menutupi wajah.
@@ -310,7 +325,7 @@ const SceneView: React.FC<{ sc: Scene; idx: number; durF: number; style: Style; 
       {body}
       {style.texture === "speedlines" ? <SpeedLines style={style} /> : null}
       {cardOnly ? <TitleCard text={sc.heading || ""} style={style} />
-        : <Heading text={sc.heading || ""} style={style} delay={headingDelay} layout={style.frame} />}
+        : hideHeading ? null : <Heading text={sc.heading || ""} style={style} delay={headingDelay} layout={style.frame} />}
       {showBubble ? <Bubble text={bubbleText} style={style} up={faceHigh}
         top={faceHigh ? (style.frame === "full" ? "68%" : "66%") : style.frame === "full" ? "16%" : "19%"} /> : null}
       {style.sfx && sc.sfx ? <Sfx text={sc.sfx} style={style} /> : null}
@@ -352,7 +367,7 @@ const Captions: React.FC<{ words: Word[]; style: Style }> = ({ words, style }) =
   const g = groups[gi];
   const pop = spring({ frame: frame - Math.round(g.s * fps), fps, config: { damping: 10, stiffness: 200 } });
   const size = width * (style.captions === "pop" ? 0.11 : 0.072);
-  const stroke = Math.max(4, size * 0.09);
+  const stroke = Math.max(2, Math.max(4, size * 0.09) * (style.captionStroke ?? 1));
   return (
     <div style={{ position: "absolute", left: "6%", right: "6%", top: style.captions === "pop" ? "74%" : "77%",
       display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `0 ${size * 0.25}px`,
@@ -438,7 +453,7 @@ export const CartoonStory: React.FC<StoryProps> = (props) => {
     const bubbleText = clean(sc.bubble || words.filter((w) => w.s >= sc.start - 0.05 && w.s < sc.start + sc.dur).map((w) => w.t).slice(0, 16).join(" "));
     children.push(
       <TransitionSeries.Sequence key={`s${i}`} durationInFrames={d + tr}>
-        <SceneView sc={sc} idx={i} durF={d + tr} style={style} bubbleText={bubbleText}
+        <SceneView sc={sc} idx={i} durF={d + tr} style={style} bubbleText={bubbleText} theme={props.theme} startF={sceneStart}
           headingDelay={Math.max(0, hookF - sceneStart)} />
       </TransitionSeries.Sequence>,
     );
@@ -473,6 +488,7 @@ export const CartoonStory: React.FC<StoryProps> = (props) => {
         </filter>
       </svg>
       <TransitionSeries>{children}</TransitionSeries>
+      {props.theme ? <ThemeOverlay theme={props.theme} style={style} /> : null}
       {tex === "grain" ? (
         <AbsoluteFill style={{ backgroundImage: noiseUrl(Math.floor(frame / 3) % 5, 0.9, 0.5), opacity: 0.07, mixBlendMode: "overlay" }} />
       ) : null}

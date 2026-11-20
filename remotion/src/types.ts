@@ -13,6 +13,7 @@ export type Scene = {
   camera: Camera;
   transition: TransitionKind; // transisi MENUJU adegan berikutnya
   focus?: [number, number]; // pusat wajah 0..1
+  art?: Record<string, any>; // adegan bertema: digambar vektor oleh Themes.tsx
 };
 
 export type Word = { s: number; e: number; t: string };
@@ -28,7 +29,7 @@ export type Style = {
   text: string;
   font: string;
   captionFont: string;
-  frame: "full" | "panel" | "card" | "paper";
+  frame: "full" | "panel" | "card" | "paper" | "plain";
   captions: "karaoke" | "pop" | "bubble" | "none";
   texture: "none" | "halftone" | "paper" | "grain" | "speedlines";
   motion: "smooth" | "stop";
@@ -36,6 +37,7 @@ export type Style = {
   videoFilter: "none" | "posterize";
   uppercase: boolean;
   transitionSec: number;
+  captionStroke?: number; // pengali tebal garis tepi caption (bawaan 1)
 };
 
 export type Music = {
@@ -58,4 +60,5 @@ export type StoryProps = {
   style: Style;
   music?: Music;
   speech?: [number, number][]; // rentang detik berisi suara, untuk menurunkan musik (ducking)
+  theme?: { id: string; overlays?: string[]; levels?: number[] }; // tema video (Buat video)
 };

@@ -108,7 +108,7 @@ def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
 # ---------------------------------------------------------------- data untuk UI
 def studio_meta(out_dir: Path) -> dict:
     from .animation import PRESETS, remotion_status
-    from . import broll
+    from . import broll, themes
     return {
         "engines": tts.engines(), "voices": {"gemini": tts.GEMINI_VOICES, "edge": tts.EDGE_VOICES},
         "default_voice": tts.DEFAULT_VOICE, "visuals": remake.VISUALS, "lengths": remake.LENGTHS,
@@ -119,7 +119,7 @@ def studio_meta(out_dir: Path) -> dict:
                  "pexels": broll.available(), "youtube_api": bool(viral.api_key())},
         "video_price": {"per_second": videogen.PRICE_PER_SECOND, "seconds": videogen.EST_SECONDS},
         "defaults": remake.DEFAULT_SETTINGS, "remotion": remotion_status(),
-        "cameras": remake.CAMERAS, "transitions": remake.TRANSITIONS,
+        "cameras": remake.CAMERAS, "transitions": remake.TRANSITIONS, "themes": themes.public(),
     }
 
 

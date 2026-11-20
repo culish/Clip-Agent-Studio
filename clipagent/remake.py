@@ -21,7 +21,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from . import broll, characters, music, tts, videogen
+from . import broll, characters, music, themes, tts, videogen
 from .animation import PRESETS, _AssetServer, _run_remotion, resolve_style
 from .config import Settings
 from .download import fetch_source_text, is_url
@@ -30,15 +30,15 @@ from .imagegen import ImageGen
 from .llm import LLMClient
 from .utils import ClipAgentError, check_cancel, log, progress, slugify
 
-VISUALS = {"ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)", "stock": "Video stok (Pexels/Pixabay)",
-           "text": "Kartu teks"}
+VISUALS = {"tema": "Gambar tema (gratis, digambar otomatis)", "ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)",
+           "stock": "Video stok (Pexels/Pixabay)", "text": "Kartu teks"}
 CAMERAS = ["zoom_in", "pan_right", "zoom_out", "pan_left", "static"]
 TRANSITIONS = ["fade", "slide", "wipe", "flip", "clockwipe", "iris", "none"]
 LENGTHS = [30, 45, 60, 90, 180]
 DEFAULT_SETTINGS = {"length": 45, "aspect": "9:16", "audience": "us", "angle": "", "character": "",
                     "voice_engine": "gemini", "voice": "", "voice_style": "", "visual": "ai_image",
                     "art": "kartun3d", "preset": "faceless", "music": "auto", "music_volume": 0.35,
-                    "captions": True, "hook": False, "progress_bar": True, "allow_paid_video": False}
+                    "captions": True, "hook": False, "progress_bar": True, "allow_paid_video": False, "theme": ""}
 
 
 # ---------------------------------------------------------------- penyimpanan
@@ -123,6 +123,10 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
     for k in ("captions", "hook", "progress_bar", "allow_paid_video"):
         if k in raw:
             st[k] = bool(raw[k])
+    if "theme" in raw:
+        st["theme"] = raw["theme"] if raw["theme"] in themes.THEMES else ""
+    if st.get("visual") == "tema" and not st.get("theme"):
+        st["visual"] = "ai_image"
     try:
         st["music_volume"] = min(1.0, max(0.0, float(raw.get("music_volume", st["music_volume"]))))
     except (TypeError, ValueError):
@@ -130,7 +134,7 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
     return st
 
 
-def clean_scenes(raw: list) -> list[dict]:
+def clean_scenes(raw: list, theme: str = "") -> list[dict]:
     out = []
     for i, sc in enumerate(raw or []):
         if not isinstance(sc, dict):
@@ -145,7 +149,9 @@ def clean_scenes(raw: list) -> list[dict]:
                     "stock": str(sc.get("stock") or "").strip()[:80],
                     "camera": sc.get("camera") if sc.get("camera") in CAMERAS else CAMERAS[i % 4],
                     "transition": sc.get("transition") if sc.get("transition") in TRANSITIONS else "fade"})
-    return out
+        if theme in themes.THEMES:
+            out[-1]["art"] = themes.clean_art(theme, sc.get("art"), i)
+    return themes.finalize(theme, out) if theme in themes.THEMES else out
 
 
 # ---------------------------------------------------------------- naskah
@@ -212,17 +218,24 @@ def _llm(out_dir: Path, audience: str) -> LLMClient:
 def new_project(out_dir: Path, source: str, settings: dict, blank: bool = False) -> dict:
     pid = uuid.uuid4().hex[:10]
     st = clean_settings(settings)
+    th = themes.get(st.get("theme"))
+    if th:                                       # tema: visual gratis + gaya suara bawaan tema
+        if "visual" not in (settings or {}):
+            st["visual"] = "tema"
+        if not st.get("voice_style"):
+            st["voice_style"] = th["voice_style"]
     src = (source or "").strip()
     proj = {"id": pid, "created": time.strftime("%Y-%m-%d %H:%M:%S"), "settings": st,
             "source": {"url": src, "title": ""} if is_url(src) else {"url": "", "title": ""},
             "topic": "" if is_url(src) else src[:500], "script": {"title": "", "description": "", "hashtags": [],
-                                                                  "mood": "santai", "scenes": []},
+                                                                  "mood": th["mood"] if th else "santai", "scenes": []},
             "similarity": None, "renders": []}
     if blank:
         n = max(3, round(st["length"] / 6))
         proj["script"]["title"] = proj["topic"][:70]
         proj["script"]["scenes"] = [{"id": uuid.uuid4().hex[:6], "narration": "", "heading": "", "visual": "",
-                                     "prompt": "", "stock": "", "camera": CAMERAS[i % 4], "transition": "fade"}
+                                     "prompt": "", "stock": "", "camera": CAMERAS[i % 4], "transition": "fade",
+                                     **({"art": themes.clean_art(st["theme"], {}, i)} if th else {})}
                                     for i in range(n)]
     return save(out_dir, proj)
 
@@ -256,12 +269,14 @@ def write_script(out_dir: Path, pid: str) -> dict:
         audience="United States" if st["audience"] == "us" else "Indonesia", seconds=seconds, words=words,
         scenes=n_scenes, angle=f"Creator's angle/instructions: {st['angle']}." if st.get("angle") else "",
         persona=persona, char_rule=f"; the recurring character {ch['name']} appears in most scenes" if ch else "")
+    theme = st.get("theme") or ""
+    prompt += themes.prompt_block(theme)
     best = None
     for attempt in range(3):
         check_cancel()
         progress(0.25 + 0.2 * attempt, "AI menulis naskah orisinal" if attempt == 0 else "Menulis ulang agar lebih orisinal")
         data = client.complete_json(SCRIPT_SYSTEM, prompt, list_key="scenes")
-        scenes = clean_scenes(data.get("scenes"))
+        scenes = clean_scenes(data.get("scenes"), theme)
         if not scenes:
             log("Jawaban AI tidak berisi adegan; mencoba lagi.")
             continue
@@ -280,8 +295,9 @@ def write_script(out_dir: Path, pid: str) -> dict:
     sim, data, scenes = best
     tags = [re.sub(r"[^\w]", "", str(t)) for t in (data.get("hashtags") or []) if str(t).strip()][:8]
     proj["script"] = {"title": str(data.get("title") or title)[:100], "description": str(data.get("description") or "")[:4000],
-                      "hashtags": tags, "mood": data.get("mood") if data.get("mood") in music.MOODS else "santai",
-                      "scenes": scenes}
+                      "hashtags": tags, "scenes": scenes,
+                      "mood": themes.THEMES[theme]["mood"] if theme in themes.THEMES
+                      else data.get("mood") if data.get("mood") in music.MOODS else "santai"}
     proj["similarity"] = round(sim, 3) if proj["source"].get("url") else None
     proj.pop("preview", None)
     save(out_dir, proj)
@@ -291,6 +307,7 @@ def write_script(out_dir: Path, pid: str) -> dict:
 
 def update(out_dir: Path, pid: str, data: dict) -> dict:
     proj = load(out_dir, pid)
+    old_theme = proj["settings"].get("theme") or ""
     if "settings" in data:
         proj["settings"] = clean_settings(data["settings"], proj["settings"])
     if "script" in data and isinstance(data["script"], dict):
@@ -304,6 +321,21 @@ def update(out_dir: Path, pid: str, data: dict) -> dict:
             sc["mood"] = s["mood"]
         if isinstance(s.get("scenes"), list):
             sc["scenes"] = [dict(x, narration=str(x.get("narration") or "")) for x in s["scenes"] if isinstance(x, dict)][:40]
+    theme = proj["settings"].get("theme") or ""
+    if not theme and old_theme:
+        proj.pop("preview", None)
+    if theme in themes.THEMES:                       # tema baru/diganti: setiap adegan punya "art" yang valid
+        for i, x in enumerate(proj["script"].get("scenes") or []):
+            x["art"] = themes.clean_art(theme, x.get("art"), i)
+        themes.finalize(theme, proj["script"].get("scenes") or [])
+        if theme != old_theme:                       # ganti tema: musik dan gaya suara ikut tema
+            proj.pop("preview", None)                # gambar kecil lama milik tema sebelumnya
+            proj["script"]["mood"] = themes.THEMES[theme]["mood"]
+            if not proj["settings"].get("voice_style") or proj["settings"]["voice_style"] in \
+                    [t["voice_style"] for t in themes.THEMES.values()]:
+                proj["settings"]["voice_style"] = themes.THEMES[theme]["voice_style"]
+            if proj["settings"].get("visual") in ("text", "ai_image") and not old_theme:
+                proj["settings"]["visual"] = "tema"
     return save(out_dir, proj)
 
 
@@ -313,7 +345,8 @@ def _dims(aspect: str) -> tuple[int, int]:
 
 
 def _ai_image(gen: ImageGen, ch: dict | None, refs: list, sc: dict, st: dict, adir: Path) -> Path:
-    prompt = characters.scene_prompt(ch, sc["prompt"] or sc["heading"] or sc["narration"], st.get("art", "kartun3d"))
+    prompt = characters.scene_prompt(ch, sc["prompt"] or sc["heading"] or sc["narration"], st.get("art", "kartun3d"),
+                                     themes.ai_style(st.get("theme", "")))
     import hashlib
     key = hashlib.sha1(f"{prompt}|{st['aspect']}|{gen.model}|{len(refs)}|{ch.get('id') if ch else ''}".encode()).hexdigest()[:14]
     p = adir / f"img_{key}.png"
@@ -327,7 +360,8 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     """Narasi + visual + musik untuk semua adegan (di-cache). Menyimpan ringkasan di project['preview']."""
     proj = load(out_dir, pid)
     st, script = proj["settings"], proj["script"]
-    scenes = clean_scenes(script.get("scenes"))
+    theme = st.get("theme") if st.get("theme") in themes.THEMES else ""
+    scenes = clean_scenes(script.get("scenes"), theme)
     if not scenes:
         raise ClipAgentError("Naskah masih kosong. Isi narasi minimal satu adegan.")
     d = pdir(out_dir, pid)
@@ -369,7 +403,11 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
         if kind == "ai_video" and not st.get("allow_paid_video"):
             log(f"  Adegan {i + 1}: video AI belum diizinkan (centang izin biaya); memakai gambar AI.")
             kind = "ai_image"
+        if kind == "tema" and not theme:
+            kind = "text"
         item = {"kind": kind, "dur": dur}
+        if kind == "tema":                               # digambar Remotion saat render; gratis
+            item["art"] = sc["art"]
         if kind in ("ai_image", "ai_video") and blocked["image"]:
             kind = "stock" if broll.available() else "text"
             item["kind"] = kind
@@ -385,7 +423,11 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
                     kind = "ai_image" if gen and not blocked["image"] else "text"
                     item["kind"] = kind
             if kind in ("ai_image", "ai_video"):
-                if gen is None:
+                if gen is None and theme:
+                    log(f"  Adegan {i + 1}: gambar AI butuh GEMINI_API_KEY; memakai gambar tema.")
+                    item.update(kind="tema", art=sc["art"])
+                    kind = "tema"
+                elif gen is None:
                     log(f"  Adegan {i + 1}: gambar AI butuh GEMINI_API_KEY; memakai kartu teks.")
                     item["kind"] = kind = "text"
                 else:
@@ -413,15 +455,17 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
                             item["kind"] = "ai_image"
         except QuotaError:
             fb = broll.fetch(sc["stock"] or sc["heading"] or sc["narration"][:40], dur, st["aspect"], adir, used) \
-                if broll.available() else None
-            if fb:
+                if broll.available() and not theme else None
+            if theme:
+                item = {"kind": "tema", "dur": dur, "art": sc["art"]}
+            elif fb:
                 fit = videogen.fit_clip(fb["path"], dur, W, H, adir / f"fit_{fb['path'].stem}_{int(dur * 10)}.mp4")
                 item = {"kind": "stock", "dur": dur, "video": fit.name, "credit": fb["credit"]}
             else:
                 item = {"kind": "text", "dur": dur}
         except ClipAgentError as exc:
-            log(f"  Adegan {i + 1}: visual gagal ({str(exc)[:160]}); memakai kartu teks.")
-            item = {"kind": "text", "dur": dur}
+            log(f"  Adegan {i + 1}: visual gagal ({str(exc)[:160]}); memakai " + ("gambar tema." if theme else "kartu teks."))
+            item = {"kind": "tema", "dur": dur, "art": sc["art"]} if theme else {"kind": "text", "dur": dur}
         # gambar kecil untuk editor
         thumb = adir / f"thumb_{sc['id']}.jpg"
         src_img = None
@@ -443,6 +487,11 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
         item["words"] = v["words"]
         item["vo_duration"] = v["duration"]
         items.append(item)
+    if theme and any(it["kind"] == "tema" for it in items):
+        try:
+            _theme_thumbs(theme, scenes, items, st["aspect"], adir, p0 + span * 0.95, p1)
+        except ClipAgentError as exc:
+            log(f"  Gambar kecil tema dilewati ({str(exc).splitlines()[0][:120]}).")
     total = round(sum(x["dur"] for x in items), 2)
     proj = load(out_dir, pid)
     proj["preview"] = {"scenes": [{"id": sc["id"], **{k: it.get(k) for k in ("kind", "dur", "thumb", "audio", "credit")}}
@@ -450,6 +499,44 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     save(out_dir, proj)
     progress(p1, "Aset siap")
     return {"scenes": scenes, "items": items, "duration": total, "character": ch}
+
+
+def _theme_style(st: dict) -> dict:
+    theme = st.get("theme")
+    if theme in themes.THEMES:
+        style = themes.look(theme)
+    else:
+        style = dict(resolve_style({"preset": st.get("preset", "faceless")})["style"])
+    if not st.get("captions", True):
+        style["captions"] = "none"
+    elif style["captions"] == "bubble":
+        style["captions"] = "karaoke"
+    return style
+
+
+def _theme_thumbs(theme: str, scenes: list[dict], items: list[dict], aspect: str, adir: Path, p0: float, p1: float) -> None:
+    """Gambar kecil adegan bertema untuk editor (satu still Remotion per adegan, di-cache per isi)."""
+    import hashlib
+    W, H = _dims(aspect)
+    style = themes.look(theme)
+    stills = []
+    for sc, it in zip(scenes, items):
+        if it["kind"] != "tema":
+            continue
+        key = hashlib.sha1(json.dumps([theme, aspect, it["art"], sc["heading"]], sort_keys=True).encode()).hexdigest()[:12]
+        thumb = adir / f"thumb_tema_{key}.jpg"
+        it["thumb"] = thumb.name
+        if thumb.is_file():
+            continue
+        props = {"fps": 30, "width": W, "height": H, "duration": 3.0, "audioParts": [], "words": [],
+                 "scenes": [{"start": 0, "dur": 3.0, "heading": sc["heading"], "bubble": "", "sfx": "", "art": it["art"],
+                             "camera": "static", "transition": "none"}],
+                 "progressBar": False, "hook": "", "style": style,
+                 "theme": {"id": theme, "overlays": themes.THEMES[theme]["overlays"]}}
+        stills.append({"props": props, "frame": 75, "output": str(thumb.resolve())})
+    if stills:
+        _run_remotion({"mode": "stills", "props": stills[0]["props"], "stills": stills, "scale": 0.25}, p0, p1,
+                      "Menggambar adegan tema")
 
 
 def _narration(adir: Path, items: list[dict]) -> tuple[Path, list[dict], list[list[float]]]:
@@ -490,12 +577,8 @@ def render(out_dir: Path, pid: str) -> dict:
     W, H = _dims(st["aspect"])
     narration, words, speech = _narration(adir, items)
     total = round(sum(x["dur"] for x in items), 3)
-    look = resolve_style({"preset": st.get("preset", "faceless")})
-    style = dict(look["style"])
-    if not st.get("captions", True):
-        style["captions"] = "none"
-    elif style["captions"] == "bubble":
-        style["captions"] = "karaoke"
+    style = _theme_style(st)
+    theme = st.get("theme") if st.get("theme") in themes.THEMES else ""
     mtrack = music.track(st.get("music", "auto"), total + 0.5, adir, script.get("mood", "santai"))
     with _AssetServer(out_dir) as srv:
         scenes, t = [], 0.0
@@ -506,6 +589,8 @@ def render(out_dir: Path, pid: str) -> dict:
                 s["video"], s["videoFrom"] = srv.url(adir / it["video"]), 0
             elif it.get("image"):
                 s["image"] = srv.url(adir / it["image"])
+            elif it["kind"] == "tema" and it.get("art"):
+                s["art"] = it["art"]
             scenes.append(s)
             t += it["dur"]
         props = {"fps": 30, "width": W, "height": H, "duration": total, "audio": srv.url(narration),
@@ -514,6 +599,10 @@ def render(out_dir: Path, pid: str) -> dict:
                  "style": style, "speech": speech}
         if mtrack:
             props["music"] = {"src": srv.url(mtrack), "volume": float(st.get("music_volume", 0.35)), "duck": 0.28}
+        if theme:
+            props["theme"] = {"id": theme, "overlays": themes.THEMES[theme]["overlays"]}
+            if theme == "kaset":                         # gelombang suara mengikuti narasi
+                props["theme"]["levels"] = themes.audio_levels(narration, 30, tts.read_wav)
         name = f"video_{time.strftime('%Y%m%d_%H%M%S')}_{slugify(script.get('title') or 'video', 30)}.mp4"
         out = d / name
         tmp = d / (name + ".part.mp4")

@@ -37,6 +37,15 @@ MOODS = {
     "teknologi": {"label": "Teknologi (synth)", "bpm": 110, "key": 57, "minor": True, "swing": 0.0,
                   "prog": [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]],
                   "kick": [0, 1, 2, 3], "snare": [1, 3], "hat": 0.25, "arp": 0.25, "pad": 0.45, "lead": 0.4},
+    # lo-fi hujan: lebih pelan, nada diredam (low-pass), bunyi piringan hitam dan hujan tipis
+    "lofi": {"label": "Lo-fi hujan", "bpm": 72, "key": 53, "minor": False, "swing": 0.2,
+             "prog": [[0, 4, 7, 11, 14], [-3, 0, 4, 7], [2, 5, 9, 12], [-5, -1, 2, 5]],
+             "kick": [0, 2.5], "snare": [1, 3], "hat": 0.5, "arp": 0.0, "pad": 0.7, "lead": 0.35,
+             "lowpass": 1500, "crackle": 0.5, "rain": 0.35},
+    # dongeng: kotak musik dan pad lembut, tanpa drum
+    "dongeng": {"label": "Dongeng (kotak musik)", "bpm": 84, "key": 64, "minor": False, "swing": 0.0,
+                "prog": [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]],
+                "kick": [], "snare": [], "hat": 0, "arp": 0.5, "pad": 0.5, "lead": 0.55, "musicbox": True},
 }
 
 
@@ -93,6 +102,22 @@ def _noise_hit(n: int, decay: float, rng: np.random.Generator, hp: bool) -> np.n
     return x * np.exp(-t * decay)
 
 
+def _bell(f: float, n: int) -> np.ndarray:
+    """Nada kotak musik: parsial tak harmonis yang cepat meluruh."""
+    t = np.arange(n) / SR
+    tone = (np.sin(2 * np.pi * f * t) + 0.5 * np.sin(2 * np.pi * f * 2.76 * t) * np.exp(-t * 6)
+            + 0.25 * np.sin(2 * np.pi * f * 5.4 * t) * np.exp(-t * 12))
+    return tone * np.exp(-t * 3.2) * _env(n, 0.002, 0.05)
+
+
+def _lowpass(x: np.ndarray, cutoff: float) -> np.ndarray:
+    """Filter low-pass lembut di domain frekuensi (tanpa scipy)."""
+    spec = np.fft.rfft(x)
+    freqs = np.fft.rfftfreq(len(x), 1 / SR)
+    spec *= 1 / np.sqrt(1 + (freqs / cutoff) ** 4)
+    return np.fft.irfft(spec, len(x))
+
+
 def _reverb(x: np.ndarray, seconds: float, rng: np.random.Generator, wet: float) -> np.ndarray:
     n_ir = int(seconds * SR)
     ir = rng.standard_normal(n_ir) * np.exp(-np.arange(n_ir) / SR * (6.0 / seconds))
@@ -136,9 +161,9 @@ def generate(mood: str, seconds: float, seed: int = 7) -> np.ndarray:
                 if mood == "dramatis" and i % 2:
                     continue
                 s = start + int(i * step * SR + (m["swing"] * step * SR if i % 2 else 0))
-                f = hz(m["key"] + 12 + notes[i % len(notes)])
+                f = hz(m["key"] + (24 if m.get("musicbox") else 12) + notes[i % len(notes)])
                 np_ = int(min(1.2, step * 3) * SR)
-                lead[s:s + np_] += 0.22 * _pluck(f, np_, 0.6)[: total - s]
+                lead[s:s + np_] += 0.22 * (_bell(f, np_) if m.get("musicbox") else _pluck(f, np_, 0.6))[: total - s]
         # melodi sederhana pentatonik di bar genap
         if m["lead"] and b % 2 == 1:
             for i in range(4):
@@ -147,19 +172,20 @@ def generate(mood: str, seconds: float, seed: int = 7) -> np.ndarray:
                 s = start + int(i * beat * SR)
                 note = m["key"] + 24 + scale[int(motif[(b + i) % 8])]
                 nl = int(beat * 1.6 * SR)
-                lead[s:s + nl] += 0.3 * m["lead"] * _pluck(hz(note), nl, 1.0)[: total - s]
+                tone = _bell(hz(note + 12), nl) if m.get("musicbox") else _pluck(hz(note), nl, 1.0)
+                lead[s:s + nl] += 0.3 * m["lead"] * tone[: total - s]
         # drum (masuk setelah 1 bar intro)
         if b == 0 and mood not in ("dramatis",):
             continue
         for k in m["kick"]:
             s = start + int(k * beat * SR)
             nk = int(0.5 * SR)
-            drums[s:s + nk] += (1.0 if mood != "santai" else 0.8) * _kick(nk, mood == "dramatis")[: total - s]
+            drums[s:s + nk] += (0.8 if mood in ("santai", "lofi") else 1.0) * _kick(nk, mood == "dramatis")[: total - s]
         for k in m["snare"]:
             s = start + int(k * beat * SR)
             ns = int(0.25 * SR)
             hit = 0.35 * _noise_hit(ns, 22, rng, False) + 0.25 * np.sin(2 * np.pi * 190 * np.arange(ns) / SR) * np.exp(-np.arange(ns) / SR * 30)
-            drums[s:s + ns] += (0.5 if mood == "santai" else 0.7) * hit[: total - s]
+            drums[s:s + ns] += (0.5 if mood in ("santai", "lofi") else 0.7) * hit[: total - s]
         if m["hat"]:
             steps = int(round(4 / m["hat"]))
             for i in range(steps):
@@ -172,6 +198,18 @@ def generate(mood: str, seconds: float, seed: int = 7) -> np.ndarray:
     music = 0.9 * _reverb(pad * m["pad"], 2.4, rng, 0.35) + 0.8 * bass + _reverb(lead, 1.6, rng, 0.25) + 0.75 * drums
     n_out = int(seconds * SR)
     music = music[:n_out]
+    if m.get("lowpass"):
+        music = _lowpass(music, m["lowpass"])
+    if m.get("crackle") or m.get("rain"):
+        lvl = np.abs(music).max() + 1e-9
+        if m.get("rain"):                                  # hujan tipis: noise yang diredam
+            music = music + _lowpass(rng.standard_normal(len(music)), 2600) * 0.05 * m["rain"] * lvl
+        if m.get("crackle"):                               # bunyi piringan hitam: letupan kecil acak
+            pops = np.zeros(len(music))
+            idx = rng.integers(0, len(music), int(len(music) / SR * 9))
+            pops[idx] = rng.standard_normal(len(idx)) * 0.6
+            pops += rng.standard_normal(len(music)) * 0.012
+            music = music + _lowpass(pops, 5000) * 0.25 * m["crackle"] * lvl
     fade = min(n_out, int(2.0 * SR))
     music[-fade:] *= np.linspace(1, 0, fade)
     music[: int(0.02 * SR)] *= np.linspace(0, 1, int(0.02 * SR))
