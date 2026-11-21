@@ -653,8 +653,18 @@ class Handler(BaseHTTPRequestHandler):
             traceback.print_exc()
             return self._error(f"{type(exc).__name__}: {exc}", 500)
 
+    def _same_origin(self) -> bool:
+        """POST dari halaman lain (situs web, atau kode animasi yang berjalan di browser render) ditolak.
+        Browser selalu mengirim Origin pada POST lintas asal; permintaan tanpa Origin (alat CLI) tetap boleh."""
+        origin = self.headers.get("Origin")
+        if origin is None:
+            return True
+        return urlparse(origin).netloc.lower() == (self.headers.get("Host") or "").strip().lower()
+
     def do_POST(self):
         p = urlparse(self.path).path
+        if not self._same_origin():
+            return self._html(b"Permintaan dari situs lain ditolak.", 403)
         if not self._gate(p):
             return
         if p == "/connect":

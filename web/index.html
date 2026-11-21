@@ -94,6 +94,7 @@ input[type="color"] { width: 44px; height: 36px; padding: 2px; border: 1px solid
 .btn.ghost { background: transparent; }
 .btn.small { min-height: 32px; padding: 5px 11px; font-size: 13px; }
 .btn[disabled] { opacity: .55; cursor: progress; }
+.btn.disabled { opacity: .55; cursor: not-allowed; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; background: var(--panel); gap: 2px; flex-wrap: wrap; }
 .seg button { flex: 1 1 auto; border: 0; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--ink-2); }
 .seg button[aria-pressed="true"] { background: var(--marker); color: var(--marker-ink); }
@@ -293,6 +294,11 @@ ol.flow > li { display: grid; gap: 12px; }
 .tema-grid .sw .none { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 10px; font-size: 12px; color: var(--ink-2);
   background: repeating-linear-gradient(135deg, var(--sunk) 0 10px, var(--panel) 10px 20px); }
 .tema-note { font-size: 13px; color: var(--ink-2); margin: 0; max-width: 72ch; }
+.mo-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); margin-top: 8px; }
+.mo-grid .sw { aspect-ratio: 9 / 12; }
+.mo-tools { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: var(--r-md); }
+.mo-tools p { margin: 0; }
+.tag-fb { font-size: 12px; color: var(--warn, #b45309); }
 .custom { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 14px; border-left: 3px solid var(--marker); padding: 4px 0 4px 14px; }
 .custom .wide { grid-column: 1 / -1; }
 .custom .colors { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -749,7 +755,8 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
         <label class="field"><span>Link video viral atau topik</span><textarea id="nSource" rows="2" placeholder="https://www.youtube.com/watch?v=…  atau  'kenapa bunga tabungan turun setelah Fed memangkas suku bunga'"></textarea></label>
         <div class="field"><span class="label">Tema video</span>
           <div class="presets tema-grid" id="nTheme" role="radiogroup" aria-label="Tema video"></div>
-          <p class="tema-note" id="nThemeNote"></p></div>
+          <p class="tema-note" id="nThemeNote"></p>
+          <div class="presets tema-grid mo-grid" id="nMotion" role="radiogroup" aria-label="Gaya Motion AI" hidden></div></div>
         <div class="grid3">
           <label class="field"><span>Durasi</span><select id="nLength"></select></label>
           <label class="field"><span>Format</span><select id="nAspect"><option value="9:16">9:16 Shorts/Reels/TikTok</option><option value="16:9">16:9 YouTube biasa</option></select></label>
@@ -791,6 +798,12 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
             <div class="row"><button class="btn" type="button" id="pAssets">Siapkan suara &amp; gambar</button><button class="btn primary" type="button" id="pRender">Buat video</button>
               <span class="small muted" id="pSaved" aria-live="polite"></span></div>
             <div class="crjob" id="pJob" hidden></div>
+            <div class="mo-tools" id="pMotion" hidden>
+              <p class="small muted" id="pMotionNote"></p>
+              <div class="row"><button class="btn small" type="button" id="pMoView">Putar animasi di browser</button>
+                <a class="btn small ghost" id="pMoHtml" href="#">Unduh HTML animasi</a>
+                <button class="btn small ghost" type="button" id="pMoCopy">Salin blueprint untuk Claude</button>
+                <button class="btn small ghost" type="button" id="pMoRedo">Tulis ulang semua animasi</button></div></div>
             <div class="clips" id="pRenders"></div>
           </li>
         </ol>
@@ -2243,20 +2256,38 @@ $("#mkNewBtn").addEventListener("click", () => showMk("new"));
 $("#mkProjects").addEventListener("click", e => { const b = e.target.closest("[data-pid]"); if (b) openProject(b.dataset.pid); });
 $("#mkChars").addEventListener("click", e => { const b = e.target.closest("[data-cid]"); if (b) openChar(b.dataset.cid); });
 function newSettings() {
-  return { length: +$("#nLength").value, aspect: $("#nAspect").value, audience: $("#nAudience").value,
-           character: $("#nChar").value, angle: $("#nAngle").value.trim(), theme: MK.theme };
+  const st = { length: +$("#nLength").value, aspect: $("#nAspect").value, audience: $("#nAudience").value,
+               character: $("#nChar").value, angle: $("#nAngle").value.trim(), theme: MK.theme };
+  if (MK.theme === "_motion") Object.assign(st, { theme: "", visual: "motion", motion_style: MK.mstyle || "clean" });
+  return st;
 }
 function renderThemePicker() {
   const th = STUDIO?.themes || {};
   const card = (k, name, desc, img) => `<button type="button" class="preset" data-theme="${k}" aria-pressed="${MK.theme === k}" title="${esc(desc)}">
       <div class="sw">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : `<div class="none">Gambar AI, video stok, atau kartu teks seperti biasa</div>`}</div>
       <b>${esc(name)}</b></button>`;
+  const mo = STUDIO?.motion;
+  MK.mstyle = MK.mstyle || "clean";
   $("#nTheme").innerHTML = card("", "Tanpa tema", "Visual dan gaya diatur sendiri", "") +
+    (mo ? card("_motion", "✨ Motion AI", "Animasi kode seperti hasil Claude: tipografi bergerak, ikon, grafik", `/web/motion/${MK.mstyle}.jpg`) : "") +
     Object.entries(th).map(([k, v]) => card(k, `${v.icon} ${v.name}`, v.desc, v.sample)).join("");
   const t = th[MK.theme];
-  $("#nThemeNote").innerHTML = t ? `${esc(t.desc)} <span class="muted">Contoh: ${esc(t.examples)}.</span> Visualnya digambar otomatis dan gratis; AI menulis naskah dengan format tema ini, lengkap dengan suara dan musik yang cocok.`
-    : "Pilih tema untuk gaya yang sedang ramai: stickman, lofi, dongeng, berita data, pilih pintu, kaset cerita, senja, misteri.";
+  $("#nMotion").hidden = MK.theme !== "_motion";
+  if (MK.theme === "_motion") {
+    $("#nMotion").innerHTML = Object.entries(mo.styles).map(([k, v]) => `<button type="button" class="preset" data-mstyle="${k}" aria-pressed="${MK.mstyle === k}">
+      <div class="sw"><img src="/web/motion/${k}.jpg" alt="" loading="lazy"></div><span>${esc(v.name)}</span></button>`).join("");
+    $("#nThemeNote").innerHTML = `Seperti meminta Claude membuat video animasi: AI menulis kode HTML dan animasi tiap adegan, disinkronkan dengan kata yang diucapkan, lalu Clip Agent menguji, memperbaiki, dan merendernya menjadi MP4. ` +
+      (mo.claude_code ? "Kodenya ditulis Claude lewat Claude Code di laptop ini (kuota langganan Claude Anda)." : "Kodenya ditulis AI di Pengaturan; pasang dan login Claude Code agar ditulis oleh Claude.") +
+      ` <span class="muted">Pilih gaya warna dan huruf:</span>`;
+  } else {
+    $("#nThemeNote").innerHTML = t ? `${esc(t.desc)} <span class="muted">Contoh: ${esc(t.examples)}.</span> Visualnya digambar otomatis dan gratis; AI menulis naskah dengan format tema ini, lengkap dengan suara dan musik yang cocok.`
+      : "Pilih tema untuk gaya yang sedang ramai: stickman, lofi, dongeng, berita data, pilih pintu, kaset cerita, senja, misteri. Atau Motion AI untuk video animasi seperti buatan Claude.";
+  }
 }
+$("#nMotion").addEventListener("click", e => {
+  const b = e.target.closest("[data-mstyle]"); if (!b) return;
+  MK.mstyle = b.dataset.mstyle; renderThemePicker();
+});
 $("#nTheme").addEventListener("click", e => {
   const b = e.target.closest("[data-theme]"); if (!b) return;
   MK.theme = b.dataset.theme; renderThemePicker();
@@ -2291,7 +2322,23 @@ function renderProject() {
   $("#pSim").hidden = sim == null;
   if (sim != null) { $("#pSim").className = "sim " + (sim <= 0.1 ? "ok" : "warn"); $("#pSim").textContent = `Kemiripan dengan sumber ${(sim * 100).toFixed(0)}%${sim <= 0.1 ? ", orisinal" : ", sebaiknya ditulis ulang"}`; }
   $("#pDesc").value = sc.description || ""; $("#pTags").value = (sc.hashtags || []).join(", ");
-  renderScenesMk(); renderSettingsMk(); renderRenders();
+  renderScenesMk(); renderSettingsMk(); renderRenders(); renderMotionTools();
+}
+function usesMotion() {
+  const p = MK.proj; if (!p || !STUDIO.motion) return false;
+  return p.settings.visual === "motion" || (p.script.scenes || []).some(s => s.visual === "motion");
+}
+function renderMotionTools() {
+  const on = usesMotion();
+  $("#pMotion").hidden = !on;
+  if (!on) return;
+  const ready = ((MK.proj.preview || {}).scenes || []).some(x => x.kind === "motion");
+  $("#pMotionNote").textContent = ready
+    ? "Animasi siap. Putar di browser untuk mengecek, unduh sebagai satu file HTML, atau salin blueprint untuk ditempel di claude.ai."
+    : "Klik Siapkan suara & gambar: AI menulis kode animasi tiap adegan, lalu Clip Agent menguji dan memperbaikinya. Blueprint bisa disalin kapan saja.";
+  $("#pMoView").disabled = !ready;
+  $("#pMoHtml").classList.toggle("disabled", !ready);
+  $("#pMoHtml").href = ready ? `/api/projects/${MK.pid}/motion.html?download=1` : "#";
 }
 function visualChoices() {
   const v = { ...STUDIO.visuals };
@@ -2305,10 +2352,11 @@ function renderScenesMk() {
   const opt = (arr, v) => arr.map(k => `<option value="${k}" ${k === v ? "selected" : ""}>${esc(CR.state?.cameras?.[k] || CR.state?.transitions?.[k] || ({ zoom_in: "Zoom masuk", zoom_out: "Zoom keluar", pan_left: "Geser ke kiri", pan_right: "Geser ke kanan", static: "Diam", fade: "Pudar", slide: "Geser", wipe: "Sapu", flip: "Balik", clockwipe: "Putar jam", iris: "Lingkaran", none: "Potong langsung" })[k] || k)}</option>`).join("");
   $("#pScenes").innerHTML = scenes.map((s, i) => {
     const pv = prev[s.id] || {};
+    const isMo = (s.visual || p.settings.visual) === "motion";
     return `<article class="sc-row" data-i="${i}">
       ${pv.thumb_url ? `<img src="${esc(pv.thumb_url)}" alt="Visual adegan ${i + 1}">` : `<div class="ch-img" style="aspect-ratio:9/16"><span class="small muted">${i + 1}</span></div>`}
       <div class="sc-body">
-        <div class="sc-top"><b>Adegan ${i + 1}</b>${pv.dur ? `<span class="small muted num">${pv.dur.toFixed(1)} dtk, ${esc(STUDIO.visuals[pv.kind] || pv.kind)}</span>` : ""}
+        <div class="sc-top"><b>Adegan ${i + 1}</b>${pv.dur ? `<span class="small muted num">${pv.dur.toFixed(1)} dtk, ${esc(STUDIO.visuals[pv.kind] || pv.kind)}</span>` : ""}${pv.motion_fallback ? ` <span class="tag-fb">animasi cadangan</span>` : ""}
           <span class="sc-tools"><button class="btn small ghost" type="button" data-act="up" ${i ? "" : "disabled"} aria-label="Naikkan">↑</button>
           <button class="btn small ghost" type="button" data-act="down" ${i < scenes.length - 1 ? "" : "disabled"} aria-label="Turunkan">↓</button>
           <button class="btn small ghost" type="button" data-act="del">Hapus</button></span></div>
@@ -2317,9 +2365,9 @@ function renderScenesMk() {
         <div class="sc-grid">
           <label class="field f-heading"><span>Judul di layar</span><input type="text" data-f="heading" maxlength="80" value="${esc(s.heading)}"></label>
           <label class="field"><span>Visual</span><select data-f="visual">${optHtml(sceneVisualMap(), s.visual || "")}</select></label>
-          <label class="field"><span>Kata kunci stok</span><input type="text" data-f="stock" maxlength="80" value="${esc(s.stock)}" placeholder="mis. bank savings money"></label>
-          <label class="field wide"><span>Deskripsi gambar (bahasa Inggris)</span><textarea rows="2" data-f="prompt" maxlength="400">${esc(s.prompt)}</textarea></label>
-          <label class="field"><span>Gerak kamera</span><select data-f="camera">${opt(STUDIO.cameras, s.camera)}</select></label>
+          ${isMo ? "" : `<label class="field"><span>Kata kunci stok</span><input type="text" data-f="stock" maxlength="80" value="${esc(s.stock)}" placeholder="mis. bank savings money"></label>`}
+          <label class="field wide"><span>${isMo ? "Arahan animasi (bahasa Inggris, opsional)" : "Deskripsi gambar (bahasa Inggris)"}</span><textarea rows="2" data-f="prompt" maxlength="400" ${isMo ? `placeholder="mis. Huge counter 0 to 72% fills a ring; label slides up"` : ""}>${esc(s.prompt)}</textarea></label>
+          ${isMo ? "" : `<label class="field"><span>Gerak kamera</span><select data-f="camera">${opt(STUDIO.cameras, s.camera)}</select></label>`}
           <label class="field"><span>Transisi ke berikutnya</span><select data-f="transition">${opt(STUDIO.transitions, s.transition)}</select></label>
           ${artFields(s)}
           ${pv.credit ? `<p class="small muted wide">Stok: ${esc(pv.credit)}</p>` : ""}
@@ -2378,6 +2426,8 @@ function renderSettingsMk() {
     <label class="field"><span>Suara</span><select data-s="voice"><option value="">${ch?.voice ? "Suara karakter (" + esc(ch.voice) + ")" : "Bawaan"}</option>${optHtml(Object.fromEntries(Object.entries(voices).map(([k, d]) => [k, engine === "gemini" ? `${k}, ${d}` : d])), st.voice)}</select></label>
     <label class="field"><span>Gaya bicara</span><input type="text" data-s="voice_style" maxlength="120" value="${esc(st.voice_style)}" placeholder="mis. energetic and friendly"></label>
     <label class="field"><span>Visual default</span><select data-s="visual">${optHtml(visualChoices(), st.visual)}</select></label>
+    ${usesMotion() ? `<label class="field"><span>Gaya Motion AI</span><select data-s="motion_style">${optHtml(Object.fromEntries(Object.entries(m.motion.styles).map(([k, v]) => [k, v.name])), st.motion_style)}</select></label>
+    <label class="field"><span>Penulis kode animasi</span><select data-s="motion_engine">${optHtml(Object.fromEntries(Object.entries(m.motion.engines).map(([k, v]) => [k, k === "claude" && !m.motion.claude_code ? v + " (belum terpasang)" : v])), st.motion_engine)}</select></label>` : ""}
     <label class="field"><span>Gaya gambar AI${themed ? " (ikut tema)" : ch ? " (ikut karakter)" : ""}</span><select data-s="art" ${ch || themed ? "disabled" : ""}>${optHtml(m.art_styles, ch?.art || st.art)}</select></label>
     <label class="field"><span>Gaya video & caption${themed ? " (diatur tema)" : ""}</span><select data-s="preset" ${themed ? "disabled" : ""}>${optHtml(presets, st.preset)}</select></label>
     <label class="field"><span>Musik</span><select data-s="music">${optHtml(m.music, st.music)}</select></label>
@@ -2400,8 +2450,10 @@ function updateCost() {
   const imgs = scenes.filter(s => ["ai_image", "ai_video"].includes(s.visual || st.visual)).length;
   const stock = scenes.filter(s => (s.visual || st.visual) === "stock").length;
   const tema = scenes.filter(s => (s.visual || st.visual) === "tema" && st.theme).length;
+  const mo = scenes.filter(s => (s.visual || st.visual) === "motion").length;
   const parts = [];
   if (tema) parts.push(`${tema} gambar tema (gratis)`);
+  if (mo) parts.push(`${mo} adegan Motion AI, kodenya ditulis ` + (st.motion_engine === "llm" || (st.motion_engine !== "claude" && !m.motion.claude_code) ? "AI di Pengaturan" : "Claude lewat Claude Code"));
   if (imgs) parts.push(`${imgs} gambar AI` + (m.keys.gemini ? "" : " (butuh Gemini API key, sementara memakai kartu teks)"));
   if (stock) parts.push(`${stock} video stok` + (m.keys.pexels ? "" : " (butuh Pixabay atau Pexels API key)"));
   if (vids) parts.push(st.allow_paid_video ? `${vids} video AI, perkiraan biaya US$${(vids * m.video_price.seconds * m.video_price.per_second).toFixed(2)}` : `${vids} adegan video AI akan memakai gambar AI karena izin biaya belum dicentang`);
@@ -2438,7 +2490,7 @@ $("#pScenes").addEventListener("input", e => {
   if (!row || !t.dataset.f) return;
   MK.proj.script.scenes[+row.dataset.i][t.dataset.f] = t.value;
   if (t.dataset.f === "narration") updateSum();
-  if (t.dataset.f === "visual") updateCost();
+  if (t.dataset.f === "visual") { updateCost(); renderMotionTools(); if (STUDIO.motion) { renderSettingsMk(); renderScenesMk(); } }
   scheduleSave();
 });
 $("#pScenes").addEventListener("click", e => {
@@ -2463,6 +2515,7 @@ $("#pSettings").addEventListener("input", e => {
   MK.proj.settings[k] = t.type === "checkbox" ? t.checked : t.type === "range" ? +t.value : t.value;
   if (k === "music_volume") $("#pSettings [data-k=vol]").textContent = Math.round(t.value * 100) + "%";
   if (["character", "voice_engine", "audience"].includes(k)) { if (k !== "audience") MK.proj.settings.voice = ""; renderSettingsMk(); updateSum(); }
+  if (k === "visual") { renderSettingsMk(); renderScenesMk(); renderMotionTools(); }
   if (k === "theme") {                       // server mengisi gambar tema, musik, dan gaya suara yang cocok
     saveProject().then(() => openProject(MK.pid)).then(() => toast(t.value ? "Tema dipasang. Atur gambar tiap adegan bila perlu." : "Tema dilepas."));
     return;
@@ -2481,6 +2534,22 @@ $("#pAssets").addEventListener("click", async () => {
 $("#pRender").addEventListener("click", async () => {
   await saveProject();
   crJob($("#pJob"), { kind: "remake_render", project: MK.pid }, "video", async () => { await openProject(MK.pid); loadProjects(); toast("Video selesai"); });
+});
+$("#pMoView").addEventListener("click", () => window.open(`/api/projects/${MK.pid}/motion.html`, "_blank", "noopener"));
+$("#pMoHtml").addEventListener("click", e => { if ($("#pMoHtml").classList.contains("disabled")) { e.preventDefault(); toast("Siapkan suara & gambar dulu."); } });
+$("#pMoCopy").addEventListener("click", async () => {
+  try {
+    await saveProject();
+    const { text } = await api(`/api/projects/${MK.pid}/blueprint`);
+    await navigator.clipboard.writeText(text);
+    toast("Blueprint disalin. Tempel di claude.ai untuk meminta Claude menulis kodenya.");
+  } catch (e) { toast(e.message.includes("clipboard") || e.name === "NotAllowedError" ? "Browser menolak menyalin. Coba lagi dari laptop." : e.message, true); }
+});
+$("#pMoRedo").addEventListener("click", async () => {
+  if (!confirm("Tulis ulang kode animasi semua adegan Motion AI? Hasilnya akan berbeda.")) return;
+  MK.proj.settings.motion_rev = (+MK.proj.settings.motion_rev || 0) + 1;
+  await saveProject();
+  crJob($("#pJob"), { kind: "remake_assets", project: MK.pid }, "animasi", () => { openProject(MK.pid); toast("Animasi baru siap."); });
 });
 $("#pDelete").addEventListener("click", async () => {
   if (!confirm("Hapus proyek ini beserta semua videonya?")) return;

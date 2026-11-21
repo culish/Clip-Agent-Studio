@@ -60,6 +60,27 @@ Saat membuat proyek, pilih **Tema video**. Tema mengatur format naskah yang ditu
 
 Setiap adegan punya kolom gambar tema yang bisa diubah di editor (pose dan benda stickman, tempat dan waktu lofi, titik peta, pilihan pintu, dan seterusnya). Musik bawaan bertambah dua: **Lo-fi hujan** (diredam, bunyi piringan hitam dan hujan) dan **Dongeng** (kotak musik). Tema bisa diganti kapan saja dari pengaturan proyek.
 
+### Motion AI: video animasi yang kodenya ditulis Claude
+
+Pilih kartu **✨ Motion AI** saat membuat proyek (atau *Visual default: Motion AI* di pengaturan proyek, bisa juga per adegan). Hasilnya seperti saat meminta Claude membuat video motion graphics dengan HTML + GSAP (HyperFrames) atau Remotion, tetapi langsung jadi MP4 tanpa menyalin kode:
+
+1. AI menulis naskah yang tiap adegannya punya satu poin yang bisa divisualkan (angka, daftar, perbandingan, proses).
+2. Narasi dibuat dulu, sehingga waktu tiap kata diketahui.
+3. AI menulis HTML, CSS, dan timeline animasi untuk setiap adegan: tipografi bergerak, ikon dan ilustrasi SVG, penghitung angka, grafik, diagram. Setiap elemen muncul tepat saat kata itu diucapkan (`S.at("kata")`).
+4. Clip Agent merender satu gambar per adegan di browser render untuk mengujinya: galat kode, layar kosong, serta teks yang bertumpuk atau terpotong dikirim balik ke AI untuk diperbaiki. Bila perbaikan gagal, adegan memakai animasi cadangan, jadi video tetap jadi.
+5. Semua adegan dirender dengan Remotion bersama suara, musik, transisi, dan caption (caption mati secara bawaan karena teks sudah dianimasikan).
+
+**Penulis kode**: *Otomatis* memakai **Claude lewat Claude Code** bila perintah `claude` terpasang dan sudah login (memakai kuota langganan Claude Anda, tanpa API key, tanpa alat apa pun selain menulis teks), selain itu AI di Pengaturan (Gemini gratis, OpenRouter, Claude API, dll.). Hasil Claude paling rapi. **Gaya**: 8 sistem desain (bersih minimal, teknologi gelap, pop berani, editorial koran, pastel lembut, neon malam, profesional, coretan tangan) yang mengatur warna dan huruf; kolom *Arahan animasi* di tiap adegan bisa diisi untuk mengarahkan tata letak.
+
+Setelah **Siapkan suara & gambar**:
+
+- **Putar animasi di browser**: pratinjau cepat dengan narasi, bisa digeser per detik.
+- **Unduh HTML animasi**: satu file HTML mandiri (font dan suara di dalamnya) yang bisa dibuka di browser mana pun, diedit, atau dibagikan, seperti artifact Claude.
+- **Salin blueprint untuk Claude**: prompt lengkap (aturan, sistem desain, naskah, waktu tiap kata) untuk ditempel di claude.ai bila ingin mengerjakan bersama Claude secara langsung.
+- **Tulis ulang semua animasi**: minta versi baru. Kode disimpan per adegan, jadi mengubah satu adegan hanya menulis ulang adegan itu.
+
+Animasi dijalankan **MotionKit** (`remotion/src/motionkit.js`), mesin timeline bergaya GSAP yang ditulis khusus untuk Clip Agent (bukan GSAP; lisensi GSAP tidak mengizinkan alat pembuat animasi tanpa kode). Kode AI berjalan terpisah: tidak boleh memakai jaringan, timer, atau `Math.random`, halaman ekspor dikunci dengan Content-Security-Policy, dan server Clip Agent menolak permintaan POST dari halaman lain.
+
 ### Karakter (Character Studio)
 
 Buat karakter sekali (nama, persona, penampilan, gaya gambar, suara), lalu unggah gambar referensi atau klik **Buat dengan AI** dan pilih satu dari tiga gambar. Gambar referensi ikut dikirim ke AI setiap kali adegan digambar, sehingga wajah, rambut, dan pakaian tetap sama di semua video. Pilih karakter saat membuat proyek; suara karakter otomatis dipakai.

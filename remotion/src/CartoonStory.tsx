@@ -21,6 +21,8 @@ import { clockWipe } from "@remotion/transitions/clock-wipe";
 import { iris } from "@remotion/transitions/iris";
 import { ensureFonts } from "./fonts";
 import { ThemeArt, ThemeOverlay, themeHidesHeading } from "./Themes";
+import { MotionScene } from "./MotionScene";
+import type { MotionDesign } from "./MotionScene";
 import type { ThemeInfo } from "./Themes";
 import type { Music, Scene, StoryProps, Style, Word } from "./types";
 
@@ -277,23 +279,27 @@ const TitleCard: React.FC<{ text: string; style: Style }> = ({ text, style }) =>
 
 // ------------------------------------------------------------------ satu adegan
 const SceneView: React.FC<{ sc: Scene; idx: number; durF: number; style: Style; headingDelay: number; bubbleText: string;
-  theme?: ThemeInfo; startF: number }> = ({ sc, idx, durF, style, headingDelay, bubbleText, theme, startF }) => {
+  theme?: ThemeInfo; startF: number; design?: MotionDesign }> = ({ sc, idx, durF, style, headingDelay, bubbleText, theme, startF, design }) => {
   const frame = useCurrentFrame();
   const { fps, width } = useSize();
   const enter = spring({ frame, fps, config: { damping: 14, stiffness: 120 } });
   const themed = !!(theme && sc.art && !sc.image && !sc.video);
-  const media = themed ? <ThemeArt sc={sc} idx={idx} durF={durF} style={style} theme={theme as ThemeInfo} startF={startF} />
+  const motion = !!((sc as any).motion && design && !sc.image && !sc.video);
+  const media = motion ? <MotionScene sc={sc} idx={idx} durF={durF} design={design as MotionDesign} />
+    : themed ? <ThemeArt sc={sc} idx={idx} durF={durF} style={style} theme={theme as ThemeInfo} startF={startF} />
     : <Media sc={sc} idx={idx} durF={durF} style={style} />;
   const showBubble = style.captions === "bubble" && !!bubbleText;
   // Adegan tanpa gambar/video: judul besar di tengah layar (kartu teks).
-  const cardOnly = !sc.image && !sc.video && !themed && !!sc.heading;
-  const hideHeading = themed && themeHidesHeading(theme, sc);
+  const cardOnly = !sc.image && !sc.video && !themed && !motion && !!sc.heading;
+  const hideHeading = motion || (themed && themeHidesHeading(theme, sc));
   // Tanpa caption di bawah, bingkai boleh lebih tinggi agar layar tidak kosong.
   const tall = style.captions === "bubble" || style.captions === "none";
   // Wajah di bagian atas gambar: balon kata dipindah ke bawah agar tidak menutupi wajah.
   const faceHigh = !!sc.focus && sc.focus[1] < 0.55;
   let body: React.ReactNode;
-  if (style.frame === "panel") {
+  if (motion) {
+    body = media;                                  // motion graphics selalu layar penuh
+  } else if (style.frame === "panel") {
     const bw = width * 0.012;
     body = (
       <div style={{ position: "absolute", left: "5%", right: "5%", top: "15%", height: tall ? "74%" : "58%",
@@ -323,7 +329,7 @@ const SceneView: React.FC<{ sc: Scene; idx: number; durF: number; style: Style; 
   return (
     <AbsoluteFill>
       {body}
-      {style.texture === "speedlines" ? <SpeedLines style={style} /> : null}
+      {style.texture === "speedlines" && !motion ? <SpeedLines style={style} /> : null}
       {cardOnly ? <TitleCard text={sc.heading || ""} style={style} />
         : hideHeading ? null : <Heading text={sc.heading || ""} style={style} delay={headingDelay} layout={style.frame} />}
       {showBubble ? <Bubble text={bubbleText} style={style} up={faceHigh}
@@ -454,6 +460,7 @@ export const CartoonStory: React.FC<StoryProps> = (props) => {
     children.push(
       <TransitionSeries.Sequence key={`s${i}`} durationInFrames={d + tr}>
         <SceneView sc={sc} idx={i} durF={d + tr} style={style} bubbleText={bubbleText} theme={props.theme} startF={sceneStart}
+          design={(props as any).motionDesign}
           headingDelay={Math.max(0, hookF - sceneStart)} />
       </TransitionSeries.Sequence>,
     );

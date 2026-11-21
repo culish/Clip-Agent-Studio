@@ -14,6 +14,8 @@ export type Scene = {
   transition: TransitionKind; // transisi MENUJU adegan berikutnya
   focus?: [number, number]; // pusat wajah 0..1
   art?: Record<string, any>; // adegan bertema: digambar vektor oleh Themes.tsx
+  motion?: { html: string; css: string; js: string }; // adegan Motion AI (MotionScene.tsx)
+  sceneWords?: { s: number; e: number; t: string }[]; // kata narasi relatif terhadap awal adegan
 };
 
 export type Word = { s: number; e: number; t: string };
@@ -61,4 +63,5 @@ export type StoryProps = {
   music?: Music;
   speech?: [number, number][]; // rentang detik berisi suara, untuk menurunkan musik (ducking)
   theme?: { id: string; overlays?: string[]; levels?: number[] }; // tema video (Buat video)
+  motionDesign?: { bg: string; surface: string; ink: string; muted: string; accent: string; accent2: string; head: string; body: string; radius?: number };
 };

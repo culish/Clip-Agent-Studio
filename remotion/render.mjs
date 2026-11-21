@@ -46,7 +46,9 @@ const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || job.browser
 const chromeMode = browserExecutable && !/headless[_-]?shell/i.test(browserExecutable) ? "chrome-for-testing" : "headless-shell";
 // Satu browser dipakai bersama untuk semua langkah (lebih cepat daripada membuka browser per frame).
 const puppeteerInstance = await openBrowser("chrome", { browserExecutable, chromeMode, logLevel: "error" });
-const common = { serveUrl, inputProps: job.props, browserExecutable, chromeMode, logLevel: "error", puppeteerInstance };
+// Pesan MOTION_* dari halaman (galat kode animasi AI) diteruskan ke Python untuk diperbaiki.
+const onBrowserLog = (l) => { if (l && typeof l.text === "string" && l.text.includes("MOTION_")) say("BROWSERLOG", l.text.replace(/\n/g, " ")); };
+const common = { serveUrl, inputProps: job.props, browserExecutable, chromeMode, logLevel: "error", puppeteerInstance, onBrowserLog };
 
 say("STAGE", "Membuka komposisi");
 const compId = job.composition || "CartoonStory";

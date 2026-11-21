@@ -21,7 +21,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from . import broll, characters, music, themes, tts, videogen
+from . import broll, characters, motion, music, themes, tts, videogen
 from .animation import PRESETS, _AssetServer, _run_remotion, resolve_style
 from .config import Settings
 from .download import fetch_source_text, is_url
@@ -30,15 +30,17 @@ from .imagegen import ImageGen
 from .llm import LLMClient
 from .utils import ClipAgentError, check_cancel, log, progress, slugify
 
-VISUALS = {"tema": "Gambar tema (gratis, digambar otomatis)", "ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)",
-           "stock": "Video stok (Pexels/Pixabay)", "text": "Kartu teks"}
+VISUALS = {"tema": "Gambar tema (gratis, digambar otomatis)", "motion": "Motion AI (animasi kode, seperti Claude)",
+           "ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)", "stock": "Video stok (Pexels/Pixabay)",
+           "text": "Kartu teks"}
 CAMERAS = ["zoom_in", "pan_right", "zoom_out", "pan_left", "static"]
 TRANSITIONS = ["fade", "slide", "wipe", "flip", "clockwipe", "iris", "none"]
 LENGTHS = [30, 45, 60, 90, 180]
 DEFAULT_SETTINGS = {"length": 45, "aspect": "9:16", "audience": "us", "angle": "", "character": "",
                     "voice_engine": "gemini", "voice": "", "voice_style": "", "visual": "ai_image",
                     "art": "kartun3d", "preset": "faceless", "music": "auto", "music_volume": 0.35,
-                    "captions": True, "hook": False, "progress_bar": True, "allow_paid_video": False, "theme": ""}
+                    "captions": True, "hook": False, "progress_bar": True, "allow_paid_video": False, "theme": "",
+                    "motion_style": "clean", "motion_engine": "auto", "motion_rev": 0}
 
 
 # ---------------------------------------------------------------- penyimpanan
@@ -114,7 +116,8 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
         st["length"] = max(15, min(600, int(raw["length"])))
     for k, choices in (("aspect", ("9:16", "16:9")), ("audience", ("us", "id")), ("visual", tuple(VISUALS)),
                        ("art", tuple(characters.ART_STYLES)), ("preset", tuple(PRESETS)),
-                       ("voice_engine", ("gemini", "edge"))):
+                       ("voice_engine", ("gemini", "edge")), ("motion_style", tuple(motion.STYLES)),
+                       ("motion_engine", tuple(motion.ENGINES))):
         if raw.get(k) in choices:
             st[k] = raw[k]
     for k, n in (("angle", 400), ("character", 16), ("voice", 60), ("voice_style", 120), ("music", 120)):
@@ -125,6 +128,13 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
             st[k] = bool(raw[k])
     if "theme" in raw:
         st["theme"] = raw["theme"] if raw["theme"] in themes.THEMES else ""
+    if str(raw.get("motion_rev", "")).isdigit():
+        st["motion_rev"] = int(raw["motion_rev"]) % 100000
+    if st.get("visual") == "motion" and st.get("theme"):
+        if raw.get("theme") and raw["theme"] != (base or {}).get("theme"):
+            st["visual"] = "tema"                    # tema baru dipilih: visual ikut tema
+        else:
+            st["theme"] = ""                         # Motion AI punya gaya sendiri; lapisan tema tidak dipakai
     if st.get("visual") == "tema" and not st.get("theme"):
         st["visual"] = "ai_image"
     try:
@@ -203,6 +213,18 @@ call to action), "hashtags" (5 items without #), "mood" (one of: santai, semanga
 
 JSON: {{"title": "", "description": "", "hashtags": [], "mood": "", "scenes": [{{...}}]}}"""
 
+MOTION_SCRIPT = """
+
+VISUAL FORMAT: this is a motion-graphics video, like an animated explainer built in code (kinetic typography,
+icons, simple illustrations, counters, charts, diagrams, comparisons, timelines, checklists; no photos, no footage).
+- Give each scene one concrete point that can be shown visually: a contrast, a list of 2-4 items, a process, a
+  before/after, a well-known number, a question. Do not invent statistics to have something to animate.
+- "heading": the key on-screen text of the scene (2-6 words, taken from the narration's idea).
+- "prompt": the motion design direction for the animator, in English: the layout and what animates when, e.g.
+  "Huge '3' pops in, then three icon cards slide up one by one as each habit is named" or "Split screen: left
+  'Before' greys out, right 'After' glows; arrow draws between them".
+- "stock" may be an empty string; "camera" is "static"."""
+
 
 def _llm(out_dir: Path, audience: str) -> LLMClient:
     try:
@@ -224,6 +246,8 @@ def new_project(out_dir: Path, source: str, settings: dict, blank: bool = False)
             st["visual"] = "tema"
         if not st.get("voice_style"):
             st["voice_style"] = th["voice_style"]
+    if st.get("visual") == "motion" and "captions" not in (settings or {}):
+        st["captions"] = False                   # teks sudah dianimasikan di layar
     src = (source or "").strip()
     proj = {"id": pid, "created": time.strftime("%Y-%m-%d %H:%M:%S"), "settings": st,
             "source": {"url": src, "title": ""} if is_url(src) else {"url": "", "title": ""},
@@ -271,6 +295,8 @@ def write_script(out_dir: Path, pid: str) -> dict:
         persona=persona, char_rule=f"; the recurring character {ch['name']} appears in most scenes" if ch else "")
     theme = st.get("theme") or ""
     prompt += themes.prompt_block(theme)
+    if st.get("visual") == "motion" and not theme:
+        prompt += MOTION_SCRIPT
     best = None
     for attempt in range(3):
         check_cancel()
@@ -381,6 +407,8 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     gen = ImageGen.from_env()
     n = len(scenes)
     span = p1 - p0
+    has_motion = any((sc["visual"] or st["visual"]) == "motion" for sc in scenes)
+    vis_span = 0.15 if has_motion else 0.6               # menulis kode animasi adalah langkah terlama
 
     # 1) narasi
     vo = []
@@ -396,7 +424,7 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     blocked = {"image": "", "video": ""}                # kuota habis: jangan panggil lagi untuk adegan berikutnya
     for i, (sc, v) in enumerate(zip(scenes, vo)):
         check_cancel()
-        progress(p0 + span * (0.35 + 0.6 * i / n), f"Visual adegan {i + 1}/{n}")
+        progress(p0 + span * (0.35 + vis_span * i / n), f"Visual adegan {i + 1}/{n}")
         s0, e0 = v["speech"]
         dur = round(max(0.8, (e0 - max(0.0, s0 - 0.08)) + 0.3), 3)
         kind = sc["visual"] or st["visual"]
@@ -405,7 +433,7 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
             kind = "ai_image"
         if kind == "tema" and not theme:
             kind = "text"
-        item = {"kind": kind, "dur": dur}
+        item = {"kind": kind, "dur": dur}                # "motion": kodenya ditulis setelah semua narasi siap
         if kind == "tema":                               # digambar Remotion saat render; gratis
             item["art"] = sc["art"]
         if kind in ("ai_image", "ai_video") and blocked["image"]:
@@ -487,6 +515,8 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
         item["words"] = v["words"]
         item["vo_duration"] = v["duration"]
         items.append(item)
+    if has_motion:
+        _motion_build(out_dir, proj, scenes, items, vo, adir, p0 + span * 0.5, p0 + span * 0.97)
     if theme and any(it["kind"] == "tema" for it in items):
         try:
             _theme_thumbs(theme, scenes, items, st["aspect"], adir, p0 + span * 0.95, p1)
@@ -494,11 +524,204 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
             log(f"  Gambar kecil tema dilewati ({str(exc).splitlines()[0][:120]}).")
     total = round(sum(x["dur"] for x in items), 2)
     proj = load(out_dir, pid)
-    proj["preview"] = {"scenes": [{"id": sc["id"], **{k: it.get(k) for k in ("kind", "dur", "thumb", "audio", "credit")}}
+    proj["preview"] = {"scenes": [{"id": sc["id"], **{k: it.get(k) for k in ("kind", "dur", "thumb", "audio", "credit",
+                                                                              "motion_fallback")}}
                                   for sc, it in zip(scenes, items)], "duration": total, "paid_videos": paid}
     save(out_dir, proj)
     progress(p1, "Aset siap")
     return {"scenes": scenes, "items": items, "duration": total, "character": ch}
+
+
+def _motion_scenes(scenes: list[dict], items: list[dict], vo: list[dict], st: dict) -> list[dict]:
+    """Adegan Motion AI dengan kata-kata narasi dalam detik sejak awal adegan (untuk S.at() di kode animasi)."""
+    out = []
+    for i, (sc, it, v) in enumerate(zip(scenes, items, vo)):
+        cut = max(0.0, v["speech"][0] - 0.08)
+        words = [{"t": w["t"], "s": round(max(0.0, w["s"] - cut), 3), "e": round(min(it["dur"], w["e"] - cut), 3)}
+                 for w in v["words"] if w["s"] - cut < it["dur"]]
+        it["sceneWords"] = words
+        if it["kind"] == "motion":
+            out.append({"sid": f"s{i + 1}", "i": i, "dur": it["dur"], "narration": sc["narration"], "heading": sc["heading"],
+                        "prompt": sc["prompt"], "words": words, "rev": st.get("motion_rev", 0)})
+    return out
+
+
+def _motion_style(st: dict) -> dict:
+    d = motion.design(st.get("motion_style") or "clean")
+    style = dict(resolve_style({"preset": "faceless"})["style"])
+    style.update(frame="full", texture="none", sfx=False, bg=d["bg"], bg2=d["surface"], accent=d["accent"],
+                 transitionSec=0.35, captions="karaoke" if st.get("captions") else "none")
+    return style
+
+
+def _motion_build(out_dir: Path, proj: dict, scenes: list[dict], items: list[dict], vo: list[dict], adir: Path,
+                  p0: float, p1: float) -> None:
+    """Tulis kode animasi tiap adegan Motion AI, uji di browser render (sekaligus gambar kecil), perbaiki yang galat."""
+    import hashlib
+    st, script = proj["settings"], proj["script"]
+    W, H = _dims(st["aspect"])
+    lang = "en" if st["audience"] == "us" else "id"
+    style_id = st.get("motion_style") or "clean"
+    captions = bool(st.get("captions"))
+    engine = st.get("motion_engine") or "auto"
+    msc = _motion_scenes(scenes, items, vo, st)
+    if not msc:
+        return
+    by_sid = {x["sid"]: x for x in msc}
+    opts = dict(style_id=style_id, W=W, H=H, lang=lang, captions=captions, engine=engine,
+                client_factory=lambda: _llm(out_dir, st["audience"]))
+    span = p1 - p0
+    try:
+        codes = motion.generate(msc, title=script.get("title", ""), topic=proj.get("topic") or proj["source"].get("title", ""),
+                                adir=adir, progress_cb=lambda f, msg: progress(p0 + span * 0.7 * f, msg), **opts)
+    except ClipAgentError as exc:
+        log(f"  Kode animasi belum bisa ditulis: {str(exc).splitlines()[0][:220]}")
+        log("  Adegan Motion AI memakai animasi cadangan. Atur AI di Pengaturan atau login Claude Code, lalu buat ulang.")
+        codes = {}
+    for x in msc:
+        if x["sid"] not in codes:
+            codes[x["sid"]] = motion.fallback_code(x)
+    design = motion.design(style_id)
+    style = _motion_style({**st, "captions": False})
+
+    def still(x: dict) -> tuple[Path, dict, float]:
+        code = codes[x["sid"]]
+        key = hashlib.sha1(json.dumps([code, design, W, H, round(x["dur"], 2), x["words"]], sort_keys=True).encode()).hexdigest()[:12]
+        t = max(0.3, x["dur"] - 0.4)
+        props = {"fps": 30, "width": W, "height": H, "duration": x["dur"], "audioParts": [], "words": [],
+                 "scenes": [{"start": 0, "dur": x["dur"], "heading": x["heading"], "bubble": "", "sfx": "", "camera": "static",
+                             "transition": "none", "motion": code, "sceneWords": x["words"], "motionId": x["sid"], "lang": lang}],
+                 "progressBar": False, "hook": "", "style": style, "motionDesign": design}
+        return adir / f"thumb_motion_{key}.jpg", props, t
+
+    # Uji: render satu still per adegan (sekaligus gambar kecil). Galat/kanvas kosong/teks bertumpuk dikirim balik ke AI
+    # sekali; bila hasil perbaikan malah galat, kembali ke kode lama (bila jalan) atau animasi cadangan.
+    good: dict[str, dict] = {}                           # kode yang jalan tetapi tata letaknya kurang rapi
+    changed: set[str] = set()
+    for rnd in range(3):
+        check_cancel()
+        batch = []
+        for x in msc:
+            thumb, props, t = still(x)
+            props["scenes"][0]["motionCheck"] = rnd < 1
+            x["_thumb"], x["_t"] = thumb, t
+            if not thumb.is_file():
+                batch.append((x, {"props": props, "frame": int(t * 30), "output": str(thumb.resolve())}))
+        if not batch:
+            break
+        label = "Menguji animasi" if rnd == 0 else "Menguji animasi yang diperbaiki"
+        try:
+            logs = _run_remotion({"mode": "stills", "props": batch[0][1]["props"], "stills": [b[1] for b in batch], "scale": 0.25},
+                                 p0 + span * (0.7 + 0.1 * rnd), p0 + span * (0.8 + 0.1 * rnd), label) or []
+        except ClipAgentError as exc:
+            log(f"  Uji animasi dilewati ({str(exc).splitlines()[0][:160]}).")
+            break
+        tested = {x["sid"] for x, _ in batch}
+        errs = {k: v for k, v in motion.parse_errors(logs).items() if k in tested}
+        for x, _ in batch:
+            if x["sid"] in errs or not x["_thumb"].is_file():
+                continue
+            img = cv2.imread(str(x["_thumb"]), cv2.IMREAD_GRAYSCALE)
+            if img is not None and float(img.std()) < 2.0:
+                errs[x["sid"]] = f"the canvas is empty at {x['_t']:.1f} s (nothing visible; check opacity and positions)"
+        layout = {k: v for k, v in motion.parse_layout(logs).items() if k in tested and k not in errs} if rnd == 0 else {}
+        for sid in errs:
+            by_sid[sid]["_thumb"].unlink(missing_ok=True)
+        if rnd == 0:
+            todo = [(by_sid[sid], codes[sid], "runtime error: " + msg if not msg.startswith("the canvas") else msg)
+                    for sid, msg in errs.items() if not codes[sid].get("fallback")]
+            todo += [(by_sid[sid], codes[sid], "layout " + msg) for sid, msg in layout.items() if not codes[sid].get("fallback")]
+            for sid, msg in list(errs.items()) + list(layout.items()):
+                log(f"  Adegan {sid[1:]}: {'galat saat diuji' if sid in errs else 'tata letak kurang rapi'} ({msg[:160]}).")
+            if todo:
+                progress(p0 + span * 0.8, f"AI memperbaiki {len(todo)} adegan")
+                fixed = motion.fix_many(todo, **opts)
+                for sc_, code_, _ in todo:
+                    sid = sc_["sid"]
+                    if sid in layout:
+                        good[sid] = code_
+                    if sid in fixed:
+                        codes[sid] = fixed[sid]
+                        changed.add(sid)
+                    elif sid in errs:
+                        log(f"  Adegan {sid[1:]}: perbaikan gagal; memakai animasi cadangan.")
+                        codes[sid] = motion.fallback_code(sc_)
+            for sid in errs:                             # cadangan yang galat (seharusnya tidak terjadi)
+                if codes[sid].get("fallback") and sid not in changed:
+                    codes[sid] = motion.fallback_code(by_sid[sid])
+        else:
+            for sid, msg in errs.items():
+                if sid in good:
+                    log(f"  Adegan {sid[1:]}: hasil perbaikan galat ({msg[:120]}); memakai kode sebelumnya.")
+                    codes[sid] = good[sid]
+                    changed.discard(sid)
+                else:
+                    log(f"  Adegan {sid[1:]}: masih galat ({msg[:160]}); memakai animasi cadangan.")
+                    codes[sid] = motion.fallback_code(by_sid[sid])
+                    changed.add(sid)
+    for sid in changed:
+        motion.save_cache(by_sid[sid], codes[sid])
+    for x in msc:
+        it = items[x["i"]]
+        it["motion"] = {k: codes[x["sid"]][k] for k in ("html", "css", "js")}
+        it["motion_fallback"] = bool(codes[x["sid"]].get("fallback"))
+        if x.get("_thumb") and x["_thumb"].is_file():
+            it["thumb"] = x["_thumb"].name
+    _motion_timeline(adir, scenes, items, st)
+
+
+def _motion_timeline(adir: Path, scenes: list[dict], items: list[dict], st: dict) -> None:
+    """Simpan urutan adegan + kode untuk ekspor HTML dan blueprint."""
+    t, rows = 0.0, []
+    for i, (sc, it) in enumerate(zip(scenes, items)):
+        code = it.get("motion") or {k: v for k, v in motion.fallback_code(
+            {"heading": sc["heading"], "narration": sc["narration"]}).items() if k != "fallback"}
+        rows.append({"sid": f"s{i + 1}", "start": round(t, 3), "dur": it["dur"], "heading": sc["heading"], "narration": sc["narration"],
+                     "prompt": sc["prompt"], "words": it.get("sceneWords", []), "code": code, "motion": it["kind"] == "motion",
+                     "audio": it["audio"], "speech": it["speech"], "vo_words": it["words"]})
+        t += it["dur"]
+    W, H = _dims(st["aspect"])
+    (adir / "motion_timeline.json").write_text(json.dumps({"W": W, "H": H, "style": st.get("motion_style") or "clean",
+                                                           "scenes": rows}, ensure_ascii=False), encoding="utf-8")
+
+
+def motion_blueprint(out_dir: Path, pid: str) -> str:
+    proj = load(out_dir, pid)
+    tl = pdir(out_dir, pid) / "assets" / "motion_timeline.json"
+    W, H = _dims(proj["settings"]["aspect"])
+    timeline = None
+    if tl.is_file():
+        try:
+            timeline = json.loads(tl.read_text(encoding="utf-8"))["scenes"]
+        except (OSError, ValueError, KeyError):
+            timeline = None
+    return motion.blueprint(proj, W, H, timeline)
+
+
+def motion_html(out_dir: Path, pid: str) -> tuple[str, str]:
+    """HTML mandiri yang memutar animasi + narasi di browser. Butuh 'Siapkan suara & gambar' lebih dulu."""
+    import base64
+    import subprocess
+    proj = load(out_dir, pid)
+    adir = pdir(out_dir, pid) / "assets"
+    tl = adir / "motion_timeline.json"
+    if not tl.is_file():
+        raise ClipAgentError("Klik 'Siapkan suara & gambar' dulu agar animasinya dibuat.")
+    data = json.loads(tl.read_text(encoding="utf-8"))
+    rows = data["scenes"]
+    audio = ""
+    try:
+        items = [{"audio": r["audio"], "speech": r["speech"], "dur": r["dur"], "words": r["vo_words"]} for r in rows]
+        wav, _, _ = _narration(adir, items)
+        mp3 = adir / "narration_export.mp3"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-ac", "1", "-b:a", "96k", str(mp3)],
+                       check=True, capture_output=True, timeout=300)
+        audio = "data:audio/mpeg;base64," + base64.b64encode(mp3.read_bytes()).decode()
+    except (OSError, KeyError, subprocess.SubprocessError, ClipAgentError) as exc:
+        log(f"Narasi tidak disertakan di HTML ({exc}).")
+    html = motion.export_html(rows, [r["code"] for r in rows], motion.design(data.get("style") or "clean"), data["W"], data["H"],
+                              audio, proj["script"].get("title") or "Motion AI")
+    return html, slugify(proj["script"].get("title") or "motion", 40) + ".html"
 
 
 def _theme_style(st: dict) -> dict:
@@ -579,6 +802,10 @@ def render(out_dir: Path, pid: str) -> dict:
     total = round(sum(x["dur"] for x in items), 3)
     style = _theme_style(st)
     theme = st.get("theme") if st.get("theme") in themes.THEMES else ""
+    has_motion = any(it.get("motion") for it in items)
+    if has_motion and st.get("visual") == "motion":
+        style = _motion_style(st)
+    lang = "en" if st["audience"] == "us" else "id"
     mtrack = music.track(st.get("music", "auto"), total + 0.5, adir, script.get("mood", "santai"))
     with _AssetServer(out_dir) as srv:
         scenes, t = [], 0.0
@@ -591,12 +818,17 @@ def render(out_dir: Path, pid: str) -> dict:
                 s["image"] = srv.url(adir / it["image"])
             elif it["kind"] == "tema" and it.get("art"):
                 s["art"] = it["art"]
+            elif it.get("motion"):
+                s.update(motion=it["motion"], sceneWords=it.get("sceneWords", []), motionId=f"s{len(scenes) + 1}", lang=lang,
+                         camera="static")
             scenes.append(s)
             t += it["dur"]
         props = {"fps": 30, "width": W, "height": H, "duration": total, "audio": srv.url(narration),
                  "audioParts": [{"at": 0, "from": 0, "to": total}], "scenes": scenes, "words": words,
                  "hook": script.get("title", "") if st.get("hook") else "", "progressBar": bool(st.get("progress_bar")),
                  "style": style, "speech": speech}
+        if has_motion:
+            props["motionDesign"] = motion.design(st.get("motion_style") or "clean")
         if mtrack:
             props["music"] = {"src": srv.url(mtrack), "volume": float(st.get("music_volume", 0.35)), "duck": 0.28}
         if theme:

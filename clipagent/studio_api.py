@@ -138,7 +138,7 @@ def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
 # ---------------------------------------------------------------- data untuk UI
 def studio_meta(out_dir: Path) -> dict:
     from .animation import PRESETS, remotion_status
-    from . import broll, themes
+    from . import broll, motion, themes
     return {
         "engines": tts.engines(), "voices": {"gemini": tts.GEMINI_VOICES, "edge": tts.EDGE_VOICES},
         "default_voice": tts.DEFAULT_VOICE, "visuals": remake.VISUALS, "lengths": remake.LENGTHS,
@@ -150,6 +150,7 @@ def studio_meta(out_dir: Path) -> dict:
         "video_price": {"per_second": videogen.PRICE_PER_SECOND, "seconds": videogen.EST_SECONDS},
         "defaults": remake.DEFAULT_SETTINGS, "remotion": remotion_status(),
         "cameras": remake.CAMERAS, "transitions": remake.TRANSITIONS, "themes": themes.public(),
+        "motion": {**motion.public(), "claude_code": motion._claude_available()},
     }
 
 
@@ -267,6 +268,18 @@ def handle_get(h, p: str, q) -> bool:
     m = re.fullmatch(r"/api/projects/([a-f0-9]{10})", p)
     if m:
         h._json(remake.public(out, remake.load(out, m.group(1))))
+        return True
+    m = re.fullmatch(r"/api/projects/([a-f0-9]{10})/(blueprint|motion\.html)", p)
+    if m:
+        if m.group(2) == "blueprint":
+            h._json({"text": remake.motion_blueprint(out, m.group(1))})
+            return True
+        from .motion import CSP
+        page, name = remake.motion_html(out, m.group(1))
+        headers = {"Content-Security-Policy": CSP + "; sandbox allow-scripts"}   # kode AI tidak bisa menyentuh aplikasi
+        if q("download") == "1":
+            headers["Content-Disposition"] = f'attachment; filename="{name}"'
+        h._html(page.encode("utf-8"), headers=headers)
         return True
     if p == "/api/videos":
         h._json({"items": all_videos(out)})

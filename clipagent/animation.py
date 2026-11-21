@@ -157,7 +157,8 @@ def remotion_status() -> dict:
     return {"node": bool(node), "installed": installed, "ready": bool(node) and installed, "hint": hint}
 
 
-def _run_remotion(job: dict, p0: float, p1: float, stage: str) -> None:
+def _run_remotion(job: dict, p0: float, p1: float, stage: str) -> list[str]:
+    """Jalankan render.mjs. Mengembalikan pesan MOTION_* dari halaman (galat kode animasi Motion AI)."""
     st = remotion_status()
     if not st["ready"]:
         raise ClipAgentError(st["hint"])
@@ -167,6 +168,7 @@ def _run_remotion(job: dict, p0: float, p1: float, stage: str) -> None:
     err_file = tempfile.TemporaryFile()
     proc = subprocess.Popen([shutil.which("node"), "render.mjs", job_path], cwd=str(REMOTION_DIR),
                             stdout=subprocess.PIPE, stderr=err_file, text=True, encoding="utf-8", errors="replace")
+    browser_logs: list[str] = []
     try:
         for line in proc.stdout:
             key, _, val = line.strip().partition(" ")
@@ -176,6 +178,8 @@ def _run_remotion(job: dict, p0: float, p1: float, stage: str) -> None:
                 progress(p0, "Menyiapkan Remotion (sekali saja)")
             elif key == "STAGE":
                 log(f"  Remotion: {val}")
+            elif key == "BROWSERLOG":
+                browser_logs.append(val)
             try:
                 check_cancel()
             except Cancelled:
@@ -186,6 +190,7 @@ def _run_remotion(job: dict, p0: float, p1: float, stage: str) -> None:
             err_file.seek(0)
             tail = "\n".join(err_file.read().decode("utf-8", "replace").strip().splitlines()[-12:])
             raise ClipAgentError(f"Remotion gagal merender:\n{tail}")
+        return browser_logs
     finally:
         try:
             os.unlink(job_path)
