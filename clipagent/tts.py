@@ -134,7 +134,9 @@ def estimate_words(text: str, start: float, end: float) -> list[dict]:
 
 
 # ---------------------------------------------------------------- mesin
-_NO_WAV: set[str] = set()          # model yang menolak keluaran WAV ("Audio MIME type AUDIO_WAV is not supported")
+# Model yang menolak keluaran WAV ("Audio MIME type AUDIO_WAV is not supported"): bawaannya PCM mentah (audio/l16),
+# jadi format tidak diminta dan hasilnya dikonversi sendiri. Model lain ditambahkan otomatis saat menolak WAV.
+_NO_WAV: set[str] = {"gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"}
 
 
 def _gemini(text: str, voice: str, style: str, tmp: Path) -> None:
