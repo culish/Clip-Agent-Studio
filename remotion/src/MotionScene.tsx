@@ -46,8 +46,8 @@ const Fallback: React.FC<{ text: string; d: MotionDesign }> = ({ text, d }) => {
   );
 };
 
-export const MotionScene: React.FC<{ sc: Scene; idx: number; durF: number; design: MotionDesign; validate?: boolean }> = ({
-  sc, idx, durF, design }) => {
+export const MotionScene: React.FC<{ sc: Scene; idx: number; durF: number; design: MotionDesign; overlay?: boolean }> = ({
+  sc, idx, durF, design, overlay }) => {
   const frame = useCurrentFrame();
   const { fps, width: W, height: H } = useVideoConfig();
   const ref = useRef<HTMLDivElement>(null);
@@ -68,7 +68,15 @@ export const MotionScene: React.FC<{ sc: Scene; idx: number; durF: number; desig
         if (!ref.current) throw new Error("wadah adegan tidak ada");
         const words = ((sc as any).sceneWords || []) as { s: number; e: number; t: string }[];
         tl.current = buildScene(ref.current, code, { id: mid, w: W, h: H, dur: durF / fps, words, lang: (sc as any).lang || "id",
-          heading: sc.heading || "" });
+          heading: sc.heading || "", data: (sc as any).motionData || {} });
+        // Gambar (mis. tangkapan layar halaman) harus termuat sebelum frame dirender.
+        const imgs = Array.from(ref.current.querySelectorAll("img"));
+        await Promise.all(imgs.map((im) => (im.complete && im.naturalWidth) ? null : new Promise<void>((res) => {
+          const done = () => res();
+          im.addEventListener("load", done, { once: true });
+          im.addEventListener("error", done, { once: true });
+          setTimeout(done, 15000);
+        })));
         tl.current.seek(frame / fps);
         if ((sc as any).motionCheck) reportLayout(mid, checkLayout(ref.current, W, H), +(frame / fps).toFixed(2));
       } catch (e) {
@@ -88,7 +96,7 @@ export const MotionScene: React.FC<{ sc: Scene; idx: number; durF: number; desig
   }, [frame, fps]);
   if (failed || !code) return <Fallback text={sc.heading || ""} d={design} />;
   return (
-    <AbsoluteFill style={{ background: design.bg }}>
+    <AbsoluteFill style={{ background: overlay ? "transparent" : design.bg }}>
       <style>{`#${sid}{${baseCss(design, W, H)}}\n#${sid}{${code.css || ""}}`}</style>
       <div id={sid} ref={ref} />
     </AbsoluteFill>

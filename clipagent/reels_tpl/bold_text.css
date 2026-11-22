@@ -1,0 +1,8 @@
+background:#111;
+.bg{position:absolute;inset:-12%;}
+.wrap{position:absolute;left:7%;right:7%;top:13%;bottom:15%;}
+.txt{height:100%;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;font-family:"Anton",sans-serif;
+  text-transform:uppercase;line-height:1.04;text-align:center;letter-spacing:.01em;overflow:hidden;}
+.txt .w{margin:0 .11em .09em;transform-origin:50% 70%;}
+.txt .key{background:var(--hl);color:var(--hlink);padding:0 .12em;border-radius:.06em;}
+.bar{position:absolute;left:7%;right:7%;bottom:9%;height:calc(var(--u)*1.1);border-radius:99px;background:currentColor;opacity:.3;transform-origin:left;}

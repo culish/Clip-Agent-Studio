@@ -1,0 +1,17 @@
+background:#E9EDF2;
+.room{position:absolute;inset:0;background:linear-gradient(180deg,#EEF2F6,#DCE3EA);}
+.board{position:absolute;left:4%;right:4%;top:6%;height:64%;background:linear-gradient(160deg,#FFFFFF,#F7F9FB);border:calc(var(--u)*1.4) solid #B8C2CC;
+  border-radius:calc(var(--u)*2);box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*4) rgba(40,60,80,.15);}
+.ttl{position:absolute;left:6%;right:6%;top:6%;height:24%;display:flex;align-items:center;justify-content:center;text-align:center;
+  font-family:"Permanent Marker",cursive;color:#1E3A8A;line-height:1.1;}
+.row{position:absolute;left:4%;right:4%;top:34%;bottom:10%;display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*2);}
+.it{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1.4);min-width:0;}
+.it svg{width:calc(var(--u)*24);height:calc(var(--u)*24);color:#1F2937;}
+.lb{font-family:"Patrick Hand",cursive;font-size:calc(var(--u)*7);color:#111;text-align:center;line-height:1;white-space:nowrap;}
+.lk{flex:none;color:#E4572E;font-family:"Permanent Marker",cursive;font-size:calc(var(--u)*9);display:grid;place-items:center;}
+.lk svg{width:calc(var(--u)*14);height:calc(var(--u)*10);}
+.tray{position:absolute;left:20%;right:20%;bottom:calc(var(--u)*-3);height:calc(var(--u)*2.4);background:#9AA5B1;border-radius:99px;}
+.hand{position:absolute;left:0;top:0;width:calc(var(--u)*30);pointer-events:none;}
+.hand svg{width:100%;display:block;}
+.cap{fill:#1E3A8A;} .mk{fill:#2B6CB0;stroke:#1E3A8A;stroke-width:3;}
+.hand .skin{fill:#F3C9A6;stroke:#D79B73;stroke-width:4;stroke-linejoin:round;}

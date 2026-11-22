@@ -128,6 +128,16 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
             st[k] = bool(raw[k])
     if "theme" in raw:
         st["theme"] = raw["theme"] if raw["theme"] in themes.THEMES else ""
+    if raw.get("voice_mode") in ("one", "two", "none"):
+        st["voice_mode"] = raw["voice_mode"]
+    if "voice2" in raw:
+        st["voice2"] = str(raw.get("voice2") or "")[:60]
+    if raw.get("voice_gender") in ("pria", "wanita"):
+        st["voice_gender"] = raw["voice_gender"]
+    if isinstance(raw.get("reel"), dict):
+        r = raw["reel"]
+        st["reel"] = {k: r[k] for k in ("format", "cast", "ticker", "tag", "page", "shot", "shot_ratio", "title") if k in r} \
+            if len(json.dumps(r, ensure_ascii=False)) < 8000 else (base or {}).get("reel", {})
     if str(raw.get("motion_rev", "")).isdigit():
         st["motion_rev"] = int(raw["motion_rev"]) % 100000
     if st.get("visual") == "motion" and st.get("theme"):
@@ -159,6 +169,13 @@ def clean_scenes(raw: list, theme: str = "") -> list[dict]:
                     "stock": str(sc.get("stock") or "").strip()[:80],
                     "camera": sc.get("camera") if sc.get("camera") in CAMERAS else CAMERAS[i % 4],
                     "transition": sc.get("transition") if sc.get("transition") in TRANSITIONS else "fade"})
+        if str(sc.get("speaker") or "").upper() in ("A", "B"):
+            out[-1]["speaker"] = str(sc["speaker"]).upper()
+        if sc.get("template"):
+            from . import reels
+            if sc["template"] in reels.FORMATS and isinstance(sc.get("tdata"), dict) and \
+                    len(json.dumps(sc["tdata"], ensure_ascii=False)) < 12000:
+                out[-1].update(template=sc["template"], tdata=sc["tdata"], visual="motion")
         if theme in themes.THEMES:
             out[-1]["art"] = themes.clean_art(theme, sc.get("art"), i)
     return themes.finalize(theme, out) if theme in themes.THEMES else out
@@ -412,10 +429,16 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
 
     # 1) narasi
     vo = []
+    mode = st.get("voice_mode") or "one"
+    voice_a, voice_b = _speaker_voices(st, voice, voice_engine)
     for i, sc in enumerate(scenes):
         check_cancel()
         progress(p0 + span * 0.35 * i / n, f"Suara narasi adegan {i + 1}/{n}")
-        vo.append(tts.synthesize(sc["narration"], voice, voice_engine, style_hint, adir))
+        if mode == "none":
+            vo.append(_silent_vo(sc["narration"], adir))
+        else:
+            v_ = voice_b if mode == "two" and sc.get("speaker") == "B" else (voice_a if mode == "two" else voice)
+            vo.append(tts.synthesize(sc["narration"], v_, voice_engine, style_hint, adir))
 
     # 2) visual
     used: set[int] = set()
@@ -440,6 +463,11 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
             kind = "stock" if broll.available() else "text"
             item["kind"] = kind
         try:
+            if kind == "motion" and sc.get("template") and _needs_stock(sc) and broll.available():
+                got = broll.fetch(sc["stock"] or "calm nature landscape", dur, st["aspect"], adir, used)
+                if got:
+                    fit = videogen.fit_clip(got["path"], dur, W, H, adir / f"fit_{got['path'].stem}_{int(dur * 10)}.mp4")
+                    item.update(video=fit.name, credit=got["credit"])
             if kind == "stock":
                 got = broll.fetch(sc["stock"] or sc["heading"] or sc["narration"][:40], dur, st["aspect"], adir, used)
                 if got:
@@ -532,6 +560,51 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     return {"scenes": scenes, "items": items, "duration": total, "character": ch}
 
 
+def _needs_stock(sc: dict) -> bool:
+    from . import reels
+    return bool(reels.FORMATS.get(sc.get("template") or "", {}).get("stock"))
+
+
+def _speaker_voices(st: dict, voice: str, engine: str) -> tuple[str, str]:
+    """Suara A dan B untuk format dua suara (Text story): pilihan pengguna, atau pasangan pria/wanita bawaan."""
+    eng = tts.pick_engine(engine)
+    lang = "en" if st.get("audience") == "us" else "id"
+    if eng == "gemini":
+        male, female = "Puck", "Kore"
+    elif lang == "id":
+        male, female = "id-ID-ArdiNeural", "id-ID-GadisNeural"
+    else:
+        male, female = "en-US-AndrewMultilingualNeural", "en-US-AvaMultilingualNeural"
+    a_default, b_default = (female, male) if st.get("voice_gender") == "wanita" else (male, female)
+    return (voice or a_default), (st.get("voice2") or b_default)
+
+
+def _silent_vo(text: str, adir: Path) -> dict:
+    """Format tanpa suara (Text on video, One-liner): durasi dari kecepatan membaca, kata diberi waktu perkiraan."""
+    import hashlib
+    n = len(text.split())
+    dur = round(max(3.4, n / 2.0 + 2.0), 2)                # tanpa suara: beri waktu membaca
+    key = hashlib.sha1(f"{text}|{dur}".encode()).hexdigest()[:12]
+    wav = adir / f"silent_{key}.wav"
+    if not wav.is_file():
+        tts.write_wav(wav, np.zeros(int(dur * 48000), np.float32), 48000)
+    s0, e0 = 0.35, dur - 0.35
+    return {"file": wav.name, "duration": dur, "speech": [s0, e0], "words": tts.estimate_words(text, s0, e0 - 0.6),
+            "engine": "silent", "voice": ""}
+
+
+def _resolve_assets(obj, srv, adir: Path):
+    """Ganti "@asset:nama" di data template dengan URL server aset (Remotion memuatnya lewat HTTP)."""
+    if isinstance(obj, str) and obj.startswith("@asset:"):
+        p = adir / Path(obj[7:]).name
+        return srv.url(p) if srv and p.is_file() else ""
+    if isinstance(obj, dict):
+        return {k: _resolve_assets(v, srv, adir) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_resolve_assets(v, srv, adir) for v in obj]
+    return obj
+
+
 def _motion_scenes(scenes: list[dict], items: list[dict], vo: list[dict], st: dict) -> list[dict]:
     """Adegan Motion AI dengan kata-kata narasi dalam detik sejak awal adegan (untuk S.at() di kode animasi)."""
     out = []
@@ -541,8 +614,15 @@ def _motion_scenes(scenes: list[dict], items: list[dict], vo: list[dict], st: di
                  for w in v["words"] if w["s"] - cut < it["dur"]]
         it["sceneWords"] = words
         if it["kind"] == "motion":
-            out.append({"sid": f"s{i + 1}", "i": i, "dur": it["dur"], "narration": sc["narration"], "heading": sc["heading"],
-                        "prompt": sc["prompt"], "words": words, "rev": st.get("motion_rev", 0)})
+            row = {"sid": f"s{i + 1}", "i": i, "dur": it["dur"], "narration": sc["narration"], "heading": sc["heading"],
+                   "prompt": sc["prompt"], "words": words, "rev": st.get("motion_rev", 0)}
+            if sc.get("template"):
+                from . import reels
+                row["template"] = sc["template"]
+                row["data"] = reels.scene_data(sc["template"], scenes, i, st.get("reel") or {})
+                row["data"]["hasVideo"] = bool(it.get("video"))
+                it["motionData"] = row["data"]
+            out.append(row)
     return out
 
 
@@ -571,33 +651,63 @@ def _motion_build(out_dir: Path, proj: dict, scenes: list[dict], items: list[dic
     opts = dict(style_id=style_id, W=W, H=H, lang=lang, captions=captions, engine=engine,
                 client_factory=lambda: _llm(out_dir, st["audience"]))
     span = p1 - p0
+    from . import reels
+    codes: dict[str, dict] = {x["sid"]: {**reels.template(x["template"]), "template": True} for x in msc if x.get("template")}
+    ai_sc = [x for x in msc if not x.get("template")]
     try:
-        codes = motion.generate(msc, title=script.get("title", ""), topic=proj.get("topic") or proj["source"].get("title", ""),
-                                adir=adir, progress_cb=lambda f, msg: progress(p0 + span * 0.7 * f, msg), **opts)
+        if ai_sc:
+            codes.update(motion.generate(ai_sc, title=script.get("title", ""),
+                                         topic=proj.get("topic") or proj["source"].get("title", ""), adir=adir,
+                                         progress_cb=lambda f, msg: progress(p0 + span * 0.7 * f, msg), **opts))
     except ClipAgentError as exc:
         log(f"  Kode animasi belum bisa ditulis: {str(exc).splitlines()[0][:220]}")
         log("  Adegan Motion AI memakai animasi cadangan. Atur AI di Pengaturan atau login Claude Code, lalu buat ulang.")
-        codes = {}
     for x in msc:
         if x["sid"] not in codes:
             codes[x["sid"]] = motion.fallback_code(x)
     design = motion.design(style_id)
     style = _motion_style({**st, "captions": False})
+    srv_box: list = [None]
 
     def still(x: dict) -> tuple[Path, dict, float]:
         code = codes[x["sid"]]
-        key = hashlib.sha1(json.dumps([code, design, W, H, round(x["dur"], 2), x["words"]], sort_keys=True).encode()).hexdigest()[:12]
+        it = items[x["i"]]
+        key = hashlib.sha1(json.dumps([code, design, W, H, round(x["dur"], 2), x["words"], x.get("data"), it.get("video")],
+                                      sort_keys=True).encode()).hexdigest()[:12]
         t = max(0.3, x["dur"] - 0.4)
+        sc_ = {"start": 0, "dur": x["dur"], "heading": x["heading"], "bubble": "", "sfx": "", "camera": "static",
+               "transition": "none", "motion": {k: code[k] for k in ("html", "css", "js")}, "sceneWords": x["words"],
+               "motionId": x["sid"], "lang": lang}
+        if x.get("data") is not None:
+            sc_["motionData"] = _resolve_assets(x["data"], srv_box[0], adir)
+        if it.get("video") and srv_box[0]:
+            sc_["video"], sc_["videoFrom"] = srv_box[0].url(adir / it["video"]), 0
         props = {"fps": 30, "width": W, "height": H, "duration": x["dur"], "audioParts": [], "words": [],
-                 "scenes": [{"start": 0, "dur": x["dur"], "heading": x["heading"], "bubble": "", "sfx": "", "camera": "static",
-                             "transition": "none", "motion": code, "sceneWords": x["words"], "motionId": x["sid"], "lang": lang}],
-                 "progressBar": False, "hook": "", "style": style, "motionDesign": design}
+                 "scenes": [sc_], "progressBar": False, "hook": "", "style": style, "motionDesign": design}
         return adir / f"thumb_motion_{key}.jpg", props, t
 
     # Uji: render satu still per adegan (sekaligus gambar kecil). Galat/kanvas kosong/teks bertumpuk dikirim balik ke AI
     # sekali; bila hasil perbaikan malah galat, kembali ke kode lama (bila jalan) atau animasi cadangan.
     good: dict[str, dict] = {}                           # kode yang jalan tetapi tata letaknya kurang rapi
     changed: set[str] = set()
+    srv_box[0] = _AssetServer(out_dir).__enter__()
+    try:
+        _motion_check(msc, by_sid, codes, items, still, opts, adir, p0, span, good, changed)
+    finally:
+        srv_box[0].__exit__(None, None, None)
+    for sid in changed:
+        motion.save_cache(by_sid[sid], codes[sid])
+    for x in msc:
+        it = items[x["i"]]
+        it["motion"] = {k: codes[x["sid"]][k] for k in ("html", "css", "js")}
+        it["motion_fallback"] = bool(codes[x["sid"]].get("fallback"))
+        if x.get("_thumb") and x["_thumb"].is_file():
+            it["thumb"] = x["_thumb"].name
+    _motion_timeline(adir, scenes, items, st)
+
+
+def _motion_check(msc, by_sid, codes, items, still, opts, adir, p0, span, good, changed) -> None:
+    """Uji tiap adegan sebagai still di browser render; perbaiki (AI) atau ganti cadangan bila galat."""
     for rnd in range(3):
         check_cancel()
         batch = []
@@ -627,6 +737,12 @@ def _motion_build(out_dir: Path, proj: dict, scenes: list[dict], items: list[dic
         layout = {k: v for k, v in motion.parse_layout(logs).items() if k in tested and k not in errs} if rnd == 0 else {}
         for sid in errs:
             by_sid[sid]["_thumb"].unlink(missing_ok=True)
+        for sid in [k for k in list(errs) + list(layout) if codes[k].get("template")]:
+            if sid in errs:                              # template bawaan: tidak dikirim ke AI
+                log(f"  Adegan {sid[1:]}: template galat ({errs.pop(sid)[:160]}); memakai animasi cadangan.")
+                codes[sid] = motion.fallback_code(by_sid[sid])
+            else:
+                layout.pop(sid, None)
         if rnd == 0:
             todo = [(by_sid[sid], codes[sid], "runtime error: " + msg if not msg.startswith("the canvas") else msg)
                     for sid, msg in errs.items() if not codes[sid].get("fallback")]
@@ -659,15 +775,6 @@ def _motion_build(out_dir: Path, proj: dict, scenes: list[dict], items: list[dic
                     log(f"  Adegan {sid[1:]}: masih galat ({msg[:160]}); memakai animasi cadangan.")
                     codes[sid] = motion.fallback_code(by_sid[sid])
                     changed.add(sid)
-    for sid in changed:
-        motion.save_cache(by_sid[sid], codes[sid])
-    for x in msc:
-        it = items[x["i"]]
-        it["motion"] = {k: codes[x["sid"]][k] for k in ("html", "css", "js")}
-        it["motion_fallback"] = bool(codes[x["sid"]].get("fallback"))
-        if x.get("_thumb") and x["_thumb"].is_file():
-            it["thumb"] = x["_thumb"].name
-    _motion_timeline(adir, scenes, items, st)
 
 
 def _motion_timeline(adir: Path, scenes: list[dict], items: list[dict], st: dict) -> None:
@@ -818,9 +925,11 @@ def render(out_dir: Path, pid: str) -> dict:
                 s["image"] = srv.url(adir / it["image"])
             elif it["kind"] == "tema" and it.get("art"):
                 s["art"] = it["art"]
-            elif it.get("motion"):
+            if it.get("motion") and not it.get("image"):
                 s.update(motion=it["motion"], sceneWords=it.get("sceneWords", []), motionId=f"s{len(scenes) + 1}", lang=lang,
                          camera="static")
+                if it.get("motionData") is not None:
+                    s["motionData"] = _resolve_assets(it["motionData"], srv, adir)
             scenes.append(s)
             t += it["dur"]
         props = {"fps": 30, "width": W, "height": H, "duration": total, "audio": srv.url(narration),
@@ -830,7 +939,9 @@ def render(out_dir: Path, pid: str) -> dict:
         if has_motion:
             props["motionDesign"] = motion.design(st.get("motion_style") or "clean")
         if mtrack:
-            props["music"] = {"src": srv.url(mtrack), "volume": float(st.get("music_volume", 0.35)), "duck": 0.28}
+            silent = st.get("voice_mode") == "none"         # tanpa suara: musik jadi suara utama
+            props["music"] = {"src": srv.url(mtrack), "volume": max(0.8, float(st.get("music_volume", 0.35))) if silent
+                              else float(st.get("music_volume", 0.35)), "duck": 1.0 if silent else 0.28}
         if theme:
             props["theme"] = {"id": theme, "overlays": themes.THEMES[theme]["overlays"]}
             if theme == "kaset":                         # gelombang suara mengikuti narasi

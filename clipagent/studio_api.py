@@ -13,12 +13,25 @@ from .utils import ClipAgentError
 
 STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images", "kolase_storyboard", "kolase_render",
                 "kolase_paket", "kolase_preview", "kolase_clip", "kanal", "kanal_apply_edit",
-                "film_setup", "film_make", "film_revise")
+                "film_setup", "film_make", "film_revise", "reel_make")
 
 
 # ---------------------------------------------------------------- job
 def validate_job(body: dict, out_dir: Path) -> None:
     kind = body.get("kind")
+    if kind == "reel_make":
+        from . import reels
+        fmt = body.get("format")
+        if fmt not in reels.FORMATS:
+            raise ValueError("Pilih format reel.")
+        src = str(body.get("source") or "").strip()
+        if len(src) < 3:
+            raise ValueError("Isi tautan, topik, atau naskahnya dulu.")
+        if reels.FORMATS[fmt].get("needs_link") and not re.match(r"https?://", src) and not body.get("url"):
+            raise ValueError(f"Format {reels.FORMATS[fmt]['name']} butuh tautan halaman web.")
+        body["source"] = src[:8000]
+        body["label"] = f"Reel {reels.FORMATS[fmt]['name']}: " + (str(body.get("title") or "") or src)[:60]
+        return
     if kind in ("film_setup", "film_make", "film_revise"):
         from . import film
         if kind == "film_setup":
@@ -96,6 +109,9 @@ def validate_job(body: dict, out_dir: Path) -> None:
 
 
 def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
+    if kind == "reel_make":
+        from . import reels
+        return {"kind": kind, **reels.make(out_dir, opts)}
     if kind == "film_setup":
         from . import film
         st = film.install(bool(opts.get("voice")), bool(opts.get("music")))
@@ -138,7 +154,7 @@ def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
 # ---------------------------------------------------------------- data untuk UI
 def studio_meta(out_dir: Path) -> dict:
     from .animation import PRESETS, remotion_status
-    from . import broll, motion, themes
+    from . import agents, broll, motion, themes
     return {
         "engines": tts.engines(), "voices": {"gemini": tts.GEMINI_VOICES, "edge": tts.EDGE_VOICES},
         "default_voice": tts.DEFAULT_VOICE, "visuals": remake.VISUALS, "lengths": remake.LENGTHS,
@@ -150,7 +166,7 @@ def studio_meta(out_dir: Path) -> dict:
         "video_price": {"per_second": videogen.PRICE_PER_SECOND, "seconds": videogen.EST_SECONDS},
         "defaults": remake.DEFAULT_SETTINGS, "remotion": remotion_status(),
         "cameras": remake.CAMERAS, "transitions": remake.TRANSITIONS, "themes": themes.public(),
-        "motion": {**motion.public(), "claude_code": motion._claude_available()},
+        "motion": {**motion.public(), "claude_code": motion._claude_available(), "agents": agents.public()},
     }
 
 
@@ -236,6 +252,19 @@ def all_videos(out_dir: Path) -> list[dict]:
 
 # ---------------------------------------------------------------- routing
 def handle_get(h, p: str, q) -> bool:
+    if p == "/api/reels":
+        from . import reels
+        h._json({**reels.public(), "recent": reels.recent(h.out_dir)})
+        return True
+    if p == "/api/reels/trending":
+        from . import reels
+        try:
+            h._json({"items": reels.trending(q("kind") or "news", "en" if q("lang") == "en" else "id")})
+        except (ClipAgentError, OSError, ValueError) as exc:
+            h._json({"items": [], "error": str(exc)[:300]})
+        except Exception as exc:                                   # noqa: BLE001 (jaringan, RSS rusak)
+            h._json({"items": [], "error": f"Sumber tidak bisa dibuka: {str(exc)[:200]}"})
+        return True
     if p == "/api/film":
         from . import film
         h._json({"status": film.status(), "styles": film.styles(), "films": film.list_films(h.out_dir),

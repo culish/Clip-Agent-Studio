@@ -14,8 +14,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
-import tempfile
 from pathlib import Path
 
 from .config import PROJECT_DIR
@@ -40,8 +38,9 @@ STYLES = {
     "sketch": {"name": "Coretan tangan", "bg": "#FFFDF7", "surface": "#FFFFFF", "ink": "#1A1A1A", "muted": "#6B6B6B",
                "accent": "#E4572E", "accent2": "#2E86DE", "head": "Permanent Marker", "body": "Patrick Hand", "radius": 14},
 }
-ENGINES = {"auto": "Otomatis (Claude Code bila ada, selain itu AI di Pengaturan)", "claude": "Claude (lewat Claude Code)",
-           "llm": "AI di Pengaturan (Gemini, OpenRouter, Claude API, dll.)"}
+ENGINES = {"auto": "Otomatis (Claude Code bila ada, selain itu AI di Pengaturan)", "claude": "Claude (Claude Code)",
+           "codex": "Codex CLI (langganan ChatGPT)", "gemini": "Gemini CLI (gratis, akun Google)", "qwen": "Qwen Code",
+           "opencode": "opencode (model pilihan, ada yang gratis)", "llm": "AI di Pengaturan (Gemini, OpenRouter, dll.)"}
 FONTS = ["Anton", "Bangers", "Bebas Neue", "Montserrat Black", "Patrick Hand", "Poppins", "Playfair Display Black",
          "Playfair Italic", "Special Elite", "Permanent Marker", "Fraunces Black", "Fraunces Italic", "Caveat Bold",
          "Archivo Black", "Plus Jakarta Sans"]
@@ -122,10 +121,6 @@ html: markup only (no <script>, no <style>). css: rules for this scene only (the
 your own classes; plain declarations at the top level style the scene container). js: the timeline code."""
 
 
-SHORT_SYSTEM = ("You are a senior motion designer who writes motion graphics code. Follow the rules in the message "
-                "exactly and answer with one JSON object only, without commentary")
-
-
 def system_prompt(style_id: str, W: int, H: int, lang: str, captions: bool) -> str:
     d = STYLES.get(style_id) or STYLES["clean"]
     return SYSTEM.format(
@@ -152,55 +147,57 @@ def user_prompt(title: str, topic: str, scenes: list[dict], total: int, note: st
 
 # ---------------------------------------------------------------- mesin penulis kode
 def _claude_available() -> bool:
-    try:
-        from . import film
-        return bool(film.claude_bin())
-    except Exception:                                   # noqa: BLE001
-        return False
+    from . import agents
+    return bool(agents.find("claude"))
 
 
 def engine_name(engine: str) -> str:
-    if engine == "claude" or (engine in ("", "auto") and _claude_available()):
+    """Penulis yang dipakai: nama CLI agen (claude, codex, gemini, qwen, opencode) atau "llm" (AI di Pengaturan)."""
+    from . import agents
+    if engine in agents.AGENTS:
+        return engine
+    if engine in ("", "auto") and agents.find("claude"):
         return "claude"
     return "llm"
 
 
-def _ask_claude(system: str, prompt: str) -> dict:
-    from . import film
-    exe = film.claude_bin()
-    if not exe:
-        raise ClipAgentError("Claude Code (perintah `claude`) tidak ditemukan. Pasang dan login, atau pilih AI di Pengaturan.")
+def engine_label(eng: str) -> str:
+    from . import agents
+    return agents.AGENTS[eng]["name"] if eng in agents.AGENTS else "AI di Pengaturan"
+
+
+EXAMPLES = Path(__file__).with_name("motion_examples.json")
+
+
+def examples_block() -> str:
+    """Adegan rujukan yang ditulis Claude: diberikan ke penulis lain sebagai standar kualitas (few-shot)."""
+    try:
+        data = json.loads(EXAMPLES.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    parts = ["\n\nREFERENCE SCENES. Two scenes written for this exact runtime by a top motion designer. Match this level: "
+             "a clear focal layout in normal flow, drawn SVG visuals, many small synced reveals via S.at(), counters, "
+             "secondary motion until the end, compact class names. Do not copy them; design new scenes for the brief."]
+    for ex in data.get("scenes", []):
+        parts.append("BRIEF: " + json.dumps(ex["brief"], ensure_ascii=False) + "\nCODE: " + json.dumps(ex["code"], ensure_ascii=False))
+    return "\n".join(parts)
+
+
+def _ask_agent(eng: str, system: str, prompt: str) -> dict:
+    from . import agents, film
     st = film.get_settings()
-    # Aturan lengkap dikirim lewat stdin: argumen baris perintah berisi < > & " rusak bila lewat cmd.exe di Windows.
-    cmd = film._launch(exe) + ["-p", "--output-format", "json", "--tools", "", "--no-session-persistence",
-                               "--system-prompt", SHORT_SYSTEM]
-    if st.get("model"):
-        cmd += ["--model", st["model"]]
-    def run(c: list):
-        return subprocess.run(c, input=f"{system}\n\n=== TASK ===\n{prompt}", capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=900, cwd=tempfile.gettempdir())
-    try:
-        r = run(cmd)
-        if r.returncode != 0 and "unknown option" in (r.stderr or "").lower() and "--no-session-persistence" in r.stderr:
-            r = run([x for x in cmd if x != "--no-session-persistence"])        # Claude Code versi lama
-    except subprocess.TimeoutExpired as exc:
-        raise ClipAgentError("Claude Code tidak menjawab dalam 15 menit.") from exc
-    except OSError as exc:
-        raise ClipAgentError(f"Claude Code tidak bisa dijalankan: {exc}") from exc
-    try:
-        res = json.loads(r.stdout.strip().splitlines()[-1]) if r.stdout.strip() else {}
-    except ValueError:
-        res = {}
-    if r.returncode != 0 or res.get("is_error") or not res.get("result"):
-        msg = res.get("result") or (r.stderr or r.stdout or "").strip()[-400:]
-        if "login" in msg.lower() or "auth" in msg.lower():
-            msg += " (jalankan `claude` sekali di terminal untuk login)"
-        raise ClipAgentError(f"Claude Code gagal: {msg}")
-    return _as_scenes(extract_json(res["result"]))
+    model = st.get("model") if eng == "claude" else ""
+    if eng != "claude":
+        system = system + examples_block()
+    return _as_scenes(extract_json(agents.text(eng, system, prompt, model=model or "")))
 
 
 def _ask_llm(system: str, prompt: str, client) -> dict:
-    return _as_scenes(client.complete_json(system, prompt, list_key="scenes"))
+    return _as_scenes(client.complete_json(system + examples_block(), prompt, list_key="scenes"))
+
+
+def _ask(eng: str, system: str, prompt: str, client) -> dict:
+    return _ask_llm(system, prompt, client) if eng == "llm" else _ask_agent(eng, system, prompt)
 
 
 def _as_scenes(data) -> dict:
@@ -294,8 +291,8 @@ def generate(scenes: list[dict], *, title: str, topic: str, style_id: str, W: in
         todo.append(sc)
     if not todo:
         return out
-    client = None if eng == "claude" else client_factory()
-    log(f"  Menulis kode animasi {len(todo)} adegan dengan " + ("Claude (Claude Code)…" if eng == "claude" else "AI di Pengaturan…"))
+    client = client_factory() if eng == "llm" else None
+    log(f"  Menulis kode animasi {len(todo)} adegan dengan {engine_label(eng)}…")
     chunk = 4 if eng == "claude" else 3
     for k in range(0, len(todo), chunk):
         part = todo[k:k + chunk]
@@ -305,7 +302,7 @@ def generate(scenes: list[dict], *, title: str, topic: str, style_id: str, W: in
         got: dict = {}
         for attempt in range(2):
             try:
-                got = _ask_claude(system, prompt) if eng == "claude" else _ask_llm(system, prompt, client)
+                got = _ask(eng, system, prompt, client)
                 break
             except ClipAgentError as exc:
                 log(f"  Percobaan {attempt + 1} gagal: {str(exc).splitlines()[0][:200]}")
@@ -339,7 +336,7 @@ def repair_many(problems: list[tuple[dict, dict, str]], system: str, eng: str, c
                   f"Return {{\"scenes\":[{{\"id\":...,\"html\":...,\"css\":...,\"js\":...}}]}} with exactly these ids: "
                   f"{', '.join(ids)}.\n\n" + "\n\n".join(blocks))
         try:
-            got = _ask_claude(system, prompt) if eng == "claude" else _ask_llm(system, prompt, client)
+            got = _ask(eng, system, prompt, client)
         except ClipAgentError as exc:
             log(f"  Perbaikan adegan {', '.join(x[1:] for x in ids)} gagal: {str(exc).splitlines()[0][:160]}")
             continue
@@ -361,7 +358,7 @@ def fix_many(problems: list[tuple[dict, dict, str]], *, style_id: str, W: int, H
         return {}
     eng = engine_name(engine)
     try:
-        client = None if eng == "claude" else client_factory()
+        client = client_factory() if eng == "llm" else None
     except ClipAgentError:
         return {}
     return repair_many(problems, system_prompt(style_id, W, H, lang, captions), eng, client)

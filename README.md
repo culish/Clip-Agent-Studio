@@ -70,7 +70,7 @@ Pilih kartu **✨ Motion AI** saat membuat proyek (atau *Visual default: Motion 
 4. Clip Agent merender satu gambar per adegan di browser render untuk mengujinya: galat kode, layar kosong, serta teks yang bertumpuk atau terpotong dikirim balik ke AI untuk diperbaiki. Bila perbaikan gagal, adegan memakai animasi cadangan, jadi video tetap jadi.
 5. Semua adegan dirender dengan Remotion bersama suara, musik, transisi, dan caption (caption mati secara bawaan karena teks sudah dianimasikan).
 
-**Penulis kode**: *Otomatis* memakai **Claude lewat Claude Code** bila perintah `claude` terpasang dan sudah login (memakai kuota langganan Claude Anda, tanpa API key, tanpa alat apa pun selain menulis teks), selain itu AI di Pengaturan (Gemini gratis, OpenRouter, Claude API, dll.). Hasil Claude paling rapi. **Gaya**: 8 sistem desain (bersih minimal, teknologi gelap, pop berani, editorial koran, pastel lembut, neon malam, profesional, coretan tangan) yang mengatur warna dan huruf; kolom *Arahan animasi* di tiap adegan bisa diisi untuk mengarahkan tata letak.
+**Penulis kode**: *Otomatis* memakai **Claude lewat Claude Code** bila perintah `claude` terpasang dan sudah login (memakai kuota langganan Claude Anda, tanpa API key, tanpa alat apa pun selain menulis teks), selain itu AI di Pengaturan (Gemini gratis, OpenRouter, Claude API, dll.). Bisa juga dipilih **Codex CLI**, **Gemini CLI** (gratis dengan akun Google), **Qwen Code**, atau **opencode**. Penulis selain Claude diberi dua adegan rujukan yang ditulis Claude (`clipagent/motion_examples.json`) sebagai standar kualitas, dan semua hasil melewati uji render, pemeriksaan teks bertumpuk, perbaikan otomatis, dan animasi cadangan yang sama. **Gaya**: 8 sistem desain (bersih minimal, teknologi gelap, pop berani, editorial koran, pastel lembut, neon malam, profesional, coretan tangan) yang mengatur warna dan huruf; kolom *Arahan animasi* di tiap adegan bisa diisi untuk mengarahkan tata letak.
 
 Setelah **Siapkan suara & gambar**:
 
@@ -136,11 +136,44 @@ Pexels sedang menghentikan sementara pembuatan API key baru. Clip Agent memakai 
 
 Video stok untuk b-roll (Buat video, Edit otomatis) butuh Pixabay atau Pexels. Foto stok untuk tab Kolase sudah jalan tanpa key lewat Openverse; isi Pixabay key agar pilihan fotonya lebih banyak. Matikan Openverse dengan `OPENVERSE_ENABLED=0`.
 
+## Reels viral: 11 format faceless (tab Film)
+
+Mode **🎬 Reels viral** di tab Film membuat reel vertikal (Reels, Shorts, TikTok, Facebook) dalam beberapa menit, seperti layanan pembuat reel faceless. Pilih asal ceritanya: **tautan** (artikel, produk, aplikasi, atau video YouTube), **topik**, **naskah sendiri** (kata-katanya dipakai, hanya dipotong per adegan), atau **lagi ramai** (Google News, Google Trends, Hacker News, dan YouTube bila ada `YOUTUBE_API_KEY`). Lalu pilih format, durasi 15/30/45/60 detik, suara, bahasa, dan penulisnya. Hasilnya MP4 dengan suara, caption, musik, serta judul, deskripsi, dan hashtag yang tinggal disalin. Setiap reel juga menjadi proyek di **Buat video** untuk diedit per adegan.
+
+| Format | Tampilan | Cocok untuk |
+|---|---|---|
+| 🧑‍🏫 Cartoon Host | Presenter kartun (berkedip, mulut bergerak mengikuti narasi) di depan papan berisi kata kunci, ikon, dan angka | Cerita, fakta unik, penjelasan ringan |
+| ✍️ Whiteboard | Tangan memegang spidol menggambar ikon dan menulis label sambil narasi berjalan | Penjelasan, sains, cara kerja |
+| 🕺 Stickman | Dua tokoh stickman memerankan ceritanya (tema Stickman) | Situasi sehari-hari, dua sisi |
+| 🥊 Proof Punch | Kutipan asli dan sumbernya, stempel besar mendarat di kata kunci, lalu stempel kesimpulan | Klaim yang butuh bukti |
+| 📰 News brief | Label TERKINI/LIVE, judul berita, fakta kunci dengan angka berjalan, ticker di bawah, halaman sumber samar di latar | Berita minggu ini, peluncuran |
+| 📱 Phone in hand | Tangkapan layar halaman asli di ponsel yang dipegang dan digulir, dengan keterangan yang muncul | Aplikasi, situs, produk, promo |
+| 💬 Text story | Obrolan chat, dua suara bergantian (pria dan wanita), indikator mengetik | Reaksi "Serius?", mitos vs fakta |
+| 🅰️ Bold text | Kata-kata besar di warna kuat, muncul tepat saat diucapkan | Satu klaim yang menghentak |
+| 🎞️ Text on video | Video stok yang tenang, kata menyala saat dibaca, tanpa suara, hanya musik | Kutipan, motivasi |
+| ❓ One-liner | Satu pertanyaan besar dan ajakan berkomentar | Polling, opini |
+| 🔢 Countdown | Daftar 3 teratas dihitung mundur sampai nomor satu | Alat terbaik, tips teratas |
+
+**Hasil yang sama siapa pun penulisnya.** AI hanya menulis isi dalam bentuk data (kalimat narasi, judul papan, ikon, kutipan, urutan); tampilan dan gerak setiap format adalah template animasi yang sudah ditulis tetap (`clipagent/reels_tpl/`, dijalankan MotionKit di Remotion). Isinya juga diperiksa sebelum dirender: panjang narasi sesuai durasi, kait di adegan pertama, ikon yang valid, urutan 3-2-1 di Countdown, dan **kutipan Proof Punch harus benar-benar ada di sumber** (bila tidak, AI diminta memperbaiki; kutipan yang tetap tidak cocok diganti kalimat asli yang paling mirip atau dibuang). Setiap prompt menyertakan contoh tulisan untuk format itu sebagai standar.
+
+**Penulis isi:** *Otomatis* (AI di Pengaturan, lalu agen yang terpasang), **AI di Pengaturan** (Gemini gratis, OpenRouter, Groq, Ollama, Claude API, dll.), atau agen coding di komputer Anda yang dipakai lewat login/langganan masing-masing tanpa API key:
+
+| Agen | Perintah | Akun |
+|---|---|---|
+| Claude Code | `claude` | Langganan Claude atau API key |
+| Codex CLI | `codex` (`npm i -g @openai/codex`, lalu `codex login`) | Langganan ChatGPT atau API key OpenAI |
+| Gemini CLI | `gemini` (`npm i -g @google/gemini-cli`, lalu login dengan akun Google) | Gratis dengan batas harian |
+| Qwen Code | `qwen` (`npm i -g @qwen-code/qwen-code`) | Akun Qwen atau API key yang didukung |
+| opencode | `opencode` (`npm i -g opencode-ai`) | Model pilihan Anda, termasuk model gratis |
+
+Tangkapan layar Phone in hand dan News brief memakai browser yang sama dengan Remotion. Format yang butuh tautan (Phone in hand) atau sumber berisi teks (Proof Punch) diberi tanda di galerinya.
+
 ## Film bergaya: 99 gaya Lemo-Opuscar (tab Film)
 
-Tab **Film** membuat film pendek dalam salah satu dari 99 gaya [Lemo-Opuscar](https://github.com/lemomo-ai/lemo-opuscar) karya Lemomo (LemoLab): cat air, ukiyo-e, papan tulis, stickman, pixel RPG, berita, peta 3D, dan lainnya. Library itu dibuat untuk agen coding: **Claude Code** di komputer Anda menulis treatment, menggambar setiap frame dengan kode, mengisi suara, membuat musik, me-mix, lalu memeriksa hasilnya. Clip Agent mengatur semuanya dari satu formulir: pilih gaya, tulis topik, pilih durasi dan format (16:9, 9:16, 4:5, 1:1), bahasa dan narator, lalu lampirkan bahan sendiri bila ada (foto, logo, musik, rekaman suara).
+Mode **🎞️ Film 99 gaya** di tab **Film** membuat film pendek dalam salah satu dari 99 gaya [Lemo-Opuscar](https://github.com/lemomo-ai/lemo-opuscar) karya Lemomo (LemoLab): cat air, ukiyo-e, papan tulis, stickman, pixel RPG, berita, peta 3D, dan lainnya. Library itu dibuat untuk agen coding: agen di komputer Anda (**Claude Code**, atau penggantinya **Codex CLI**, **Gemini CLI**, dan **Qwen Code**) menulis treatment, menggambar setiap frame dengan kode, mengisi suara, membuat musik, me-mix, lalu memeriksa hasilnya. Clip Agent mengatur semuanya dari satu formulir: pilih gaya, tulis topik, pilih durasi dan format (16:9, 9:16, 4:5, 1:1), bahasa dan narator, lalu lampirkan bahan sendiri bila ada (foto, logo, musik, rekaman suara).
 
-- **Yang dibutuhkan:** [Claude Code](https://docs.claude.com/en/docs/claude-code) terpasang dan sudah login (perintah `claude` jalan di terminal), Node.js 20+, ffmpeg 7+, Python 3.11+ atau uv, dan git (di Windows: Git for Windows untuk Git Bash). Tab Film memeriksa semuanya dan menulis cara memperbaiki yang kurang.
+- **Agen:** pilih di Pengaturan agen. Claude Code memakai plugin library langsung; Codex (`codex exec`), Gemini CLI, dan Qwen Code membaca panduan yang sama (`AGENTS.md` dan skill library) dan bekerja dengan langkah yang sama. Hasil paling konsisten biasanya dari Claude Code dan Codex; Gemini CLI gratis dengan akun Google.
+- **Yang dibutuhkan:** agen pilihan terpasang dan sudah login (perintahnya jalan di terminal), Node.js 20+, ffmpeg 7+, Python 3.11+ atau uv, dan git (di Windows: Git for Windows untuk Git Bash). Tab Film memeriksa semuanya dan menulis cara memperbaiki yang kurang.
 - **Pasang library** dari tab itu: Clip Agent mengunduh library ke `~/lemo-opuscar` (bisa diganti) memakai skrip pemasang library itu sendiri, lalu memasang paket rendernya. Paket suara dan musik dipasang agen bila filmnya butuh.
 - **Membuat film** memakan sekitar 30–60 menit dan kuota Claude Anda; Clip Agent menjalankan Claude Code tanpa pengawasan (`claude -p` dengan skill lemo-opuscar, effort high), menampilkan kemajuan dan langkahnya, dan bisa dibatalkan. Film berjalan di antrean sendiri, jadi Studio dan tab lain tetap bisa dipakai. Pengguna API key bisa memasang batas biaya per film.
 - **Izin:** agen menjalankan perintah (Node, ffmpeg, Python, pemasangan paket) dan menulis file di folder film dan library. Anda harus mencentang izin ini sekali di Pengaturan agen.

@@ -389,6 +389,8 @@ function applyDraw(el, v) {
   const a = (Math.min(v.a, v.b) / 100) * len, b = (Math.max(v.a, v.b) / 100) * len;
   el.style.strokeDasharray = `0 ${a} ${Math.max(0.0001, b - a)} ${len}`;
   el.style.strokeDashoffset = "0";
+  // Garis sepanjang nol tetap terlihat sebagai titik bila ujungnya bulat: sembunyikan sampai mulai digambar.
+  el.style.visibility = b - a < 0.5 ? "hidden" : "";
 }
 
 // ------------------------------------------------------------------ bantuan untuk kode adegan
@@ -412,14 +414,18 @@ function split(root, selector, mode) {
       const frag = document.createDocumentFragment();
       const text = node.textContent || "";
       const tokens = mode === "chars" ? Array.from(text) : text.split(/(\s+)/);
+      let word = null;                                    // huruf dikelompokkan per kata agar kata tidak terpotong di akhir baris
       for (const tok of tokens) {
         if (!tok) continue;
-        if (/^\s+$/.test(tok)) { frag.appendChild(document.createTextNode(tok)); continue; }
+        if (/^\s+$/.test(tok)) { word = null; frag.appendChild(document.createTextNode(tok)); continue; }
         const sp = document.createElement("span");
         sp.className = cls;
         sp.style.display = "inline-block";
         sp.textContent = tok;
-        frag.appendChild(sp);
+        if (mode === "chars") {
+          if (!word) { word = document.createElement("span"); word.style.display = "inline-block"; word.style.whiteSpace = "nowrap"; frag.appendChild(word); }
+          word.appendChild(sp);
+        } else frag.appendChild(sp);
         out.push(sp);
       }
       node.parentNode.replaceChild(frag, node);

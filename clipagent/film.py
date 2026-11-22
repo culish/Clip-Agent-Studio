@@ -36,7 +36,8 @@ VOICES = {"pria": "a warm male narrator", "wanita": "a warm female narrator", "n
 EFFORTS = ["high", "xhigh", "max", "medium"]
 MATERIAL_EXT = {".jpg", ".jpeg", ".png", ".webp", ".svg", ".mp3", ".wav", ".m4a", ".ogg", ".flac", ".mp4", ".mov",
                 ".ttf", ".otf", ".pdf", ".txt", ".csv", ".json"}
-DEFAULTS = {"library": "", "claude": "", "model": "", "effort": "high", "budget_usd": 0, "consent": False}
+DEFAULTS = {"library": "", "claude": "", "model": "", "effort": "high", "budget_usd": 0, "consent": False,
+            "agent": "claude", "agent_model": "", "bins": {}}
 
 # Fase kerja agen, dikenali dari alat dan perintah yang dipakainya (untuk perkiraan kemajuan)
 PHASES = [
@@ -85,6 +86,14 @@ def save_settings(raw: dict) -> dict:
             pass
     if "consent" in raw:
         st["consent"] = bool(raw["consent"])
+    from . import agents
+    if raw.get("agent") in agents.AGENTS and agents.AGENTS[raw["agent"]]["film"]:
+        st["agent"] = raw["agent"]
+    if "agent_model" in raw:
+        m = str(raw["agent_model"] or "").strip()
+        st["agent_model"] = m if re.fullmatch(r"[\w.:/\-\[\]]{0,80}", m) else ""
+    if isinstance(raw.get("bins"), dict):
+        st["bins"] = {k: str(v or "").strip()[:400] for k, v in raw["bins"].items() if k in agents.AGENTS}
     SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     SETTINGS_PATH.write_text(json.dumps(st, indent=1), encoding="utf-8")
     return st
@@ -145,8 +154,11 @@ def _launch(exe: str) -> list:
 
 
 def status() -> dict:
+    from . import agents
     lib = library_dir()
     claude = claude_bin()
+    agent = get_settings().get("agent") or "claude"
+    agent_exe = claude if agent == "claude" else agents.find(agent)
     node_v = _ver(["node", "-v"], r"v(\d+)") if shutil.which("node") else ""
     ff_v = _ver(["ffmpeg", "-version"], r"ffmpeg version n?(\d+)") if shutil.which("ffmpeg") else ""
     py_ok = bool(shutil.which("uv")) or any(
@@ -159,9 +171,10 @@ def status() -> dict:
     if have:
         rev = _ver(["git", "-C", str(lib), "log", "-1", "--format=%h %cs"], r"(\w+ \S+)")
     checks = [
-        {"id": "claude", "label": "Claude Code (CLI claude)", "ok": bool(claude),
-         "detail": _ver(_launch(claude) + ["--version"], r"(\d+\.\d+\.\d+)") if claude else "",
-         "fix": "Pasang Claude Code lalu login: https://docs.claude.com/en/docs/claude-code (perintah `claude` harus jalan di terminal)."},
+        {"id": "claude", "label": f"Agen: {agents.AGENTS[agent]['name']}", "ok": bool(agent_exe),
+         "detail": _ver(_launch(agent_exe) + ["--version"], r"(\d+\.\d+\.\d+)") if agent_exe else "",
+         "fix": (f"Pasang {agents.AGENTS[agent]['name']} dengan `{agents.AGENTS[agent]['install']}`, lalu login dengan "
+                 f"`{agents.AGENTS[agent]['login']}` (perintah harus jalan di terminal). Atau pilih agen lain di pengaturan film.")},
         {"id": "node", "label": "Node.js 20+", "ok": bool(node_v) and int(node_v) >= 20, "detail": f"v{node_v}" if node_v else "",
          "fix": "Pasang Node.js 20 atau lebih baru dari https://nodejs.org"},
         {"id": "ffmpeg", "label": "ffmpeg 7+", "ok": bool(ff_v) and int(ff_v) >= 7, "detail": ff_v,
@@ -178,7 +191,7 @@ def status() -> dict:
     ]
     ready = all(c["ok"] for c in checks if c["id"] in ("claude", "library", "node", "ffmpeg", "python", "sh"))
     return {"checks": checks, "ready": ready, "library": str(lib), "gallery": GALLERY, "repo": REPO,
-            "settings": get_settings(), "efforts": EFFORTS}
+            "settings": get_settings(), "efforts": EFFORTS, "agents": agents.public()}
 
 
 # ---------------------------------------------------------------- daftar gaya
@@ -561,11 +574,14 @@ def run_agent(out_dir: Path, fid: str, revision: str = "") -> dict:
     lib = library_dir()
     if not is_library(lib):
         raise ClipAgentError("Library Lemo-Opuscar belum terpasang. Klik Pasang library di tab Film.")
-    if revision and not f.get("session"):
+    if revision and not f.get("session") and (st.get("agent") or "claude") == "claude":
         raise ClipAgentError("Film ini belum punya sesi agen untuk direvisi; buat filmnya dulu.")
     prompt = (f"Revise the film in `{f['name']}/` (style {f['style_name']}). My notes:\n{revision}\n\nChange only what the "
               f"notes ask, re-render, run the checks again and deliver `{f['name']}.mp4` again. End your final message "
               "with one line: FILM=<absolute path of the mp4>.") if revision else brief(out_dir, f)
+    agent = st.get("agent") or "claude"
+    if agent != "claude":
+        return _run_other(out_dir, f, agent, revision)
     cmd = _cmd(f["session"] if revision else None, f)
     cwd = films_dir(out_dir)
     pdir = cwd / f["name"]
@@ -651,6 +667,107 @@ def run_agent(out_dir: Path, fid: str, revision: str = "") -> dict:
     log(f"Film siap: {info['video']}" + (f" (biaya API sekitar US${cost:.2f})" if cost else ""))
     progress(1.0, "Film siap")
     return {"film": fid, "video": info["video"], "video_url": info.get("video_url"), "cost_usd": cost}
+
+
+def _other_prompt(f: dict, lib: Path, revision: str, brief_text: str) -> str:
+    """Agen selain Claude tidak memuat plugin Claude Code: arahkan ke panduan library yang sama (AGENTS.md + skill)."""
+    skills = sorted(str(p) for p in (lib / "plugin").glob("**/SKILL.md")) if (lib / "plugin").is_dir() else []
+    head = (UNATTENDED.replace(", never use AskUserQuestion", "") + "\n\nThe lemo-opuscar library is at " + str(lib)
+            + ". Before anything else read " + str(lib / "AGENTS.md")
+            + (" and the skill instructions in " + ", ".join(skills[:3]) if skills else "")
+            + ", then follow them exactly as a coding agent would (DIRECTOR.md, the style's STYLE.md, the checks). "
+              "Work in the current folder. Run long commands to completion and check their output.\n\n")
+    if revision:
+        return head + (f"Revise the film already in `{f['name']}/` (style {f['style_name']}); read its TREATMENT.md and "
+                       f"files first. My notes:\n{revision}\n\nChange only what the notes ask, re-render, run the checks "
+                       f"again and deliver `{f['name']}.mp4` again. End your final message with one line: "
+                       "FILM=<absolute path of the mp4>.")
+    return head + brief_text.replace("Use the lemo-opuscar skill. ", "")
+
+
+def _run_other(out_dir: Path, f: dict, agent: str, revision: str) -> dict:
+    """Film dengan Codex / Gemini CLI / Qwen Code: panduan yang sama, keluaran JSON Lines atau teks."""
+    from . import agents
+    st = get_settings()
+    lib = library_dir()
+    cwd = films_dir(out_dir)
+    pdir = cwd / f["name"]
+    pdir.mkdir(parents=True, exist_ok=True)
+    logs = pdir / ".clipagent"
+    logs.mkdir(exist_ok=True)
+    prompt = _other_prompt(f, lib, revision, brief(out_dir, f))
+    cmd, _ = agents.agentic_cmd(agent, lib=lib, cwd=cwd, model=st.get("agent_model") or "")
+    name = agents.AGENTS[agent]["name"]
+    run_no = len(f.get("runs") or []) + 1
+    transcript = logs / f"agent-{run_no}.jsonl"
+    fid = f["id"]
+    _update(out_dir, fid, status="revisi" if revision else "dibuat")
+    log(("Revisi film" if revision else "Membuat film") + f" «{f['name']}» bergaya {f['style_name']} dengan {name}.")
+    log(f"Agen bekerja sendiri sekitar 30–60 menit dan memakai kuota {name} Anda. Jangan tutup Clip Agent.")
+    env = {**os.environ, "LEMO_OPUSCAR_HOME": str(lib), "NO_COLOR": "1"}
+    kw = {"start_new_session": True} if os.name != "nt" else {"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)}
+    proc = subprocess.Popen(cmd, cwd=str(cwd), env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", bufsize=1, **kw)
+    t0 = time.time()
+    state = {"phase": 0.02, "stage": "Agen mulai", "texts": [], "buf": "", "errors": [], "session": ""}
+
+    def bump(text: str):
+        for pat, frac, stage in PHASES:
+            if frac > state["phase"] and re.search(pat, text, re.I):
+                state["phase"], state["stage"] = frac, stage
+        tf = min(0.9, (time.time() - t0) / (50 * 60) * 0.9)
+        progress(max(state["phase"], tf if state["phase"] > 0.05 else min(tf, 0.05)), state["stage"])
+
+    def on_line(line: str):
+        with open(transcript, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+        ev = agents.parse_event(line)
+        if ev.get("session"):
+            state["session"] = ev["session"]
+        if ev.get("tool"):
+            log("  ▸ " + ev["tool"])
+            bump(ev["tool"])
+        if ev.get("text"):
+            if ev.get("delta"):
+                state["buf"] += ev["text"]
+            else:
+                txt = (state["buf"] + ev["text"]).strip()
+                state["buf"] = ""
+                state["texts"].append(txt)
+                log("  " + re.sub(r"\s+", " ", txt)[:300])
+                bump(txt)
+        if ev.get("error"):
+            state["errors"].append(ev["error"])
+            log("  ! " + ev["error"][:300])
+        bump("")
+
+    try:
+        rc = _pump(proc, on_line, idle_check=lambda: bump(""), stdin_text=prompt)
+    except Cancelled:
+        _update(out_dir, fid, status="dibatalkan")
+        raise
+    if state["buf"].strip():
+        state["texts"].append(state["buf"].strip())
+    final = "\n".join(state["texts"][-3:])
+    runs = list(f.get("runs") or []) + [{"at": time.strftime("%Y-%m-%d %H:%M:%S"), "revision": revision[:500],
+                                         "minutes": round((time.time() - t0) / 60, 1), "cost_usd": 0, "agent": agent,
+                                         "ok": rc == 0}]
+    m = re.search(r"FILM=(.+\.mp4)", final)
+    mp4 = Path(m.group(1).strip().strip("`")) if m else None
+    expected = pdir / f"{f['name']}.mp4"
+    if mp4 and mp4.is_file() and mp4.resolve() != expected.resolve() and mp4.resolve().is_relative_to(cwd.resolve()):
+        shutil.copy2(mp4, expected)
+    info = _files(out_dir, f)
+    ok = bool(info.get("video")) and rc == 0
+    _update(out_dir, fid, status="selesai" if ok else "gagal", runs=runs, summary=final[-1500:], agent=agent)
+    if not ok:
+        why = final[-600:] or "\n".join(state["errors"][-6:]) or f"kode keluar {rc}"
+        if not info.get("video"):
+            raise ClipAgentError(f"{name} selesai tanpa file film. Pesan terakhirnya:\n{why}")
+        raise ClipAgentError(f"{name} berhenti dengan galat:\n{why}")
+    log(f"Film siap: {info['video']}")
+    progress(1.0, "Film siap")
+    return {"film": fid, "video": info["video"], "video_url": info.get("video_url"), "cost_usd": 0}
 
 
 def all_film_videos(out_dir: Path) -> list[dict]:

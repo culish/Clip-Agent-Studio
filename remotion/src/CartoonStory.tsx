@@ -284,8 +284,9 @@ const SceneView: React.FC<{ sc: Scene; idx: number; durF: number; style: Style; 
   const { fps, width } = useSize();
   const enter = spring({ frame, fps, config: { damping: 14, stiffness: 120 } });
   const themed = !!(theme && sc.art && !sc.image && !sc.video);
-  const motion = !!((sc as any).motion && design && !sc.image && !sc.video);
-  const media = motion ? <MotionScene sc={sc} idx={idx} durF={durF} design={design as MotionDesign} />
+  const motion = !!((sc as any).motion && design && !sc.image);
+  const motionEl = motion ? <MotionScene sc={sc} idx={idx} durF={durF} design={design as MotionDesign} overlay={!!sc.video} /> : null;
+  const media = motion ? (sc.video ? <AbsoluteFill><Media sc={sc} idx={idx} durF={durF} style={style} />{motionEl}</AbsoluteFill> : motionEl)
     : themed ? <ThemeArt sc={sc} idx={idx} durF={durF} style={style} theme={theme as ThemeInfo} startF={startF} />
     : <Media sc={sc} idx={idx} durF={durF} style={style} />;
   const showBubble = style.captions === "bubble" && !!bubbleText;
