@@ -527,6 +527,7 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
 .rl-recent { display: grid; gap: 10px; }
 .rl-recent a, .rl-recent button { display: grid; grid-template-columns: 54px 1fr; gap: 8px; align-items: center; text-align: left; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); padding: 6px; cursor: pointer; font: inherit; color: inherit; }
 .rl-recent img { width: 54px; height: 76px; object-fit: cover; border-radius: 6px; }
+.callout.warn { border: 1px solid var(--warn); border-radius: var(--r-md); padding: 12px 14px; background: var(--panel); line-height: 1.5; }
 .rl-recent small { color: var(--ink-2); display: block; }
 @media (max-width: 900px) { .rl-layout { grid-template-columns: 1fr; } .rl-out { grid-template-columns: 1fr; } .rl-out video { max-width: 280px; } }
 .fl-view { display: grid; gap: 14px; min-width: 0; }
@@ -3814,7 +3815,14 @@ $("#rlGo").addEventListener("click", () => {
 });
 async function initReelsRecent() { try { rlRecent((await api("/api/reels")).recent); } catch {} }
 function rlShowResult(r) {
-  if (!r.video_url) return;
+  if (!r.video_url) {
+    $("#rlResult").innerHTML = `<div class="callout warn" style="margin-top:14px"><b>${esc(r.title || "Reel")}</b> belum jadi videonya
+      (pembuatannya berhenti sebelum selesai, misalnya karena suara atau kuota AI gagal). Naskah dan adegannya tersimpan.
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px"><button class="btn small primary" type="button" data-act="render" data-pid="${esc(r.project)}">Buat ulang videonya</button>
+      <button class="btn small" type="button" data-act="edit" data-pid="${esc(r.project)}">Buka di Buat video</button></div></div>`;
+    $("#rlResult").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   const tags = (r.hashtags || []).map(t => "#" + t).join(" ");
   $("#rlResult").innerHTML = `<div class="rl-out"><video src="${esc(r.video_url)}#t=0.6" controls playsinline preload="metadata"></video>
     <div class="rl-copy"><h3 style="margin:0">${esc(r.title || "Reel")}</h3>
@@ -3824,17 +3832,26 @@ function rlShowResult(r) {
         <button class="btn small" type="button" data-act="copy">Salin teks</button>
         <button class="btn small" type="button" data-act="edit" data-pid="${esc(r.project)}">Edit di Buat video</button>
         <button class="btn small ghost" type="button" data-act="post">Posting</button></div></div></div>`;
+  $("#rlResult").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 $("#rlResult").addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   if (b.dataset.act === "copy") { try { await navigator.clipboard.writeText($$("#rlResult [data-copy]").map(x => x.value).join("\n\n")); toast("Judul dan deskripsi disalin"); } catch { toast("Browser menolak menyalin.", true); } }
   if (b.dataset.act === "edit") { showTab("make"); openProject(b.dataset.pid); }
   if (b.dataset.act === "post") showTab("posting");
+  if (b.dataset.act === "render") {
+    $("#rlResult").innerHTML = "";
+    crJob($("#rlJob"), { kind: "remake_render", project: b.dataset.pid }, "reel", async j => {
+      await initReelsRecent();
+      const r = (RL.recent || []).find(x => x.project === b.dataset.pid);
+      if (r) rlShowResult(r);
+    });
+  }
 });
 function rlRecent(items) {
   items = items || [];
   $("#rlRecent").innerHTML = items.length ? items.map((r, i) => `<button type="button" data-i="${i}"><img src="/web/reels/${esc(r.format)}.jpg" alt="">
-    <span><b>${esc(r.title)}</b><small>${esc(r.format_name)}${r.duration ? ` · ${Math.round(r.duration)} dtk` : ""}</small></span></button>`).join("")
+    <span><b>${esc(r.title)}</b><small>${esc(r.format_name)}${r.ready ? (r.duration ? ` · ${Math.round(r.duration)} dtk` : "") : ` · <span style="color:var(--warn)">belum jadi</span>`}</small></span></button>`).join("")
     : `<p class="small muted">Reel yang Anda buat muncul di sini. Semuanya juga ada di Buat video untuk diedit per adegan.</p>`;
   RL.recent = items;
 }

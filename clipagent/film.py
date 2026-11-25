@@ -696,6 +696,11 @@ def _run_other(out_dir: Path, f: dict, agent: str, revision: str) -> dict:
     logs = pdir / ".clipagent"
     logs.mkdir(exist_ok=True)
     prompt = _other_prompt(f, lib, revision, brief(out_dir, f))
+    done_before = [p.name for p in pdir.iterdir() if not p.name.startswith(".")] if pdir.is_dir() else []
+    if done_before and not revision and f.get("runs"):
+        prompt += (f"\n\nNOTE: an earlier attempt stopped midway (for example a usage limit). `{f['name']}/` already "
+                   f"contains: {', '.join(sorted(done_before)[:25])}. Read what is there and CONTINUE from it; do not redo "
+                   "finished steps or overwrite good work.")
     cmd, _ = agents.agentic_cmd(agent, lib=lib, cwd=cwd, model=st.get("agent_model") or "")
     name = agents.AGENTS[agent]["name"]
     run_no = len(f.get("runs") or []) + 1
@@ -762,6 +767,15 @@ def _run_other(out_dir: Path, f: dict, agent: str, revision: str) -> dict:
     _update(out_dir, fid, status="selesai" if ok else "gagal", runs=runs, summary=final[-1500:], agent=agent)
     if not ok:
         why = final[-600:] or "\n".join(state["errors"][-6:]) or f"kode keluar {rc}"
+        try:
+            tail = transcript.read_text(encoding="utf-8", errors="replace")[-6000:]
+        except OSError:
+            tail = ""
+        if re.search(r"\b429\b|RESOURCE_EXHAUSTED|quota|rate.?limit|usage limit|too many requests", tail + why, re.I):
+            raise ClipAgentError(
+                f"Kuota {name} habis atau terlalu banyak permintaan (HTTP 429). Pekerjaan yang sudah jadi tetap tersimpan di "
+                f"folder proyek; klik Coba lagi setelah kuotanya pulih (batas per menit pulih dalam beberapa menit, batas "
+                f"harian keesokan harinya) dan agen akan melanjutkannya. Atau ganti agen di Pengaturan agen.")
         if not info.get("video"):
             raise ClipAgentError(f"{name} selesai tanpa file film. Pesan terakhirnya:\n{why}")
         raise ClipAgentError(f"{name} berhenti dengan galat:\n{why}")

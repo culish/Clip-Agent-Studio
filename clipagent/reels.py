@@ -608,6 +608,7 @@ def recent(out_dir: Path, limit: int = 12) -> list[dict]:
             if f.is_file():
                 video = remake._url(out_dir, f)
         out.append({"project": pr["id"], "format": reel["format"], "format_name": FORMATS.get(reel["format"], {}).get("name", ""),
+                    "ready": bool(video),
                     "title": pr["script"].get("title", ""), "description": pr["script"].get("description", ""),
                     "hashtags": pr["script"].get("hashtags", []), "video_url": video, "updated": pr.get("updated", ""),
                     "duration": (last or {}).get("duration")})
