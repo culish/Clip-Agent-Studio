@@ -709,7 +709,7 @@ def _run_other(out_dir: Path, f: dict, agent: str, revision: str) -> dict:
     _update(out_dir, fid, status="revisi" if revision else "dibuat")
     log(("Revisi film" if revision else "Membuat film") + f" «{f['name']}» bergaya {f['style_name']} dengan {name}.")
     log(f"Agen bekerja sendiri sekitar 30–60 menit dan memakai kuota {name} Anda. Jangan tutup Clip Agent.")
-    env = {**os.environ, "LEMO_OPUSCAR_HOME": str(lib), "NO_COLOR": "1"}
+    env = {**agents.env(), "LEMO_OPUSCAR_HOME": str(lib)}
     kw = {"start_new_session": True} if os.name != "nt" else {"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)}
     proc = subprocess.Popen(cmd, cwd=str(cwd), env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", bufsize=1, **kw)
@@ -771,6 +771,10 @@ def _run_other(out_dir: Path, f: dict, agent: str, revision: str) -> dict:
             tail = transcript.read_text(encoding="utf-8", errors="replace")[-6000:]
         except OSError:
             tail = ""
+        if re.search(r"not running in a trusted directory|folder is not trusted", tail + why, re.I):
+            raise ClipAgentError(
+                f"{name} menolak bekerja karena folder film belum dipercaya. Buka terminal di folder {cwd}, jalankan "
+                f"`{agent}`, pilih Trust folder, keluar dengan /quit, lalu klik Coba lagi.")
         if re.search(r"\b429\b|RESOURCE_EXHAUSTED|quota|rate.?limit|usage limit|too many requests", tail + why, re.I):
             raise ClipAgentError(
                 f"Kuota {name} habis atau terlalu banyak permintaan (HTTP 429). Pekerjaan yang sudah jadi tetap tersimpan di "

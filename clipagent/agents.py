@@ -82,9 +82,18 @@ def launch(exe: str) -> list:
     return ["cmd", "/c", exe] if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")) else [exe]
 
 
+# Gemini CLI (dan Qwen Code, turunannya) tanpa pengawasan hanya mau memakai alat di folder yang "dipercaya";
+# folder kerja Clip Agent dipercaya lewat variabel ini (pengguna sudah mengizinkan agen bekerja tanpa diawasi).
+TRUST_ENV = {"GEMINI_CLI_TRUST_WORKSPACE": "true", "QWEN_CODE_TRUST_WORKSPACE": "true"}
+
+
+def env() -> dict:
+    return {**os.environ, "NO_COLOR": "1", **TRUST_ENV}
+
+
 def _run(cmd: list, stdin: str, cwd: str, timeout: int) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, input=stdin, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                          timeout=timeout, cwd=cwd, env={**os.environ, "NO_COLOR": "1"})
+                          timeout=timeout, cwd=cwd, env=env())
 
 
 def _unknown_flag(r: subprocess.CompletedProcess, flag: str) -> bool:
