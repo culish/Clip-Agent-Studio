@@ -270,6 +270,19 @@ def handle_get(h, p: str, q) -> bool:
         h._json({"status": film.status(), "styles": film.styles(), "films": film.list_films(h.out_dir),
                  "aspects": list(film.ASPECTS), "langs": film.LANGS, "voices": film.VOICES})
         return True
+    if p in ("/api/trim", "/api/trim/frame", "/api/trim/source"):
+        from . import trim
+        from .webapp import creative_ctx
+        ctx = creative_ctx({"video_id": q("video_id"), "rank": q("rank")}, h.out_dir)
+        if p == "/api/trim":
+            h._json(trim.trim_info(ctx))
+        elif p == "/api/trim/source":
+            if not trim.source_url(ctx):
+                raise ValueError("Format video sumber tidak bisa diputar di browser.")
+            h._file(ctx.video, ctx.video.parent)
+        else:
+            h._file(trim.source_frame(ctx, float(q("t", "0") or 0)), h.out_dir)
+        return True
     if p == "/api/layout":
         from .creative import layout_info
         from .webapp import creative_ctx
@@ -358,6 +371,16 @@ def handle_get(h, p: str, q) -> bool:
 
 def handle_post(h, p: str, body: dict) -> bool:
     out = h.out_dir
+    if p == "/api/trim/suggest":
+        from . import trim
+        from .webapp import creative_ctx
+        ctx = creative_ctx(body, h.out_dir)
+        try:
+            s, e = float(body.get("start", ctx.start)), float(body.get("end", ctx.end))
+        except (TypeError, ValueError):
+            raise ValueError("Awal/akhir klip tidak valid.")
+        h._json(trim.suggest(ctx, s, e))
+        return True
     # ---- film (Lemo-Opuscar)
     if p.startswith("/api/film"):
         from . import film

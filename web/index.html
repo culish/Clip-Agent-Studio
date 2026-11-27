@@ -429,6 +429,46 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
 .ly-box[data-box="face2_box"] { border-color: #FF7AC6; background: rgba(255,122,198,.14); } .ly-box[data-box="face2_box"] b, .ly-box[data-box="face2_box"] i { background: #FF7AC6; }
 #lyPrev { width: 216px; height: auto; aspect-ratio: 9 / 16; border-radius: 14px; background: #111; display: block; }
 @media (max-width: 760px) { .ly-wrap { grid-template-columns: minmax(0, 1fr); } #lyPrev { margin: 0 auto; width: 180px; } }
+/* ---------- cek frame & durasi */
+.tm-bar { position: relative; height: 34px; border-radius: var(--r-sm); background: var(--sunk); touch-action: none; user-select: none; }
+.tm-orig { position: absolute; top: 0; bottom: 0; border: 1px dashed var(--ink-2); border-radius: 6px; opacity: .55; pointer-events: none; }
+.tm-sel { position: absolute; top: 4px; bottom: 4px; background: var(--violet-soft); border: 2px solid var(--violet); border-radius: 6px; }
+.tm-sel i { position: absolute; top: -6px; bottom: -6px; width: 14px; margin-left: -7px; background: var(--violet); border-radius: 5px; cursor: ew-resize; touch-action: none; }
+.tm-sel i[data-h="start"] { left: 0; } .tm-sel i[data-h="end"] { left: 100%; }
+.tm-sel i::after { content: ""; position: absolute; left: 5px; top: 30%; bottom: 30%; width: 2px; background: var(--violet-ink); border-radius: 1px; }
+.tm-scale { display: flex; justify-content: space-between; margin-top: -10px; }
+.tm-edges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.tm-edge { display: grid; gap: 8px; align-content: start; }
+.tm-edge img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #000; border-radius: var(--r-sm); display: block; }
+.tm-nudge { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tm-num input { width: 96px; min-height: 32px; padding: 4px 8px; font: inherit; font-variant-numeric: tabular-nums; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); color: var(--ink); }
+.tm-words { margin: 0; font-size: 14px; line-height: 1.9; }
+.tm-words span { cursor: pointer; border-radius: 4px; padding: 1px 2px; }
+.tm-words span:hover, .tm-words span:focus-visible { background: var(--violet-soft); outline: none; }
+.tm-words .out { color: var(--ink-2); opacity: .6; }
+.tm-words .half { color: var(--bad); text-decoration: underline wavy; text-underline-offset: 4px; }
+.tm-words .cut { display: inline-block; width: 2px; height: 1.2em; vertical-align: -3px; margin: 0 3px; background: var(--violet); border-radius: 1px; cursor: default; padding: 0; }
+.tm-v { font-size: 12.5px; font-weight: 700; display: inline-flex; gap: 5px; align-items: center; }
+.tm-v.ok, .tm-c .ok { color: var(--good); } .tm-v.bad, .tm-c .fail { color: var(--bad); } .tm-c .warn { color: var(--warn); } .tm-c .skip { color: var(--ink-2); }
+.tm-play { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.tm-play video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--r-sm); display: block; }
+.tm-play-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.tm-dur { font-weight: 700; margin-right: 4px; }
+.tm-report { display: grid; gap: 14px; }
+.tm-sum { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13.5px; font-weight: 600; }
+.tm-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.tm-c { display: grid; grid-template-columns: 22px 170px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; font-size: 14px; }
+.tm-c .ic { font-weight: 800; text-align: center; }
+.tm-c .d { color: var(--ink-2); display: grid; gap: 6px; }
+.tm-c .d .row { gap: 6px; }
+.tm-t { font-variant-numeric: tabular-nums; font-size: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 2px 9px; cursor: pointer; }
+.tm-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.tm-f { flex: 0 0 auto; width: 92px; display: grid; gap: 4px; scroll-snap-align: start; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; font: inherit; text-align: left; }
+.tm-f img { width: 92px; border-radius: 8px; display: block; background: #000; outline: 2px solid transparent; outline-offset: 1px; }
+.tm-f.flag img { outline-color: var(--warn); }
+.tm-f span { font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tm-f em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--warn); line-height: 1.25; }
+@media (max-width: 760px) { .tm-edges, .tm-play { grid-template-columns: minmax(0, 1fr); } .tm-c { grid-template-columns: 22px minmax(0, 1fr); } .tm-c .d { grid-column: 2; } }
 .ko-pkg { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
 .ko-pkg summary { cursor: pointer; font-weight: 700; font-size: 14px; }
 .ko-pkg[open] { gap: 10px; }
@@ -1040,8 +1080,8 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
 <section role="tabpanel" id="tab-creative" hidden>
   <div class="radar-head">
     <div style="display:grid;gap:8px">
-      <h1 style="max-width:20ch">Cover dan versi kartun untuk klip Anda</h1>
-      <p class="muted" style="max-width:66ch">Pilih satu klip. Buat cover untuk thumbnail, lalu ubah klipnya menjadi kartun atau animasi lewat storyboard.</p>
+      <h1 style="max-width:20ch">Rapikan, cover, dan versi kartun klip Anda</h1>
+      <p class="muted" style="max-width:66ch">Pilih satu klip. Cek frame dan atur panjangnya, buat cover untuk thumbnail, lalu ubah klipnya menjadi kartun atau animasi lewat storyboard.</p>
     </div>
     <label class="field" style="width:min(100%,440px)"><span>Klip</span><select id="crClip"></select></label>
   </div>
@@ -1053,6 +1093,45 @@ fieldset.keys { border-top: 1px solid var(--line); padding-top: 14px; gap: 12px;
       <p class="small muted num" id="crMeta"></p>
     </aside>
     <div>
+      <section class="cr-sec" id="tmSec">
+        <div class="row" style="justify-content:space-between"><h2>Cek frame &amp; durasi</h2><span class="small muted">Perpanjang atau pendekkan klip</span></div>
+        <p class="small muted" style="max-width:72ch">Geser awal dan akhir klip, dengarkan potongannya, lalu render ulang. Klik sebuah kata untuk memotong tepat di kata itu. <b>Rapikan ke kalimat</b> memindahkan potongan ke kalimat utuh dan jeda bicara terdekat.</p>
+        <div class="tm-bar" id="tmBar" aria-hidden="true"><div class="tm-orig" id="tmOrig"></div><div class="tm-sel" id="tmSel"><i data-h="start"></i><i data-h="end"></i></div></div>
+        <div class="tm-scale small muted num"><span id="tmLo"></span><span id="tmHi"></span></div>
+        <div class="tm-edges">
+          <div class="tm-edge">
+            <div class="row" style="justify-content:space-between"><b>Awal klip</b><span class="tm-v" id="tmVS"></span></div>
+            <img id="tmImgS" alt="Frame video sumber di awal klip">
+            <div class="tm-nudge"><button class="btn small" type="button" data-nudge="start|-1">−1 dtk</button><button class="btn small" type="button" data-nudge="start|-f" aria-label="Mundur 1 frame">−1 fr</button>
+              <label class="tm-num"><span class="sr">Awal (detik)</span><input type="number" id="tmStart" step="0.01" min="0" inputmode="decimal"></label>
+              <button class="btn small" type="button" data-nudge="start|f" aria-label="Maju 1 frame">+1 fr</button><button class="btn small" type="button" data-nudge="start|1">+1 dtk</button></div>
+            <p class="tm-words" id="tmWS" aria-label="Kata di sekitar awal klip"></p>
+          </div>
+          <div class="tm-edge">
+            <div class="row" style="justify-content:space-between"><b>Akhir klip</b><span class="tm-v" id="tmVE"></span></div>
+            <img id="tmImgE" alt="Frame video sumber di akhir klip">
+            <div class="tm-nudge"><button class="btn small" type="button" data-nudge="end|-1">−1 dtk</button><button class="btn small" type="button" data-nudge="end|-f" aria-label="Mundur 1 frame">−1 fr</button>
+              <label class="tm-num"><span class="sr">Akhir (detik)</span><input type="number" id="tmEnd" step="0.01" min="0" inputmode="decimal"></label>
+              <button class="btn small" type="button" data-nudge="end|f" aria-label="Maju 1 frame">+1 fr</button><button class="btn small" type="button" data-nudge="end|1">+1 dtk</button></div>
+            <p class="tm-words" id="tmWE" aria-label="Kata di sekitar akhir klip"></p>
+          </div>
+        </div>
+        <div class="tm-play" id="tmPlay">
+          <video id="tmVideo" playsinline preload="metadata"></video>
+          <div class="tm-play-btns"><button class="btn small" type="button" data-play="clip">Putar rentang baru</button><button class="btn small" type="button" data-play="head">3 dtk awal</button><button class="btn small" type="button" data-play="tail">3 dtk akhir</button><button class="btn small ghost" type="button" data-play="after">Lewat akhir</button></div>
+        </div>
+        <div class="row tm-actions">
+          <span class="num tm-dur" id="tmDur" aria-live="polite"></span>
+          <button class="btn small" type="button" id="tmSnap">Rapikan ke kalimat</button>
+          <button class="btn small" type="button" id="tmAi">Rapikan dengan AI</button>
+          <button class="btn small ghost" type="button" id="tmReset">Batalkan perubahan</button>
+          <button class="btn small ghost" type="button" id="tmOrigBtn" hidden>Rentang asli</button>
+        </div>
+        <div class="row"><button class="btn primary" type="button" id="tmGo">Render ulang klip</button><button class="btn" type="button" id="tmCheck">Cek frame</button><span class="small muted" id="tmNote" aria-live="polite"></span></div>
+        <div class="crjob" id="tmJob" hidden></div>
+        <div class="tm-report" id="tmReport" hidden></div>
+      </section>
+
       <section class="cr-sec" id="lySec">
         <div class="row" style="justify-content:space-between"><h2>Layout klip</h2><span class="small muted">Streaming, reaction, podcast</span></div>
         <p class="small muted" style="max-width:70ch">Pilih layout, lalu geser atau tarik pojok kanan-bawah kotak untuk mengatur area facecam dan video utama. Pratinjau di samping menunjukkan hasilnya sebelum dirender.</p>
@@ -1635,6 +1714,7 @@ function clipCard(c, aspect, vid) {
       ${caption ? `<button class="btn small" type="button" data-copy="${esc(caption)}">Salin caption</button>` : ""}
       <a class="btn small" href="${esc(c.video_url)}?download=1">Unduh MP4</a>
       <a class="btn small ghost" href="${esc(c.srt_url)}?download=1">SRT</a>
+      ${vid ? `<button class="btn small" type="button" data-trim="${esc(vid)}|${esc(c.rank)}">Cek frame &amp; durasi</button>` : ""}
       ${vid ? `<button class="btn small" type="button" data-creative="${esc(vid)}|${esc(c.rank)}">Edit &amp; animasi</button>` : ""}
       <button class="btn small" type="button" data-post="${esc(pathOf(c.video_url))}">Posting</button>
     </div></article>`;
@@ -1810,6 +1890,7 @@ async function loadCreative(key, keep) {
   $("#rmWarn").hidden = rm.ready; $("#rmWarn").textContent = rm.ready ? "" : "Remotion belum siap. " + rm.hint;
   renderCovers(); renderAnimTab(); renderAnimations();
   if (changed || !LY.info) lyLoad(vid, rank);
+  if (changed || !TM.info || CR.focus === "tmSec") tmLoad(vid, rank);
 }
 function renderAnimTab() { renderOptions(); renderScenes(); renderPresets(); renderCustom(); renderPreviewFrames(); updateNote(); }
 function renderCovers() {
@@ -2229,6 +2310,209 @@ $("#lyGo").addEventListener("click", () => {
   });
 });
 window.addEventListener("resize", () => { if (LY.info) lyDraw(); });
+
+/* ------------------------------------------------------------ cek frame & durasi (AutoClip) */
+const TM = { info: null, key: "", s: 0, e: 0, lo: 0, hi: 1, stopAt: null };
+const TM_FINAL = /[。！？!?…]$|\.$/;
+const tmClean = t => String(t || "").trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, "");
+function tmJudgeStart(ws, s) {
+  if (!ws.length) return "no_words";
+  if (ws.some(w => w[0] + 0.08 < s && s < w[1])) return "mid_word";
+  const before = ws.filter(w => w[1] <= s + 0.08); if (!before.length) return "complete";
+  const p = before[before.length - 1];
+  return s - p[1] <= 0.6 && !TM_FINAL.test(tmClean(p[2])) ? "mid_sentence" : "complete";
+}
+function tmJudgeEnd(ws, e, s) {
+  if (!ws.length) return "no_words";
+  if (ws.some(w => w[0] < e && e < w[1] - 0.08 && w[1] > s)) return "mid_word";
+  const spoken = ws.filter(w => s - 0.08 <= w[0] && w[1] <= e + 0.08); if (!spoken.length) return "complete";
+  const last = spoken.reduce((a, b) => (b[1] > a[1] ? b : a));
+  if (TM_FINAL.test(tmClean(last[2]))) return "complete";
+  const nxt = ws.find(w => w[0] >= e - 1e-6);
+  return nxt && nxt[0] - e <= 0.6 ? "mid_sentence" : "complete";
+}
+const TM_V = { complete: ["ok", "✓ Kalimat utuh"], mid_word: ["bad", "✕ Terpotong di tengah kata"], mid_sentence: ["bad", "✕ Terpotong di tengah kalimat"], no_words: ["", "Tanpa transkrip"] };
+const tmFmt = t => { t = Math.max(0, t); const m = Math.floor(t / 60); return `${m}:${(t - m * 60).toFixed(2).padStart(5, "0")}`; };
+async function tmLoad(vid, rank) {
+  TM.key = `${vid}|${rank}`; $("#tmNote").textContent = "";
+  try { TM.info = await api(`/api/trim?video_id=${encodeURIComponent(vid)}&rank=${encodeURIComponent(rank)}`); }
+  catch (e) { TM.info = null; $("#tmNote").textContent = e.message; return; }
+  const I = TM.info;
+  TM.s = I.start; TM.e = I.end;
+  const v = $("#tmVideo");
+  $("#tmPlay").hidden = !I.source_url;
+  if (I.source_url && v.getAttribute("src") !== I.source_url) {
+    v.src = I.source_url;
+    v.addEventListener("loadedmetadata", () => { if (TM.info) v.currentTime = TM.s; }, { once: true });
+  } else if (I.source_url && v.readyState) v.currentTime = TM.s;
+  $("#tmAi").hidden = !I.ai;
+  $("#tmOrigBtn").hidden = Math.abs(I.orig[0] - I.start) < 0.05 && Math.abs(I.orig[1] - I.end) < 0.05;
+  $("#tmOrigBtn").title = `Rentang pilihan agen: ${tmFmt(I.orig[0])}–${tmFmt(I.orig[1])}`;
+  tmRange(); tmUpdate(true); tmReport(I.check);
+  if (CR.focus === "tmSec") { CR.focus = ""; $("#tmSec").scrollIntoView({ behavior: "smooth", block: "start" }); }
+}
+function tmRange() {                                  // jendela timeline: rentang klip ± 30 dtk
+  const I = TM.info, pad = Math.max(20, (TM.e - TM.s) * 0.5);
+  TM.lo = Math.max(0, Math.min(TM.s, I.start) - pad); TM.hi = Math.min(I.total || TM.e + pad, Math.max(TM.e, I.end) + pad);
+  $("#tmLo").textContent = fmtTime(TM.lo); $("#tmHi").textContent = fmtTime(TM.hi);
+}
+const tmPct = t => ((t - TM.lo) / (TM.hi - TM.lo || 1)) * 100;
+let tmFrameTimer = null;
+function tmUpdate(frames) {
+  const I = TM.info; if (!I) return;
+  if (TM.s < TM.lo || TM.e > TM.hi) tmRange();
+  $("#tmStart").value = TM.s.toFixed(2); $("#tmEnd").value = TM.e.toFixed(2);
+  Object.assign($("#tmSel").style, { left: tmPct(TM.s) + "%", width: tmPct(TM.e) - tmPct(TM.s) + "%" });
+  Object.assign($("#tmOrig").style, { left: tmPct(I.start) + "%", width: tmPct(I.end) - tmPct(I.start) + "%" });
+  const d = TM.e - TM.s, d0 = I.end - I.start, diff = d - d0;
+  const lim = I.limits || {};
+  $("#tmDur").textContent = `${d.toFixed(1)} dtk` + (Math.abs(diff) >= 0.05 ? ` (${diff > 0 ? "+" : "−"}${Math.abs(diff).toFixed(1)} dtk, ${diff > 0 ? "lebih panjang" : "lebih pendek"})` : " (belum diubah)")
+    + (lim.max && d > lim.max + 0.5 ? `, di atas batas ${lim.max} dtk` : lim.min && d < lim.min - 0.5 ? `, di bawah ${lim.min} dtk` : "");
+  const ws = I.words;
+  const vs = TM_V[tmJudgeStart(ws, TM.s)], ve = TM_V[tmJudgeEnd(ws, TM.e, TM.s)];
+  $("#tmVS").className = "tm-v " + vs[0]; $("#tmVS").textContent = vs[1];
+  $("#tmVE").className = "tm-v " + ve[0]; $("#tmVE").textContent = ve[1];
+  $("#tmWS").innerHTML = tmWords(ws, TM.s, "start"); $("#tmWE").innerHTML = tmWords(ws, TM.e, "end");
+  const changed = Math.abs(TM.s - I.start) > 0.02 || Math.abs(TM.e - I.end) > 0.02;
+  $("#tmGo").disabled = !changed; $("#tmReset").disabled = !changed;
+  $("#tmGo").textContent = changed ? "Render ulang klip" : "Render ulang klip (geser dulu)";
+  clearTimeout(tmFrameTimer);
+  tmFrameTimer = setTimeout(() => {
+    const q = `video_id=${encodeURIComponent(I.video_id)}&rank=${encodeURIComponent(I.rank)}`;
+    $("#tmImgS").src = `/api/trim/frame?${q}&t=${(TM.s + 0.04).toFixed(2)}`;
+    $("#tmImgE").src = `/api/trim/frame?${q}&t=${Math.max(TM.s, TM.e - 0.06).toFixed(2)}`;
+  }, frames ? 0 : 280);
+}
+function tmWords(ws, t, edge) {
+  if (!ws.length) return `<span class="muted small">Tidak ada transkrip per kata.</span>`;
+  // garis potong: awal klip sebelum kata pertama yang masih terdengar, akhir klip sesudah kata terakhir yang mulai terdengar
+  let i = edge === "start" ? ws.findIndex(w => w[1] > t + 0.02) : ws.findIndex(w => w[0] >= t - 0.02);
+  if (i < 0) i = ws.length;
+  const a = Math.max(0, i - 9), b = Math.min(ws.length, i + 9);
+  let out = "";
+  for (let k = a; k < b; k++) {
+    if (k === i) out += `<span class="cut" aria-hidden="true"></span>`;
+    const w = ws[k], half = w[0] + 0.08 < t && t < w[1] - 0.08;
+    const inside = edge === "start" ? w[1] > t + 0.02 : w[0] < t - 0.02;
+    out += `<span tabindex="0" role="button" class="${half ? "half" : inside ? "" : "out"}" data-tw="${edge}|${k}" title="${edge === "start" ? "Mulai klip di kata ini" : "Akhiri klip setelah kata ini"} (${tmFmt(edge === "start" ? w[0] : w[1])})${half ? ". Kata ini terpotong." : ""}">${esc(w[2])}</span> `;
+  }
+  if (i >= b) out += `<span class="cut" aria-hidden="true"></span>`;
+  return out;
+}
+function tmSet(s, e) {
+  const I = TM.info, fr = 1 / (I.fps || 30);
+  s = Math.max(0, +(+s).toFixed(3)); e = Math.min(I.total || Infinity, +(+e).toFixed(3));
+  if (e - s < 1) { if (s !== TM.s) s = e - 1; else e = s + 1; }
+  TM.s = Math.max(0, s); TM.e = Math.max(TM.s + fr, e); tmUpdate();
+}
+$("#tmSec").addEventListener("click", e => {
+  const n = e.target.closest("[data-nudge]");
+  if (n && TM.info) {
+    const [edge, step] = n.dataset.nudge.split("|"), fr = 1 / (TM.info.fps || 30);
+    const d = step === "f" ? fr : step === "-f" ? -fr : +step;
+    edge === "start" ? tmSet(TM.s + d, TM.e) : tmSet(TM.s, TM.e + d);
+    if ($("#tmVideo").src && !$("#tmPlay").hidden) { const v = $("#tmVideo"); v.pause(); v.currentTime = edge === "start" ? TM.s : Math.max(0, TM.e - fr); }
+    return;
+  }
+  const w = e.target.closest("[data-tw]");
+  if (w && TM.info) {
+    const [edge, k] = w.dataset.tw.split("|"), ws = TM.info.words, x = ws[+k];
+    if (edge === "start") { const prev = ws[+k - 1]; tmSet(Math.max(prev ? prev[1] : 0, x[0] - 0.12), TM.e); }
+    else { const next = ws[+k + 1]; tmSet(TM.s, Math.min(next ? next[0] : x[1] + 0.4, x[1] + 0.25)); }
+    return;
+  }
+  const pl = e.target.closest("[data-play]");
+  if (pl && TM.info) {
+    const v = $("#tmVideo"), m = pl.dataset.play;
+    const [a, b] = m === "head" ? [TM.s, Math.min(TM.e, TM.s + 3)] : m === "tail" ? [Math.max(TM.s, TM.e - 3), TM.e] : m === "after" ? [Math.max(TM.s, TM.e - 1.5), TM.e + 3] : [TM.s, TM.e];
+    TM.stopAt = b; v.currentTime = a; v.play().catch(() => {});
+  }
+});
+$("#tmSec").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest("[data-tw]")) { e.preventDefault(); e.target.click(); } });
+$("#tmVideo").addEventListener("timeupdate", e => { if (TM.stopAt != null && e.target.currentTime >= TM.stopAt) { e.target.pause(); TM.stopAt = null; } });
+$("#tmVideo").addEventListener("seeking", e => { if (e.target.paused) TM.stopAt = null; });
+["tmStart", "tmEnd"].forEach(id => $("#" + id).addEventListener("change", () => {
+  const s = parseFloat($("#tmStart").value), en = parseFloat($("#tmEnd").value);
+  if (Number.isFinite(s) && Number.isFinite(en)) tmSet(s, en); else tmUpdate();
+}));
+$("#tmBar").addEventListener("pointerdown", e => {
+  if (!TM.info) return;
+  const h = e.target.closest("[data-h]"), r = $("#tmBar").getBoundingClientRect();
+  const at = ev => TM.lo + ((ev.clientX - r.left) / r.width) * (TM.hi - TM.lo);
+  let edge = h ? h.dataset.h : Math.abs(at(e) - TM.s) < Math.abs(at(e) - TM.e) ? "start" : "end";
+  e.preventDefault(); $("#tmBar").setPointerCapture(e.pointerId);
+  const move = ev => { const t = Math.min(TM.hi, Math.max(TM.lo, at(ev))); edge === "start" ? tmSet(Math.min(t, TM.e - 1), TM.e) : tmSet(TM.s, Math.max(t, TM.s + 1)); };
+  if (!h) move(e);
+  const up = () => { $("#tmBar").removeEventListener("pointermove", move); $("#tmBar").removeEventListener("pointerup", up); $("#tmBar").removeEventListener("pointercancel", up); };
+  $("#tmBar").addEventListener("pointermove", move); $("#tmBar").addEventListener("pointerup", up); $("#tmBar").addEventListener("pointercancel", up);
+});
+$("#tmReset").addEventListener("click", () => { if (TM.info) tmSet(TM.info.start, TM.info.end); });
+$("#tmOrigBtn").addEventListener("click", () => { if (TM.info) tmSet(TM.info.orig[0], TM.info.orig[1]); });
+$("#tmSnap").addEventListener("click", async () => {
+  if (!TM.info) return;
+  const b = $("#tmSnap"); b.disabled = true; $("#tmNote").textContent = "Mencari kalimat utuh dan jeda bicara…";
+  try {
+    const r = await api("/api/trim/suggest", { method: "POST", body: { video_id: TM.info.video_id, rank: TM.info.rank, start: TM.s, end: TM.e } });
+    if (r.changed) { tmSet(r.start, r.end); $("#tmNote").textContent = `Dirapikan ke ${tmFmt(r.start)}–${tmFmt(r.end)}. Dengarkan dulu, lalu render ulang.`; }
+    else $("#tmNote").textContent = r.note || "Sudah rapi.";
+  } catch (e) { $("#tmNote").textContent = e.message; }
+  b.disabled = false;
+});
+$("#tmAi").addEventListener("click", () => {
+  if (!TM.info) return;
+  crJob($("#tmJob"), { kind: "trim_ai", video_id: TM.info.video_id, rank: TM.info.rank, start: TM.s, end: TM.e }, "saran AI", j => {
+    const r = j.result; $("#tmJob").hidden = true;
+    if (r.changed) tmSet(r.start, r.end);
+    $("#tmNote").textContent = (r.changed ? `Saran AI: ${tmFmt(r.start)}–${tmFmt(r.end)}. ` : "AI tidak mengubah apa-apa. ") + (r.reason || "");
+  });
+});
+async function tmAfterRender(j, msg) {
+  await loadCreative(CR.key, true);
+  const v = $("#crVideo"); v.src = CR.state.clip.video_url + (CR.state.clip.video_url.includes("?") ? "&" : "?") + "t=" + Date.now();
+  await tmLoad(CR.state.video_id, CR.state.rank);
+  if (j.result.check) tmReport(j.result.check);
+  $("#tmJob").hidden = true; toast(msg);
+}
+$("#tmGo").addEventListener("click", () => {
+  if (!TM.info) return;
+  crJob($("#tmJob"), { kind: "retime", video_id: TM.info.video_id, rank: TM.info.rank, start: TM.s, end: TM.e, check: true },
+    "render ulang klip", j => tmAfterRender(j, `Klip sekarang ${j.result.duration.toFixed(1)} dtk.`));
+});
+$("#tmCheck").addEventListener("click", () => {
+  if (!TM.info) return;
+  crJob($("#tmJob"), { kind: "framecheck", video_id: TM.info.video_id, rank: TM.info.rank }, "cek frame", j => { $("#tmJob").hidden = true; tmReport(j.result.check); });
+});
+const TM_IC = { pass: "✓", warn: "!", fail: "✕", skip: "–" };
+const TM_ST = { pass: "Aman", warn: "Periksa", fail: "Perlu dirapikan", skip: "Dilewati" };
+const TM_FLAG = { face_cut: "wajah terpotong", caption_face: "subtitle di wajah", no_face: "wajah keluar bingkai", black: "hitam", frozen: "beku" };
+function tmReport(ck) {
+  const box = $("#tmReport");
+  if (!ck) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  const sm = ck.summary || {};
+  box.innerHTML = `<div class="row" style="justify-content:space-between"><h3>Hasil cek frame</h3><span class="small muted num">${esc(ck.width)}×${esc(ck.height)}, ${Math.round(ck.fps)} fps, ${esc(ck.duration)} dtk</span></div>
+    <div class="tm-sum tm-c" style="display:flex;border:0;padding:0">${["fail", "warn", "pass"].filter(k => sm[k]).map(k => `<span class="${k}">${TM_IC[k]} ${sm[k]} ${TM_ST[k].toLowerCase()}</span>`).join("")}</div>
+    <div class="tm-strip">${(ck.frames || []).map(f => `<button type="button" class="tm-f${f.flags.length ? " flag" : ""}" data-seek="${f.t}" title="Lompat ke ${tmFmt(f.t)} di klip">
+      <img src="${esc(f.url)}" alt="Frame ${tmFmt(f.t)}${f.flags.length ? ": " + f.flags.map(x => TM_FLAG[x] || x).join(", ") : ""}" loading="lazy">
+      <span>${f.edge === "start" ? "Frame pertama" : f.edge === "end" ? "Frame terakhir" : tmFmt(f.t)}</span>${f.flags.length ? `<em>${f.flags.map(x => TM_FLAG[x] || x).join(", ")}</em>` : ""}</button>`).join("")}</div>
+    <ul class="tm-checks">${(ck.checks || []).map(c => `<li class="tm-c"><span class="ic ${c.status}" aria-hidden="true">${TM_IC[c.status]}</span>
+      <b>${esc(c.label)} <span class="sr">${TM_ST[c.status]}</span></b>
+      <div class="d"><span>${esc(c.detail)}</span>${(c.times || []).length || c.fix || c.action ? `<div class="row">${(c.times || []).map(t => `<button type="button" class="tm-t" data-seek="${t}">${tmFmt(t)}</button>`).join("")}
+        ${c.fix ? `<button class="btn small" type="button" data-fix="${c.fix.start}|${c.fix.end}">Terapkan saran (${tmFmt(c.fix.start)}–${tmFmt(c.fix.end)})</button>` : ""}
+        ${c.action === "loudnorm" ? `<button class="btn small" type="button" data-loud="1">Samakan keras suara</button>` : ""}</div>` : ""}</div></li>`).join("")}</ul>`;
+}
+$("#tmReport").addEventListener("click", e => {
+  const sk = e.target.closest("[data-seek]");
+  if (sk) { const v = $("#crVideo"); v.currentTime = +sk.dataset.seek; v.pause(); v.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+  const fx = e.target.closest("[data-fix]");
+  if (fx) { const [a, b] = fx.dataset.fix.split("|").map(Number); tmSet(a, b); $("#tmNote").textContent = "Saran dipasang. Dengarkan dulu, lalu render ulang."; $("#tmSec").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (e.target.closest("[data-loud]") && TM.info)
+    crJob($("#tmJob"), { kind: "loudnorm", video_id: TM.info.video_id, rank: TM.info.rank }, "menyamakan keras suara", j => tmAfterRender(j, "Keras suara klip sudah -14 LUFS."));
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-trim]"); if (!b) return;
+  CR.want = b.dataset.trim; CR.focus = "tmSec"; showTab("creative");
+});
 
 /* ------------------------------------------------------------ data studio bersama */
 let STUDIO = null;

@@ -35,7 +35,8 @@ KEY_VARS = ["GEMINI_API_KEY", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "GROQ_A
             "YOUTUBE_API_KEY", "PEXELS_API_KEY", "PIXABAY_API_KEY"]
 PLAIN_VARS = ["LLM_PROVIDER", "LLM_MODEL", "LLM_FALLBACK_MODELS", "LLM_BASE_URL", "COOKIES_FROM_BROWSER",
               "IMAGE_MODEL", "TTS_MODEL", "VIDEO_MODEL"]
-CREATIVE_KINDS = ("covers", "storyboard", "preview", "styles_preview", "animate", "autoedit", "relayout")
+CREATIVE_KINDS = ("covers", "storyboard", "preview", "styles_preview", "animate", "autoedit", "relayout",
+                  "retime", "framecheck", "trim_ai", "loudnorm")
 APK_PATH = PROJECT_DIR / "android" / "ClipAgent.apk"
 LOOPBACK = ("127.", "::1", "::ffff:127.")
 
@@ -184,6 +185,15 @@ def run_creative(kind: str, opts: dict, out_dir: Path) -> dict:
     if kind == "relayout":
         from .creative import relayout_clip
         return {**base, **relayout_clip(ctx, {"layout": opts.get("layout")})}
+    if kind in ("retime", "framecheck", "trim_ai", "loudnorm"):
+        from . import trim
+        if kind == "retime":
+            return {**base, **trim.retime_clip(ctx, {k: opts.get(k) for k in ("start", "end", "check")})}
+        if kind == "trim_ai":
+            return {**base, **trim.suggest_ai(ctx, {k: opts[k] for k in ("start", "end") if k in opts})}
+        if kind == "loudnorm":
+            return {**base, **trim.normalize_audio(ctx)}
+        return {**base, "check": trim.frame_check(ctx)}
     from .animation import preview_frames, preview_styles, render_animation
     opts = anim_opts(opts)
     if kind == "preview":
@@ -692,6 +702,9 @@ class Handler(BaseHTTPRequestHandler):
                 if body.get("kind", "clip") in CREATIVE_KINDS:
                     ctx = creative_ctx(body, self.out_dir)   # validasi dulu agar error langsung terlihat
                     body["label"] = ctx.clip.get("title", "")
+                    if body["kind"] == "retime":
+                        from .trim import validate
+                        validate(ctx, body)
                     if body["kind"] == "autoedit":
                         from .animation import remotion_status
                         if not remotion_status()["ready"]:

@@ -311,6 +311,30 @@ APK ada di `android/ClipAgent.apk` (Android 7.0 ke atas). Aplikasi ini adalah **
 
 **Membangun ulang APK** (opsional, untuk pengembang): `python android/build_apk.py --android-jar android.jar --aapt2 aapt2 --bundletool bundletool-all.jar --dx dx.jar`. Kode sumbernya ada di `android/src`. Keystore penanda tangan (`android/keystore/clipagent-release.p12`, sandi `clipagent`) tidak disimpan di repo publik. Bila belum ada, skrip membuat keystore baru dengan `keytool`. Simpan cadangannya, karena APK dengan kunci berbeda tidak bisa memperbarui aplikasi yang sudah terpasang (harus uninstall dulu).
 
+## Cek frame dan atur panjang klip
+
+Tiap klip hasil Auto clip punya tombol **Cek frame & durasi** (juga di **Klip saya** dan di tab **Kreatif**). Bagian ini memakai cara kerja [AutoClip](https://github.com/zhouxiaoka/autoclip) (lisensi MIT) yang diadaptasi untuk transkrip per kata Clip Agent:
+
+- **Perpanjang atau pendekkan**: geser pegangan di garis waktu, ketik detiknya, atau pakai tombol −1 dtk / −1 frame / +1 frame / +1 dtk. Frame video sumber di titik awal dan akhir ikut diperbarui, dan tombol **3 dtk awal**, **3 dtk akhir**, serta **Lewat akhir** memutar potongannya dari video sumber sebelum dirender.
+- **Klik kata untuk memotong**: kata-kata di sekitar awal dan akhir klip ditampilkan dengan garis potong. Kata yang terpotong ditandai merah bergelombang. Klik kata untuk memulai klip di kata itu, atau mengakhirinya setelah kata itu.
+- **Rapikan ke kalimat** (tanpa AI): awal klip mundur ke awal kalimat utuh, akhir klip maju sampai kalimatnya selesai (paling jauh 20 dtk ke belakang dan 25 dtk ke depan), pertanyaan topik berikutnya di ujung klip dibuang, lalu kedua potongan ditempelkan ke jeda bicara di audio (ffmpeg silencedetect, atau celah antar kata bila audio penuh musik).
+- **Rapikan dengan AI**: model AI membaca kalimat di sekitar klip dan memilih awal pertanyaan dan akhir jawaban. Jawaban yang tidak masuk akal (klip jadi terlalu pendek, atau melompat ke topik lain) diabaikan.
+- **Render ulang klip** memakai crop, layout, subtitle, dan terjemahan yang sama, lalu menyimpan rentang baru ke `plan.json`. Rentang pilihan agen disimpan, jadi **Rentang asli** selalu bisa dipakai lagi.
+
+**Cek frame** memeriksa klip hasil render dan menampilkan 12 frame contoh (frame pertama, frame terakhir, dan di antaranya). Frame yang bermasalah diberi tanda; klik frame atau waktunya untuk melompat ke titik itu.
+
+| Pemeriksaan | Kapan ditandai |
+|---|---|
+| Awal / akhir kalimat | Kata masih tersisa lebih dari 80 md (terpotong di tengah kata), atau kata berikutnya mulai dalam 0,6 dtk padahal kalimatnya belum selesai |
+| Potongan adegan | Ada pergantian shot dalam 0,75 dtk pertama/terakhir, sehingga beberapa frame shot lain "berkedip" di tepi klip. Sarannya memotong tepat di frame pergantian |
+| Frame hitam / gambar beku | ffmpeg blackdetect dan freezedetect. Frame hitam di tepi bisa langsung dipotong |
+| Wajah di bingkai | Wajah terpotong tepi bingkai, subtitle menutupi lebih dari 35% wajah, atau orang yang ada di video sumber tidak masuk crop |
+| Getar gambar | Crop bolak-balik melompat lebih dari sekali per menit, atau gambar diam bergetar lebih dari 0,30 px |
+| Keras suara | Di luar -14 LUFS ± 1 atau puncak di atas -1 dBTP. Tombol **Samakan keras suara** menormalkan audio tanpa merender ulang gambar |
+| Durasi | Di luar batas durasi di pengaturan Studio |
+
+Tiap masalah yang bisa diperbaiki dengan memotong punya tombol **Terapkan saran**: rentang baru dipasang di editor, Anda dengarkan dulu, lalu render ulang. Setelah render ulang, cek frame dijalankan lagi otomatis.
+
 ## Isi web app
 
 **Studio.** Tempel URL, pilih target penonton, atur gaya, lalu buat klip. Progres, log, dan hasil (bisa diputar, diunduh, dan caption-nya disalin) tampil di halaman yang sama. Pratinjau ponsel di sebelah kanan memperlihatkan animasi subtitle secara langsung.
@@ -404,4 +428,4 @@ output/<id_video>/
 
 ## Lisensi komponen
 
-Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), termasuk Fraunces, Caveat, Archivo Black, dan Plus Jakarta Sans, kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT). Folder `clipagent/ytkit/vendor/` berisi salinan utuh youtube-agent-skill (lisensi MIT, © 2026 Jake Schincariol, lihat `LICENSE` di folder itu).
+Pustaka QR `segno` berlisensi BSD. Font di `fonts/` dan `remotion/public/fonts/` berlisensi SIL Open Font License 1.1 (lihat file `OFL-*.txt`), termasuk Fraunces, Caveat, Archivo Black, dan Plus Jakarta Sans, kecuali Special Elite dan Permanent Marker yang berlisensi Apache 2.0 (`LICENSE-*.txt`). Peta memakai data Natural Earth (domain publik) lewat paket `world-atlas`, `topojson-client`, dan `d3-geo` (lisensi ISC). Remotion memakai Remotion License: gratis untuk perorangan dan perusahaan dengan maksimal 3 karyawan. Model deteksi wajah YuNet (`models/`) berasal dari OpenCV Zoo (lisensi MIT). Folder `clipagent/ytkit/vendor/` berisi salinan utuh youtube-agent-skill (lisensi MIT, © 2026 Jake Schincariol, lihat `LICENSE` di folder itu). Folder `clipagent/autoclip/` berisi kode yang diadaptasi dari AutoClip (lisensi MIT, © 2024 AutoClip Team, lihat `LICENSE` di folder itu).
