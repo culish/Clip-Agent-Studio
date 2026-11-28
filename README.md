@@ -105,6 +105,11 @@ Facecam dicari otomatis: wajah yang posisinya tetap di banyak frame dianggap fac
 
 Hasil deteksi bisa diatur per klip di tab **Kreatif → Layout klip**: geser kotak *Facecam / wajah* dan *Video utama* di frame, tarik pojok kanan-bawah untuk mengubah ukuran, atur tinggi panel wajah, lalu lihat pratinjaunya sebelum **Render ulang klip**. Pengaturan itu disimpan dan dipakai lagi saat klip dirender ulang.
 
+Setelah klip jadi, layout bisa diubah dengan dua cara:
+
+- **Satu layout untuk seluruh klip.** Centang **Pakai juga untuk semua klip video ini** untuk merender ulang semua klip dari video yang sama dengan kotak facecam dan video utama yang sama (cocok untuk stream yang posisi facecam-nya tetap).
+- **Ganti layout per bagian (pilih frame).** Geser penggeser waktu (atau ±1 frame) ke titik layout harus berganti, klik **Pisah di frame ini**, lalu pilih layout untuk bagian itu. Contoh: satu layar saat membuka, streaming saat gameplay, facecam di pojok saat adegan penting. Caption ikut pindah ke garis batas panel di setiap bagian, dan bagian-bagian ini ikut bergeser bila awal klip diubah di **Cek frame & durasi**.
+
 ## Video kolase editorial (tab Kolase)
 
 Dari satu voice-over menjadi video explainer bergaya kolase: foto arsip hitam-putih yang digunting dan ditempel, dokumen yang distabilo tepat saat kata itu diucapkan, peta, tipografi besar, angka yang berhitung naik, garis waktu, perbandingan, dan diagram alur. Efek suara (kertas, stempel, spidol, ketikan, transisi) disintesis sendiri dan jatuh tepat di animasinya; musik otomatis mengecil saat ada suara.
@@ -182,6 +187,21 @@ Mode **🎞️ Film 99 gaya** di tab **Film** membuat film pendek dalam salah sa
 - Gaya bertanda ✦ (Manga Panels, Text Flash Cuts, Comic History Cartoon) menggambar tokohnya dengan generator gambar milik Anda sendiri (mis. Codex CLI); tanpa itu filmnya tidak bisa dimulai. Narasi bahasa Indonesia memakai suara edge-tts dan butuh internet.
 
 Clip Agent **tidak menyertakan** isi library itu; library diunduh ke komputer Anda dari repo resminya. Panduan dan prompt gayanya berlisensi CC BY-NC 4.0, kodenya MIT. Film yang Anda buat sepenuhnya milik Anda, termasuk untuk komersial, tanpa wajib mencantumkan kredit; aset pihak ketiga di dalamnya mengikuti lisensinya masing-masing (lihat `CREDITS` tiap film). Lihat [LICENSE library](https://github.com/lemomo-ai/lemo-opuscar/blob/main/LICENSE).
+
+## Animasi 3D "cara kerja": Blender (tab Film)
+
+Mode **🧊 Animasi 3D · Blender** di tab **Film** membuat video edukasi 3D seperti septic tank dibelah, kolam renang dikuras, rem cakram, atau mesin yang dibongkar. Alurnya mengikuti pola video 3D engineering yang sering viral:
+
+1. **Riset dan bedah.** Mulai dari topik, naskah sendiri, atau tautan video YouTube/TikTok atau artikel rujukan. AI memetakan *hook*, masalah, langkah solusi teknik, dan CTA rujukan, lalu menulis naskah baru dengan sudut pandang sendiri.
+2. **Naskah dan production plan.** Rumusnya Hook (satu kalimat) → Masalah → Solusi teknik langkah demi langkah → CTA yang mengundang komentar. Tiap adegan punya narasi, aksi visual 3D, daftar objek, kamera, efek suara, dan label di layar. Tombol **Buat naskah dulu** menampilkan tabel ini sebelum merender; naskahnya bisa diedit per adegan di **Buat video**.
+3. **QC naskah.** Panjang hook, urutan struktur, tempo kata per detik terhadap durasi target, istilah teknis yang rawan salah dibaca suara AI (dieja fonetik khusus untuk suara, mis. PVC → "pe-ve-ce", sedangkan caption tetap ejaan asli), dan kemiripan dengan rujukan agar tidak dianggap konten duplikat.
+4. **Suara dan musik.** Narasi memakai suara Gemini atau Edge (gratis). Musik latar dibuat generator bawaan sesuai suasana video dan otomatis mengecil saat narasi.
+5. **Kode Blender.** Penulis yang dipilih (Claude Code bila terpasang, atau Codex, Gemini CLI, Qwen Code, opencode, atau AI di Pengaturan) menulis fungsi `build(k)` untuk tiap adegan memakai kit `clipagent/anim3d_kit/kit.py`: tangki berongga, dinding, pipa, roda gigi, pegas, label infografis, panah, potongan penampang (cutaway), air yang naik/turun, partikel yang mengalir atau mengendap, tampilan urai, dan gerak kamera yang disinkronkan ke kata-kata narasi. Kode diperiksa aturan keamanannya (tanpa akses file, tanpa impor selain math/random/mathutils/bpy), diuji di Blender, dan diperbaiki otomatis bila error atau framenya kosong. Adegan yang tetap gagal diganti animasi cadangan agar video tetap jadi.
+6. **Render dan gabung.** Blender di komputer Anda merender tiap adegan, lalu Remotion menggabungkannya dengan suara, caption, musik, dan transisi.
+
+Pilihan render: **Cepat** (Workbench, hitungan detik per adegan), **Bagus** (EEVEE, butuh kartu grafis), atau **Terbaik** (Cycles, paling realistis dan paling lama), dengan resolusi 1080p, 720p, atau 540p untuk draf. Gaya visual: Studio terang, Cetak biru, atau Hangat. Rasio 9:16 atau 16:9. Video berbahasa Inggris biasanya mendapat RPM lebih tinggi.
+
+**Yang dibutuhkan:** [Blender](https://www.blender.org/download/) 4.2 atau lebih baru (gratis). Clip Agent mencarinya di PATH dan lokasi pemasangan biasa (`C:\Program Files\Blender Foundation\…`, `/Applications/Blender.app`, `/usr/bin/blender`); bila dipasang di tempat lain, isi lokasinya di kotak Blender pada mode ini. Naskah bisa dibuat tanpa Blender. Pilihan visual **Animasi 3D (Blender)** juga ada per adegan di **Buat video**.
 
 ## Kanal: naskah, judul, SEO, Shorts, retensi (tab Kanal)
 

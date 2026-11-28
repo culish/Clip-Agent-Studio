@@ -184,7 +184,7 @@ def run_creative(kind: str, opts: dict, out_dir: Path) -> dict:
         return {**base, **auto_edit(ctx, anim_opts(opts))}
     if kind == "relayout":
         from .creative import relayout_clip
-        return {**base, **relayout_clip(ctx, {"layout": opts.get("layout")})}
+        return {**base, **relayout_clip(ctx, {k: opts.get(k) for k in ("layout", "segments", "all")})}
     if kind in ("retime", "framecheck", "trim_ai", "loudnorm"):
         from . import trim
         if kind == "retime":

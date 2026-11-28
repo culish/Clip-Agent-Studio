@@ -32,7 +32,7 @@ from .utils import ClipAgentError, check_cancel, log, progress, slugify
 
 VISUALS = {"tema": "Gambar tema (gratis, digambar otomatis)", "motion": "Motion AI (animasi kode, seperti Claude)",
            "ai_image": "Gambar AI", "ai_video": "Video AI (berbayar)", "stock": "Video stok (Pexels/Pixabay)",
-           "text": "Kartu teks"}
+           "text": "Kartu teks", "blender3d": "Animasi 3D (Blender, kode ditulis AI)"}
 CAMERAS = ["zoom_in", "pan_right", "zoom_out", "pan_left", "static"]
 TRANSITIONS = ["fade", "slide", "wipe", "flip", "clockwipe", "iris", "none"]
 LENGTHS = [30, 45, 60, 90, 180]
@@ -138,6 +138,20 @@ def clean_settings(raw: dict, base: dict | None = None) -> dict:
         r = raw["reel"]
         st["reel"] = {k: r[k] for k in ("format", "cast", "ticker", "tag", "page", "shot", "shot_ratio", "title") if k in r} \
             if len(json.dumps(r, ensure_ascii=False)) < 8000 else (base or {}).get("reel", {})
+    if isinstance(raw.get("b3d"), dict):             # Animasi 3D (Blender): gaya, kualitas, resolusi, penulis kode
+        from . import anim3d, reels
+        b, cur = raw["b3d"], dict((base or {}).get("b3d") or {})
+        if b.get("style") in anim3d.STYLES:
+            cur["style"] = b["style"]
+        if b.get("quality") in anim3d.QUALITIES:
+            cur["quality"] = b["quality"]
+        if str(b.get("scale", "")).isdigit() and int(b["scale"]) in anim3d.SCALES:
+            cur["scale"] = int(b["scale"])
+        if b.get("engine") in reels.ENGINES:
+            cur["engine"] = b["engine"]
+        st["b3d"] = cur
+    if isinstance(raw.get("anim3d"), dict) and len(json.dumps(raw["anim3d"], ensure_ascii=False)) < 24000:
+        st["anim3d"] = raw["anim3d"]
     if str(raw.get("motion_rev", "")).isdigit():
         st["motion_rev"] = int(raw["motion_rev"]) % 100000
     if st.get("visual") == "motion" and st.get("theme"):
@@ -171,6 +185,8 @@ def clean_scenes(raw: list, theme: str = "") -> list[dict]:
                     "transition": sc.get("transition") if sc.get("transition") in TRANSITIONS else "fade"})
         if str(sc.get("speaker") or "").upper() in ("A", "B"):
             out[-1]["speaker"] = str(sc["speaker"]).upper()
+        if isinstance(sc.get("b3d"), dict) and len(json.dumps(sc["b3d"], ensure_ascii=False)) < 4000:
+            out[-1]["b3d"] = sc["b3d"]
         if sc.get("template"):
             from . import reels
             if sc["template"] in reels.FORMATS and isinstance(sc.get("tdata"), dict) and \
@@ -425,12 +441,14 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
     n = len(scenes)
     span = p1 - p0
     has_motion = any((sc["visual"] or st["visual"]) == "motion" for sc in scenes)
-    vis_span = 0.15 if has_motion else 0.6               # menulis kode animasi adalah langkah terlama
+    has_3d = any((sc["visual"] or st["visual"]) == "blender3d" for sc in scenes)
+    vis_span = 0.15 if (has_motion or has_3d) else 0.6   # menulis kode animasi adalah langkah terlama
 
     # 1) narasi
     vo = []
     mode = st.get("voice_mode") or "one"
     voice_a, voice_b = _speaker_voices(st, voice, voice_engine)
+    pron = (st.get("anim3d") or {}).get("pronunciation") or []
     for i, sc in enumerate(scenes):
         check_cancel()
         progress(p0 + span * 0.35 * i / n, f"Suara narasi adegan {i + 1}/{n}")
@@ -438,7 +456,14 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
             vo.append(_silent_vo(sc["narration"], adir))
         else:
             v_ = voice_b if mode == "two" and sc.get("speaker") == "B" else (voice_a if mode == "two" else voice)
-            vo.append(tts.synthesize(sc["narration"], v_, voice_engine, style_hint, adir))
+            say = sc["narration"]
+            if pron:                                     # istilah teknis dieja fonetik untuk suara AI saja
+                from .anim3d import say_text
+                say = say_text(sc["narration"], pron)
+            v = tts.synthesize(say, v_, voice_engine, style_hint, adir)
+            if say != sc["narration"]:                   # caption tetap ejaan asli
+                v = dict(v, words=tts.estimate_words(sc["narration"], *v["speech"]))
+            vo.append(v)
 
     # 2) visual
     used: set[int] = set()
@@ -545,6 +570,9 @@ def build_assets(out_dir: Path, pid: str, p0: float = 0.0, p1: float = 1.0) -> d
         items.append(item)
     if has_motion:
         _motion_build(out_dir, proj, scenes, items, vo, adir, p0 + span * 0.5, p0 + span * 0.97)
+    if has_3d:                                           # kode Blender ditulis AI, diuji, lalu dirender
+        from . import anim3d
+        anim3d.build(out_dir, proj, scenes, items, adir, p0 + span * 0.5, p0 + span * 0.97)
     if theme and any(it["kind"] == "tema" for it in items):
         try:
             _theme_thumbs(theme, scenes, items, st["aspect"], adir, p0 + span * 0.95, p1)

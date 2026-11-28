@@ -42,6 +42,7 @@ class CaptionStyle:
     hook_text: str = ""
     progress_bar: bool = False
     y_frac: float = 0.0            # >0: caption di tengah garis ini (mis. batas dua panel layout streaming)
+    y_steps: tuple = ()            # layout per bagian: ((detik, y_frac), ...); y_frac 0 = posisi biasa
 
 
 # ---------------------------------------------------------------- utilitas
@@ -134,17 +135,24 @@ def build_ass(words: list[Word], clip_start: float, clip_end: float, width: int,
     base_c = _tag_color(style.text_color, "FFFFFF")
     clip_dur = clip_end - clip_start
 
-    # Posisi teks: anchor bawah/tengah/atas.
+    # Posisi teks: anchor bawah/tengah/atas (atau garis batas panel, bisa berganti per bagian layout).
     x = width // 2
-    if style.y_frac > 0:
-        an, y = 5, int(height * style.y_frac)
-    elif style.position == "upper":
-        an, y = 8, int(height * (0.20 if vertical else 0.10))
-    elif style.position == "middle":
-        an, y = 5, int(height * (0.58 if vertical else 0.55))
-    else:
-        an, y = 2, int(height * (0.76 if vertical else 0.92))
-    pos = rf"\an{an}\pos({x},{y})"
+
+    def place(t: float) -> tuple[int, int, str]:
+        yf = style.y_frac
+        for t0, f in style.y_steps or ():
+            if t >= t0 - 1e-3:
+                yf = f
+        if yf > 0:
+            a_, y_ = 5, int(height * yf)
+        elif style.position == "upper":
+            a_, y_ = 8, int(height * (0.20 if vertical else 0.10))
+        elif style.position == "middle":
+            a_, y_ = 5, int(height * (0.58 if vertical else 0.55))
+        else:
+            a_, y_ = 2, int(height * (0.76 if vertical else 0.92))
+        return a_, y_, rf"\an{a_}\pos({x},{y_})"
+    an, y, pos = place(0.0)
 
     hook_size = max(18, int(height * (0.031 if vertical else 0.045) * scale))
     hook_box = style.highlight
@@ -183,6 +191,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             next_start = groups[gi + 1][0].start if gi + 1 < len(groups) else clip_end
             g_start = group[0].start - clip_start
             g_end = min(next_start, group[-1].end + 0.35, clip_end) - clip_start
+            an, y, pos = place(g_start)
             toks = [_clean(w.text.upper() if style.uppercase else w.text) for w in group]
 
             if style.anim in ("static", "fade"):

@@ -320,6 +320,46 @@ def clean(raw: dict | None) -> dict:
     return out
 
 
+MIN_SEG = 0.4          # bagian layout paling pendek (detik)
+
+
+def clean_segments(raw, dur: float) -> list[dict]:
+    """Layout per bagian klip: [{"t": detik relatif awal klip, "layout": {...}}, ...], urut, bagian pertama di 0.
+    Kurang dari dua bagian (atau semua layout sama) = [] (pakai satu layout untuk seluruh klip)."""
+    out: list[dict] = []
+    for r in raw or []:
+        if not isinstance(r, dict):
+            continue
+        try:
+            t = float(r.get("t") or 0)
+        except (TypeError, ValueError):
+            continue
+        if t < 0 or t > dur - MIN_SEG:
+            continue
+        out.append({"t": round(t, 3), "layout": clean(r.get("layout"))})
+    out.sort(key=lambda x: x["t"])
+    merged: list[dict] = []
+    for seg in out:
+        if merged and (seg["t"] - merged[-1]["t"] < MIN_SEG or seg["layout"] == merged[-1]["layout"]):
+            if seg["t"] - merged[-1]["t"] < MIN_SEG:
+                merged[-1]["layout"] = seg["layout"]     # dua titik terlalu rapat: pakai yang terakhir
+            continue
+        merged.append(seg)
+    if merged:
+        merged[0]["t"] = 0.0
+    return merged if len(merged) >= 2 else []
+
+
+def shift_segments(segs: list[dict], delta: float, dur: float) -> list[dict]:
+    """Geser waktu bagian layout setelah awal klip berubah (delta = awal lama - awal baru)."""
+    if not segs:
+        return []
+    moved = [{"t": s["t"] + delta, "layout": s["layout"]} for s in segs]
+    before = [s for s in moved if s["t"] <= 0]
+    keep = ([{"t": 0.0, "layout": before[-1]["layout"]}] if before else []) + [s for s in moved if 0 < s["t"] < dur - MIN_SEG]
+    return clean_segments(keep, dur)
+
+
 def plan(lay: dict, W: int, H: int, OW: int, OH: int, det: dict | None) -> dict | None:
     """Susun panel. None = pakai render satu layar biasa (mode auto, atau wajah tidak ditemukan)."""
     mode = lay.get("mode", "auto")

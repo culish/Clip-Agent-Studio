@@ -170,6 +170,20 @@ def punch_zoom_expr(words: list[Word], start: float, end: float, factor: float =
 
 
 # ---------------------------------------------------------------- render
+def _relabel(graph: str, prefix: str, src: str, out: str) -> str:
+    """Ganti label filter agar satu graf bisa dipakai berkali-kali (per bagian layout): [0:v] -> [src], [v] -> [out]."""
+    import re
+
+    def sub(m):
+        name = m.group(1)
+        if name == "0:v":
+            return f"[{src}]"
+        if name == "v":
+            return f"[{out}]"
+        return f"[{prefix}_{name}]"
+    return re.sub(r"\[([^\[\]]+)\]", sub, graph)
+
+
 def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[Word],
                 clips_dir: Path, sub_words: list[Word] | None = None, on_frac=None,
                 name: str | None = None, bare: bool = False) -> Path:
@@ -189,17 +203,32 @@ def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[
     sub_words = sub_words if sub_words is not None else words
 
     # layout streaming / reaction / pip / podcast (hanya untuk keluaran vertikal)
-    lp = None
-    lay = lay_mod.clean(clip.get("layout") or {"mode": cfg.layout, "split": cfg.split})
-    if lay["mode"] != "auto":
+    def plan_layout(lay: dict, a: float, b: float) -> dict | None:
+        if lay["mode"] == "auto":
+            return None
         if cfg.aspect not in ("9:16", "4:5"):
             log(f"  Layout '{lay['mode']}' hanya untuk rasio 9:16 atau 4:5; memakai satu layar.")
-        else:
-            need_detect = not lay.get("face_box") or (lay["mode"] == "duo" and not lay.get("face2_box"))
-            det = lay_mod.detect(video, start, end) if need_detect else {"faces": []}
-            lp = lay_mod.plan(lay, src_w, src_h, ow, oh, det)
-            if lp:
-                log(f"  layout: {lay_mod.MODES[lp['mode']]}")
+            return None
+        need_detect = not lay.get("face_box") or (lay["mode"] == "duo" and not lay.get("face2_box"))
+        det = lay_mod.detect(video, a, b) if need_detect else {"faces": []}
+        return lay_mod.plan(lay, src_w, src_h, ow, oh, det)
+
+    # layout berbeda per bagian klip (dipilih per frame di tab Kreatif)
+    segs = lay_mod.clean_segments(clip.get("layout_segments"), dur) if cfg.aspect in ("9:16", "4:5") else []
+    seg_plans: list[tuple[float, float, dict | None]] = []
+    lp = None
+    if segs:
+        for k, sg in enumerate(segs):
+            a = sg["t"]
+            b = segs[k + 1]["t"] if k + 1 < len(segs) else dur
+            seg_plans.append((a, b, plan_layout(sg["layout"], start + a, start + b)))
+        log("  layout per bagian: " + ", ".join(
+            f"{a:.1f}s {lay_mod.MODES[p_['mode']] if p_ else lay_mod.MODES['auto']}" for a, _, p_ in seg_plans))
+    else:
+        lay = lay_mod.clean(clip.get("layout") or {"mode": cfg.layout, "split": cfg.split})
+        lp = plan_layout(lay, start, end)
+        if lp:
+            log(f"  layout: {lay_mod.MODES[lp['mode']]}")
 
     style = CaptionStyle(
         anim=cfg.anim, font=cfg.font, fake_bold=FONTS.get(cfg.font, (None, True))[1],
@@ -209,6 +238,7 @@ def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[
         hook_text=(clip.get("title") or clip.get("hook") or "") if cfg.hook_overlay else "",
         progress_bar=cfg.progress_bar,
         y_frac=(lp["seam"] if lp and lp["seam"] else 0.0),
+        y_steps=tuple((a, (p_["seam"] if p_ and p_["seam"] else 0.0)) for a, _, p_ in seg_plans),
     )
     sub_filter = ""
     if style.captions or style.hook_text or style.progress_bar:
@@ -229,25 +259,44 @@ def render_clip(cfg: Settings, video: Path, info: dict, clip: dict, words: list[
     post = f"{zoom_filter}{sub_filter}"
 
     mode = cfg.crop if cfg.aspect != "original" else "none"
-    if lp:
-        graph = lay_mod.filter_graph(lp, ow, oh, post)
-    elif mode == "blur":
-        graph = (f"[0:v]split=2[a][b];"
-                 f"[a]scale={ow}:{oh}:force_original_aspect_ratio=increase,crop={ow}:{oh},"
-                 f"gblur=sigma=28,eq=brightness=-0.07[bg];"
-                 f"[b]scale={ow}:{oh}:force_original_aspect_ratio=decrease:flags=lanczos[fg];"
-                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1{post}[v]")
-    elif mode == "none":
-        graph = f"[0:v]scale={ow}:{oh}:flags=lanczos,setsar=1{post}[v]"
-    else:
+    shots_x: list[str] = []
+
+    def single(post_: str) -> str:
+        """Satu layar: crop ikut wajah / tengah / latar blur / utuh."""
+        if mode == "blur":
+            return (f"[0:v]split=2[a][b];"
+                    f"[a]scale={ow}:{oh}:force_original_aspect_ratio=increase,crop={ow}:{oh},"
+                    f"gblur=sigma=28,eq=brightness=-0.07[bg];"
+                    f"[b]scale={ow}:{oh}:force_original_aspect_ratio=decrease:flags=lanczos[fg];"
+                    f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1{post_}[v]")
+        if mode == "none":
+            return f"[0:v]scale={ow}:{oh}:flags=lanczos,setsar=1{post_}[v]"
         y = (src_h - ch) // 2
         x = str((src_w - cw) // 2)
         if mode == "face" and src_w > cw:
-            shots = plan_shots(track_faces(video, start, end), src_w, cw)
-            x = x_expression(shots)
-            log(f"  pelacakan wajah: {len(shots)} posisi kamera")
-        graph = (f"[0:v]crop=w={cw}:h={ch}:x='{x}':y={y},"
-                 f"scale={ow}:{oh}:flags=lanczos,setsar=1{post}[v]")
+            if not shots_x:
+                shots = plan_shots(track_faces(video, start, end), src_w, cw)
+                shots_x.append(x_expression(shots))
+                log(f"  pelacakan wajah: {len(shots)} posisi kamera")
+            x = shots_x[0]
+        return (f"[0:v]crop=w={cw}:h={ch}:x='{x}':y={y},"
+                f"scale={ow}:{oh}:flags=lanczos,setsar=1{post_}[v]")
+
+    if seg_plans:
+        n = len(seg_plans)
+        fps = float(info.get("fps") or 30)
+        parts = ["[0:v]split=" + str(n) + "".join(f"[sv{k}]" for k in range(n))]
+        for k, (a, b, p_) in enumerate(seg_plans):
+            g = lay_mod.filter_graph(p_, ow, oh, "") if p_ else single("")
+            parts.append(f"[sv{k}]trim=start={a:.3f}" + (f":end={b:.3f}" if k + 1 < n else "") + f"[st{k}]")
+            parts.append(_relabel(g, f"g{k}", f"st{k}", f"so{k}"))
+            parts.append(f"[so{k}]setpts=PTS-STARTPTS,fps={fps:.3f},format=yuv420p,setsar=1[sq{k}]")
+        parts.append("".join(f"[sq{k}]" for k in range(n)) + f"concat=n={n}:v=1:a=0{post}[v]")
+        graph = ";".join(parts)
+    elif lp:
+        graph = lay_mod.filter_graph(lp, ow, oh, post)
+    else:
+        graph = single(post)
 
     cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostats", "-progress", "pipe:1", "-y",
            "-ss", f"{start:.3f}", "-i", str(video.resolve()), "-t", f"{dur:.3f}"]

@@ -157,21 +157,50 @@ def layout_info(ctx: ClipContext) -> dict:
         cache.write_text(json.dumps(sug), encoding="utf-8")
     cur = L.clean(ctx.clip.get("layout") or {"mode": ctx.render_opts.get("layout", "auto"),
                                               "split": ctx.render_opts.get("split", 0)})
+    segs = L.clean_segments(ctx.clip.get("layout_segments"), ctx.duration)
+    n_clips = sum(1 for c in ctx.plan.get("clips", []) if c.get("file"))
     return {"frame_url": ctx.url(frame), "W": W, "H": H, "OW": geo["out_w"], "OH": geo["out_h"], "aspect": aspect,
             "modes": L.MODES, "suggest": sug, "current": cur, "title": ctx.clip.get("title", ""),
+            "segments": segs, "start": ctx.start, "duration": ctx.duration, "frame_t": round(ctx.duration * 0.4, 2),
+            "fps": float(ctx.info.get("fps") or 30), "clips": n_clips,
             "video_url": ctx.url(ctx.workdir / "clips" / ctx.clip["file"]) if ctx.clip.get("file") else ""}
 
 
 def relayout_clip(ctx: ClipContext, opts: dict) -> dict:
-    """Render ulang klip dengan layout baru (streaming/reaction/pip/podcast atau satu layar)."""
+    """Render ulang klip dengan layout baru: satu layout untuk seluruh klip, atau berbeda per bagian
+    (opts["segments"] = [{"t", "layout"}]). opts["all"]: pakai layout yang sama untuk semua klip video ini."""
+    from . import layout as L
+    lay = L.clean(opts.get("layout"))
+    segs = L.clean_segments(opts.get("segments"), ctx.duration)
+    if segs:
+        lay = segs[0]["layout"]
+    cfg = ctx.settings()
+    if (lay["mode"] != "auto" or any(sg["layout"]["mode"] != "auto" for sg in segs)) and cfg.aspect not in ("9:16", "4:5"):
+        raise ClipAgentError("Layout streaming/reaction hanya untuk klip 9:16 atau 4:5. Buat ulang klip dengan rasio 9:16.")
+    others = [c["rank"] for c in ctx.plan.get("clips", []) if c.get("file") and c["rank"] != ctx.rank] \
+        if opts.get("all") and not segs else []
+    total = 1 + len(others)
+    out = _relayout_one(ctx, lay, segs, (0.05, 0.9 / total))
+    for k, rank in enumerate(others, 1):
+        check_cancel()
+        cx = load_context(ctx.out_dir, ctx.video_id, rank)      # dimuat setelah plan.json klip sebelumnya disimpan
+        try:
+            _relayout_one(cx, lay, [], (0.05 + 0.9 * k / total, 0.9 / total))
+        except ClipAgentError as exc:
+            log(f"  Klip #{rank} dilewati: {str(exc).splitlines()[0][:160]}")
+    if others:
+        log(f"Layout yang sama dipakai untuk {total} klip.")
+        out["count"] = total
+    progress(1.0, "Klip selesai dirender ulang")
+    return out
+
+
+def _relayout_one(ctx: ClipContext, lay: dict, segs: list[dict], span: tuple[float, float]) -> dict:
     import os
 
     from . import layout as L
     from .translate import translate_clip_words
-    lay = L.clean(opts.get("layout"))
     cfg = ctx.settings()
-    if lay["mode"] != "auto" and cfg.aspect not in ("9:16", "4:5"):
-        raise ClipAgentError("Layout streaming/reaction hanya untuk klip 9:16 atau 4:5. Buat ulang klip dengan rasio 9:16.")
     sub_words = None
     target = ctx.clip.get("sub_lang") or ""
     if cfg.subtitles and target and target != (ctx.tlang or ""):
@@ -183,18 +212,28 @@ def relayout_clip(ctx: ClipContext, opts: dict) -> dict:
     clips_dir = ctx.workdir / "clips"
     name = Path(ctx.clip.get("file") or f"{ctx.slug}.mp4").stem
     tmp = f"{name}__layout"
-    log(f"Render ulang klip #{ctx.rank} dengan layout: {L.MODES[lay['mode']]}")
-    out = render_clip(cfg, ctx.video, ctx.info, dict(ctx.clip, layout=lay), ctx.words, clips_dir, sub_words=sub_words,
-                      name=tmp, on_frac=lambda f: progress(0.05 + 0.9 * f, "Render ulang klip"))
+    if segs:
+        log(f"Render ulang klip #{ctx.rank} dengan {len(segs)} layout per bagian")
+    else:
+        log(f"Render ulang klip #{ctx.rank} dengan layout: {L.MODES[lay['mode']]}")
+    clip = dict(ctx.clip, layout=lay)
+    clip.pop("layout_segments", None)
+    if segs:
+        clip["layout_segments"] = segs
+    render_clip(cfg, ctx.video, ctx.info, clip, ctx.words, clips_dir, sub_words=sub_words, name=tmp,
+                on_frac=lambda f: progress(span[0] + span[1] * f, f"Render ulang klip #{ctx.rank}"))
     for ext in (".mp4", ".ass", ".srt"):
         src = clips_dir / f"{tmp}{ext}"
         if src.is_file():
             os.replace(src, clips_dir / f"{name}{ext}")
     ctx.clip["layout"] = lay
+    if segs:
+        ctx.clip["layout_segments"] = segs
+    else:
+        ctx.clip.pop("layout_segments", None)
     ctx.clip["file"] = f"{name}.mp4"
     save_plan(ctx)
-    progress(1.0, "Klip selesai dirender ulang")
-    return {"file": f"{name}.mp4", "layout": lay, "video_url": ctx.url(clips_dir / f"{name}.mp4")}
+    return {"file": f"{name}.mp4", "layout": lay, "segments": segs, "video_url": ctx.url(clips_dir / f"{name}.mp4")}
 
 
 def save_plan(ctx: ClipContext) -> None:

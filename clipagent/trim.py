@@ -162,6 +162,14 @@ def retime_clip(ctx: ClipContext, opts: dict) -> dict:
     cfg = ctx.settings()
     ctx.clip.setdefault("orig_range", [round(old[0], 3), round(old[1], 3)])
     ctx.clip["start"], ctx.clip["end"], ctx.clip["duration"] = start, end, round(end - start, 2)
+    old_segs = ctx.clip.get("layout_segments")
+    if old_segs:                                   # layout per bagian ikut bergeser bersama awal klip
+        from .layout import shift_segments
+        segs = shift_segments(old_segs, old[0] - start, end - start)
+        if segs:
+            ctx.clip["layout_segments"] = segs
+        else:
+            ctx.clip.pop("layout_segments", None)
     sub_words = None
     target = ctx.clip.get("sub_lang") or ""
     if cfg.subtitles and target and target != (ctx.tlang or ""):
@@ -181,6 +189,8 @@ def retime_clip(ctx: ClipContext, opts: dict) -> dict:
                     on_frac=lambda f: progress(0.05 + 0.7 * f, "Render ulang klip"))
     except BaseException:
         ctx.clip["start"], ctx.clip["end"], ctx.clip["duration"] = old[0], old[1], round(old[1] - old[0], 2)
+        if old_segs:
+            ctx.clip["layout_segments"] = old_segs
         raise
     for ext in (".mp4", ".ass", ".srt"):
         src = clips_dir / f"{tmp}{ext}"

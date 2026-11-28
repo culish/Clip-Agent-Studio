@@ -13,12 +13,30 @@ from .utils import ClipAgentError
 
 STUDIO_KINDS = ("remake_script", "remake_assets", "remake_render", "character_images", "kolase_storyboard", "kolase_render",
                 "kolase_paket", "kolase_preview", "kolase_clip", "kanal", "kanal_apply_edit",
-                "film_setup", "film_make", "film_revise", "reel_make")
+                "film_setup", "film_make", "film_revise", "reel_make", "anim3d_make", "anim3d_render")
 
 
 # ---------------------------------------------------------------- job
 def validate_job(body: dict, out_dir: Path) -> None:
     kind = body.get("kind")
+    if kind in ("anim3d_make", "anim3d_render"):
+        from . import anim3d
+        from .animation import remotion_status
+        try:
+            if kind == "anim3d_render":
+                proj = remake.load(out_dir, str(body.get("project") or ""))
+                body["label"] = "Animasi 3D: " + ((proj.get("script") or {}).get("title") or "video")[:60]
+                if not anim3d.status()["found"]:
+                    raise ValueError(anim3d.status()["hint"] or "Blender belum ditemukan.")
+            else:
+                anim3d.validate(body)
+                body["source"] = str(body.get("source") or "").strip()[:8000]
+                body["label"] = ("Naskah 3D: " if body.get("plan_only") else "Animasi 3D: ") + body["source"][:60]
+        except ClipAgentError as exc:
+            raise ValueError(str(exc)) from exc
+        if (kind == "anim3d_render" or not body.get("plan_only")) and not remotion_status()["ready"]:
+            raise ValueError(remotion_status()["hint"])
+        return
     if kind == "reel_make":
         from . import reels
         fmt = body.get("format")
@@ -109,6 +127,11 @@ def validate_job(body: dict, out_dir: Path) -> None:
 
 
 def run_job(kind: str, opts: dict, out_dir: Path) -> dict:
+    if kind in ("anim3d_make", "anim3d_render"):
+        from . import anim3d
+        if kind == "anim3d_render":
+            return {"kind": kind, **anim3d.render(out_dir, str(opts["project"]))}
+        return {"kind": kind, **anim3d.make(out_dir, opts)}
     if kind == "reel_make":
         from . import reels
         return {"kind": kind, **reels.make(out_dir, opts)}
@@ -252,6 +275,14 @@ def all_videos(out_dir: Path) -> list[dict]:
 
 # ---------------------------------------------------------------- routing
 def handle_get(h, p: str, q) -> bool:
+    if p == "/api/anim3d":
+        from . import anim3d
+        h._json({**anim3d.public(), "recent": anim3d.recent(h.out_dir)})
+        return True
+    if p == "/api/anim3d/plan":
+        from . import anim3d
+        h._json(anim3d.plan_view(h.out_dir, q("project") or ""))
+        return True
     if p == "/api/reels":
         from . import reels
         h._json({**reels.public(), "recent": reels.recent(h.out_dir)})
@@ -371,6 +402,10 @@ def handle_get(h, p: str, q) -> bool:
 
 def handle_post(h, p: str, body: dict) -> bool:
     out = h.out_dir
+    if p == "/api/anim3d/blender":
+        from . import anim3d
+        h._json(anim3d.save_blender_path(str(body.get("path") or "")))
+        return True
     if p == "/api/trim/suggest":
         from . import trim
         from .webapp import creative_ctx
